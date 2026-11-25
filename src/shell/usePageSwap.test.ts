@@ -1,9 +1,16 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 import { setMedia } from "../test/platform";
-import { PAGE_SWAP_MS, usePageSwap } from "./usePageSwap";
+import { pageSwapMs, usePageSwap } from "./usePageSwap";
 
+// 令牌写在 tokens.css 里，jsdom 不读样式表：这里按真实值写上。
+beforeEach(() => {
+  document.documentElement.style.setProperty("--t-fast", "120ms");
+  document.documentElement.style.setProperty("--t-pop", "220ms");
+  document.documentElement.style.setProperty("--t-slow", "260ms");
+});
 afterEach(() => {
+  for (const name of ["--t-fast", "--t-pop", "--t-slow"]) document.documentElement.style.removeProperty(name);
   vi.useRealTimers();
   setMedia("(prefers-reduced-motion: reduce)", false);
 });
@@ -15,7 +22,7 @@ describe("图片页与订阅页之间的过渡", () => {
     expect(result.current.phase).toBeNull();
     rerender({ shown: true });
     expect(result.current).toMatchObject({ phase: "in", paneHeld: true, subscriptionsLeaving: false });
-    act(() => vi.advanceTimersByTime(PAGE_SWAP_MS));
+    act(() => vi.advanceTimersByTime(pageSwapMs()));
     expect(result.current).toMatchObject({ phase: null, paneHeld: false });
   });
 
@@ -26,7 +33,7 @@ describe("图片页与订阅页之间的过渡", () => {
     expect(result.current).toMatchObject({ phase: "out-start", paneHeld: true, subscriptionsLeaving: true });
     act(() => vi.advanceTimersByTime(40));
     expect(result.current).toMatchObject({ phase: "out", paneHeld: false, subscriptionsLeaving: true });
-    act(() => vi.advanceTimersByTime(PAGE_SWAP_MS));
+    act(() => vi.advanceTimersByTime(pageSwapMs()));
     expect(result.current.phase).toBeNull();
   });
 
@@ -40,6 +47,10 @@ describe("图片页与订阅页之间的过渡", () => {
     rerender({ shown: true });
     act(() => vi.advanceTimersByTime(32));
     expect(result.current.phase).toBe("in");
+  });
+
+  it("过渡时长按动效令牌算", () => {
+    expect(pageSwapMs()).toBe(340);
   });
 
   it("减弱动效时直接换", () => {

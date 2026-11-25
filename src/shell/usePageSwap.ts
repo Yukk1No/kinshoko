@@ -1,8 +1,17 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useReducedMotion } from "../ui/reducedMotion";
 
-/** 与 `.app-workspace[data-swap]` 的动画同长：订阅页等 --t-fast 再用 --t-pop 淡入，侧栏收起（--t-slow）也在这段里。 */
-export const PAGE_SWAP_MS = 340;
+export type PageSwapPhase = "in" | "out-start" | "out";
+
+/**
+ * 与 `.app-workspace[data-swap]` 的动画同长（page-swap.css）：订阅页等 --t-fast 再用 --t-pop 淡入，侧栏收起
+ * （--t-slow）也在这段里。时长从令牌读，不另写数值。
+ */
+export function pageSwapMs() {
+  const style = getComputedStyle(document.documentElement);
+  const ms = (name: string) => Number.parseFloat(style.getPropertyValue(name)) || 0;
+  return Math.max(ms("--t-fast") + ms("--t-pop"), ms("--t-slow"));
+}
 
 /**
  * 图片页与订阅页之间的过渡（#461 待定 5，维护者选 B）：去订阅页时侧栏收起、订阅页盖在上面淡入；回来时订阅页
@@ -14,7 +23,7 @@ export const PAGE_SWAP_MS = 340;
  */
 export function usePageSwap(subscriptionsShown: boolean) {
   const reduced = useReducedMotion();
-  const [phase, setPhase] = useState<"in" | "out-start" | "out" | null>(null);
+  const [phase, setPhase] = useState<PageSwapPhase | null>(null);
   const previous = useRef(subscriptionsShown);
   // 在绘制之前定下阶段，免得先闪一帧没有过渡的样子。
   useLayoutEffect(() => {
@@ -34,7 +43,7 @@ export function usePageSwap(subscriptionsShown: boolean) {
         cancelAnimationFrame(inner);
       };
     }
-    const timer = setTimeout(() => setPhase(null), PAGE_SWAP_MS);
+    const timer = setTimeout(() => setPhase(null), pageSwapMs());
     return () => clearTimeout(timer);
   }, [phase]);
   return {

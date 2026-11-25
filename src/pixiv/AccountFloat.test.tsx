@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
 import { SaveDestinationProvider } from "../library/SaveDestination";
@@ -18,7 +18,6 @@ beforeEach(() => {
   fake = fakeBackend({
     subscriptions: list,
     subscription_check_now: null,
-    subscription_logout: status({ login: { state: "loggedOut" } }),
   });
 });
 afterEach(() => {
@@ -61,7 +60,8 @@ describe("订阅页的头像卡", () => {
     expect(await within(card()).findByText("同步于 10 分钟前")).toBeTruthy();
     expect(within(card()).getByRole("slider", { name: "图片大小" })).toBeTruthy();
     expect(within(card()).getByRole("button", { name: "订阅设置" })).toBeTruthy();
-    expect(within(card()).getByRole("button", { name: "退出登录" })).toBeTruthy();
+    // 退出登录在设置 › 订阅里，卡片里不放。
+    expect(within(card()).queryByRole("button", { name: "退出登录" })).toBeNull();
     fireEvent.mouseLeave(root);
     expect(knob.getAttribute("aria-expanded")).toBe("false");
   });
@@ -79,9 +79,9 @@ describe("订阅页的头像卡", () => {
     expect(document.activeElement).toBe(knob);
   });
 
-  it("检查新作、订阅设置与退出登录", async () => {
+  it("检查新作与订阅设置", async () => {
     const onOpenSettings = vi.fn();
-    const { knob, card, onStatus } = show(status(), { onOpenSettings });
+    const { knob, card } = show(status(), { onOpenSettings });
     fireEvent.click(knob);
     fireEvent.click(await within(card()).findByRole("button", { name: /检查新作/ }));
     await waitFor(() => expect(fake.calls("subscription_check_now")).toHaveLength(1));
@@ -91,18 +91,24 @@ describe("订阅页的头像卡", () => {
     fireEvent.click(knob);
     fireEvent.click(within(card()).getByRole("button", { name: "订阅设置" }));
     expect(onOpenSettings).toHaveBeenCalledTimes(1);
-    fireEvent.click(knob);
-    await act(async () => {
-      fireEvent.click(within(card()).getByRole("button", { name: "退出登录" }));
-    });
-    await waitFor(() =>
-      expect(onStatus).toHaveBeenCalledWith(expect.objectContaining({ login: { state: "loggedOut" } })),
-    );
   });
 
-  it("登录失效时圆钮带警告点，卡片第一行是重新登录", () => {
-    const { knob, card } = show(status({ login: { state: "expired", account } }));
-    expect(knob.querySelector(".pw-account-dot")).toBeTruthy();
+  it("登录失效时圆钮说明失效，卡片第一行是重新登录", () => {
+    render(
+      <ToastProvider>
+        <SaveDestinationProvider safe={false}>
+          <AccountFloat
+            status={status({ login: { state: "expired", account } })}
+            onStatus={vi.fn()}
+            density={null}
+            onOpenSettings={vi.fn()}
+            subscriptions={{ list } as unknown as Subscriptions}
+          />
+        </SaveDestinationProvider>
+      </ToastProvider>,
+    );
+    const knob = screen.getByRole("button", { name: "pixiv 账号 yuki_sub，登录已失效" });
+    const card = () => screen.getByRole("group", { name: "pixiv 账号 yuki_sub" });
     fireEvent.click(knob);
     const items = within(card()).getAllByRole("button");
     expect(items[0].textContent).toBe("重新登录");

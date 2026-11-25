@@ -8,7 +8,7 @@ import { accountActions } from "../subscriptions/accountActions";
 import { FirstRunDialog, firstRunSeen, markFirstRunSeen } from "../subscriptions/FirstRunDialog";
 import { SubscriptionsEmpty } from "../subscriptions/SubscriptionsEmpty";
 import { AccountFloat } from "./AccountFloat";
-import { PixivDensityContext } from "./density";
+import { type DensityControl, PixivDensityContext } from "./density";
 import { PixivHome } from "./PixivHome";
 import { useSubscriptions } from "./useSubscriptions";
 
@@ -30,7 +30,7 @@ export function SubscriptionsMain({
   /** 头像卡里的“订阅设置”：打开设置 › 订阅。 */
   onOpenSettings: () => void;
   /** 图片大小，与图片页共用一个设置；头像卡里调。 */
-  density?: { value: number; onCommit: (value: number) => void } | null;
+  density?: DensityControl | null;
   /** 页面正在淡出：头像卡先放开通知锚点。 */
   leaving?: boolean;
 }) {
@@ -96,7 +96,7 @@ function SignedInPixiv({
   status: SubscriptionStatus;
   onStatus: (status: SubscriptionStatus) => void;
   safe: boolean;
-  density: { value: number; onCommit: (value: number) => void } | null;
+  density: DensityControl | null;
   onOpenSettings: () => void;
   leaving: boolean;
 }) {

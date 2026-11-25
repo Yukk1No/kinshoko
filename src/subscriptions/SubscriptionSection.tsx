@@ -4,7 +4,9 @@ import { useTranslation } from "react-i18next";
 import { NOTICE_ORDER, usePersistentToast, useToast } from "../ui/Toast";
 import { accountActions } from "./accountActions";
 import type { Section } from "../shell/Rail";
+import type { PageSwapPhase } from "../shell/usePageSwap";
 import { SubscriptionsMain } from "../pixiv/SubscriptionsMain";
+import type { DensityControl } from "../pixiv/density";
 import { useSubscriptionStatus } from "./useSubscriptionStatus";
 
 /**
@@ -69,12 +71,12 @@ export function SubscriptionSection({
   density = null,
 }: {
   subscriptions: ReturnType<typeof useSubscriptionSection>;
-  swap?: "in" | "out-start" | "out" | null;
+  swap?: PageSwapPhase | null;
   safe: boolean;
   /** 头像卡里的“订阅设置”：打开设置 › 订阅。 */
   onOpenSettings: () => void;
   /** 图片大小（与图片页共用）。 */
-  density?: { value: number; onCommit: (value: number) => void } | null;
+  density?: DensityControl | null;
 }) {
   const last = useRef<SubscriptionStatus | null>(null);
   if (subscriptions.page) last.current = subscriptions.page;

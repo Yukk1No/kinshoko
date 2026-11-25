@@ -114,6 +114,8 @@ export default {
   /** 订阅页右下角的 pixiv 头像卡。 */
   float: {
     label: "pixiv 账号 {{name}}",
+    labelExpired: "pixiv 账号 {{name}}，登录已失效",
+    site: "pixiv",
     density: "图片大小",
     expired: "登录已失效",
   },

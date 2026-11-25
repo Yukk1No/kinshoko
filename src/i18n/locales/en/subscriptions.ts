@@ -119,8 +119,10 @@ const subscriptions: Translation<typeof zh> = {
   },
   float: {
     label: "pixiv account {{name}}",
+    labelExpired: "pixiv account {{name}}, sign-in expired",
+    site: "pixiv",
     density: "Image size",
-    expired: "Signed out",
+    expired: "Sign-in expired",
   },
   settings: {
     tab: "Subscriptions",

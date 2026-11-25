@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FolderInput, Image, LogOut, RefreshCw, Settings, TriangleAlert } from "lucide-react";
+import { FolderInput, Image, RefreshCw, Settings, TriangleAlert } from "lucide-react";
 import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
 import { errorText } from "../ipc/commandError";
 import { pixivImageSrc } from "../ipc/pixivBrowse";
@@ -13,12 +13,13 @@ import { checkedText, checkView, retryText, useNow } from "../subscriptions/chec
 import { useNewSubscriptionLibrary } from "../subscriptions/SubscriptionSettings";
 import { noticeAnchor, rowTopOf } from "../wall/noticeAnchor";
 import { NOTICE_VARS } from "../wall/WallFloats";
+import type { DensityControl } from "./density";
 import type { Subscriptions } from "./useSubscriptions";
 
 /**
  * 订阅页右下角的 pixiv 头像（右下角浮钮的一员，与图片页的打标图标、图片大小同一种外形）：平时是 40 px 的圆钮，
- * 悬停或点一下就在原地往左上长成卡片，圆钮留在卡片右下角。卡片里是检查新作、新订阅收进、图片大小、订阅设置、
- * 退出登录；登录失效时圆钮带警告点，卡片第一行是“重新登录”。
+ * 悬停或点一下就在原地往左上长成卡片，圆钮留在卡片右下角。卡片里是检查新作、新订阅收进、订阅设置，分隔线下面
+ * 单独一组是图片大小（退出登录在设置 › 订阅里）；登录失效时圆钮带警告点，卡片第一行是“重新登录”。
  * 移开指针收回；点过、键盘操作着或下拉列表开着时不收，Esc 或点卡片外面收回。圆钮排在卡片内容前面，
  * 打开后按 Tab 进卡片。
  */
@@ -32,7 +33,7 @@ export function AccountFloat({
 }: {
   status: SubscriptionStatus;
   onStatus: (status: SubscriptionStatus) => void;
-  density: { value: number; onCommit: (value: number) => void } | null;
+  density: DensityControl | null;
   onOpenSettings: () => void;
   subscriptions: Subscriptions;
   /** 页面正在淡出：通知锚点立刻交还图片页，不等组件卸载。 */
@@ -141,7 +142,7 @@ export function AccountFloat({
           ref={knob}
           type="button"
           className="pw-account-knob"
-          aria-label={t("float.label", { name: account.name })}
+          aria-label={t(expired ? "float.labelExpired" : "float.label", { name: account.name })}
           aria-expanded={open}
           onClick={(e) => {
             // 键盘按的没有按下这一步（detail 为 0）：开着就收回。
@@ -206,35 +207,35 @@ export function AccountFloat({
                 />
               </div>
             )}
-            {density && (
-              <div className="pw-account-item is-control">
-                <Image size={16} aria-hidden="true" />
-                <span>{t("float.density")}</span>
-                <DensitySlider
-                  value={density.value}
-                  preview={preview}
-                  onPreview={setPreview}
-                  onCommit={(v) => {
-                    setPreview(null);
-                    density.onCommit(v);
-                  }}
-                  label={t("float.density")}
-                />
-              </div>
-            )}
             <button type="button" className="pw-account-item" onClick={run(onOpenSettings)}>
               <Settings size={16} aria-hidden="true" />
               {t("browse.subscriptionSettings")}
             </button>
-            <div className="pw-account-sep" aria-hidden="true" />
-            <button type="button" className="pw-account-item" onClick={run(actions.signOut)}>
-              <LogOut size={16} aria-hidden="true" />
-              {t("account.signOut")}
-            </button>
+            {density && (
+              <>
+                <div className="pw-account-sep" aria-hidden="true" />
+                <div className="pw-account-item is-control">
+                  <Image size={16} aria-hidden="true" />
+                  <span>{t("float.density")}</span>
+                  <DensitySlider
+                    value={density.value}
+                    preview={preview}
+                    onPreview={setPreview}
+                    onCommit={(v) => {
+                      setPreview(null);
+                      density.onCommit(v);
+                    }}
+                    label={t("float.density")}
+                  />
+                </div>
+              </>
+            )}
           </div>
           <div className="pw-account-who">
             <span className="pw-account-name">{account.name}</span>
-            <span className={`k-list-desc${expired ? " is-warn" : ""}`}>{expired ? t("float.expired") : "pixiv"}</span>
+            <span className={`k-list-desc${expired ? " is-warn" : ""}`}>
+              {expired ? t("float.expired") : t("float.site")}
+            </span>
           </div>
         </div>
       </div>

@@ -1,0 +1,23 @@
+/* 图片页与订阅页之间的过渡（usePageSwap）：订阅页盖在工作区上，进来时等侧栏收起一段再淡入，出去时淡出。 */
+.app-workspace[data-swap] {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+}
+.app-workspace[data-swap="in"] {
+  animation: page-swap-in var(--t-pop) var(--ease) var(--t-fast) both;
+}
+.app-workspace[data-swap="out"] {
+  animation: page-swap-out var(--t-pop) var(--ease) both;
+  pointer-events: none;
+}
+@keyframes page-swap-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes page-swap-out {
+  to {
+    opacity: 0;
+  }
+}

@@ -723,12 +723,12 @@
     height var(--t-slow) var(--spring),
     border-radius var(--t-slow) var(--ease);
 }
-/* 展开后头像往里收 6 px，与底下账号名那一行居中；卡片右下角的圆角与头像同心（头像半径 16 + 离边 10）。 */
+/* 展开后头像往里收 8 px（卡片内边距），与底下账号名那一行居中；卡片右下角的圆角与圆钮同心：圆钮半径 20 + 8 = 28。 */
 .pw-account[data-open] .pw-account-shape {
-  border-radius: var(--r) var(--r) 26px var(--r);
+  border-radius: var(--r) var(--r) calc(var(--r-xl) + 8px) var(--r);
 }
 .pw-account[data-open] .pw-account-knob {
-  transform: translate(-6px, -6px);
+  transform: translate(-8px, -8px);
 }
 /* 卡片内容按展开后的大小排好，贴右下角；收着时被圆钮的形状裁掉，只淡出不重排。 */
 .pw-account-panel {
@@ -737,7 +737,7 @@
   bottom: 0;
   width: 320px;
   box-sizing: border-box;
-  padding: 6px;
+  padding: 8px;
   display: flex;
   flex-direction: column;
   opacity: 0;
@@ -822,7 +822,7 @@ button.pw-account-item:disabled {
 }
 .pw-account-who {
   height: 40px;
-  margin-right: 46px;
+  margin-right: 48px;
   padding: 0 10px;
   display: flex;
   flex-direction: column;
