@@ -26,6 +26,7 @@ const viewer: Translation<typeof zh> = {
   tools: {
     label: "Viewer tools",
     fit: "Fit to window",
+    flipHorizontal: "Flip horizontally",
     crop: "Select a region",
     background: "Background",
     showInspector: "Show details",

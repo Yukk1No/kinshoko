@@ -77,4 +77,11 @@ describe("选区画在查看器上", () => {
       height: 75,
     });
   });
+
+  it("水平翻转时选区拖动与舞台绘制互逆映射", () => {
+    // 舞台 400×300 左上角 (100, 50)，翻转后右侧 (440, 60)..(490, 110) 对应原图左上角 (20, 20)..(120, 120)。
+    const crop = cropFromDrag({ x: 440, y: 60 }, { x: 490, y: 110 }, shown, natural, true);
+    expect(crop).toEqual({ x: 20, y: 20, width: 100, height: 100 });
+    expect(cropOnScreen(crop!, shown, natural, true)).toEqual({ x: 440, y: 60, width: 50, height: 50 });
+  });
 });

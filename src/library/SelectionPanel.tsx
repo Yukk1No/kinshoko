@@ -1,9 +1,7 @@
-import { errorText } from "../ipc/commandError";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Name } from "../ui/Name";
 import { useTranslation } from "react-i18next";
 import { formatMoment } from "../i18n/format";
-import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { Folder, Link2, Sparkles, StickyNote } from "lucide-react";
 import { Segmented } from "../ui/Segmented";
 import type { ContentRating } from "../bindings/ContentRating";
@@ -13,15 +11,7 @@ import type { ImageDetail } from "../bindings/ImageDetail";
 import type { ImageEdit } from "../bindings/ImageEdit";
 import type { SafeModeScope } from "../bindings/SafeModeScope";
 import type { TaggingFailure } from "../bindings/TaggingFailure";
-import type { PermanentDeletePreview } from "../bindings/PermanentDeletePreview";
-import {
-  editImages,
-  isDeletePreviewStale,
-  permanentDelete,
-  previewEmptyTrash,
-  previewPermanentDelete,
-  workspaceImage,
-} from "../ipc";
+import { editImages, workspaceImage } from "../ipc";
 import { TagPanel } from "./TagPanel";
 import { DEFAULT_SAFE_MODE_SCOPE, ratingInSafeScope } from "../shell/safeLens";
 import { Tip } from "../ui/Tip";
@@ -111,12 +101,23 @@ function TaggingUnfinished({ failure, edit }: { failure: TaggingFailure; edit: (
 
 /** 只选中一张时：文件名、所在文件夹与备注。分级在标签面板的属性表里（见 SelectionPanel）。 */
 function Detail({
+  libraryId,
   detail,
   edit,
+  saveNote,
+  revertNote,
   stale = false,
 }: {
+  libraryId: string;
   detail: ImageDetail;
   edit: (edits: ImageEdit[]) => void;
+  saveNote: (
+    targetLibraryId: string,
+    targetImageId: string,
+    text: string,
+    silentOnUnmount?: boolean,
+  ) => Promise<boolean>;
+  revertNote: (targetLibraryId: string, targetImageId: string) => Promise<boolean>;
   /** 已选中别的图、它的详情还没到：先留着这张的，但不能操作。 */
   stale?: boolean;
 }) {
@@ -125,13 +126,53 @@ function Detail({
   const sourceText = sources.map((s) => s.text).join("\n");
   const saved = manual ?? sourceText;
   const [draft, setDraft] = useState(saved);
+  const noteSectionRef = useRef<HTMLElement>(null);
+  const draftRef = useRef(draft);
+  const savedRef = useRef(saved);
+  savedRef.current = saved;
+  const lastSubmittedRef = useRef(saved);
+  const revertingRef = useRef(false);
+  const saveNoteRef = useRef(saveNote);
+  saveNoteRef.current = saveNote;
   // 保存或退回后备注变了，草稿跟着换。在渲染中比较而不用 effect：effect 晚一拍执行时
-  // 会冲掉刚打的字。
+  // 会冲掉刚打的字；用户正在继续编辑且尚未提交新内容时，也不让早先的保存响应覆盖当前草稿。
   const [shown, setShown] = useState(saved);
   if (shown !== saved) {
     setShown(saved);
-    setDraft(saved);
+    const wasReverting = revertingRef.current;
+    revertingRef.current = false;
+    if (wasReverting || draft === shown || draft === saved) {
+      setDraft(saved);
+      draftRef.current = saved;
+      if (wasReverting || lastSubmittedRef.current === shown || lastSubmittedRef.current === saved) {
+        lastSubmittedRef.current = saved;
+      }
+    } else {
+      draftRef.current = draft;
+    }
+  } else {
+    draftRef.current = draft;
   }
+
+  const flushNote = useCallback(
+    (text: string, { onUnmount = false, force = false }: { onUnmount?: boolean; force?: boolean } = {}) => {
+      if (text === savedRef.current) return;
+      if (!force && text === lastSubmittedRef.current) return;
+      lastSubmittedRef.current = text;
+      void saveNoteRef.current(libraryId, detail.id, text, onUnmount).then((ok) => {
+        if (!ok && lastSubmittedRef.current === text) {
+          lastSubmittedRef.current = savedRef.current;
+        }
+      });
+    },
+    [libraryId, detail.id],
+  );
+
+  // 切换选中图使当前详情立即失效时、或卸载前兜底提交未保存草稿（按发起时的 libraryId 与 detail.id）。
+  useEffect(() => {
+    if (stale) flushNote(draftRef.current, { onUnmount: false });
+  }, [stale, flushNote]);
+  useEffect(() => () => flushNote(draftRef.current, { onUnmount: true }), [flushNote]);
 
   return (
     <div className="selection-detail" aria-busy={stale} inert={stale}>
@@ -166,7 +207,7 @@ function Detail({
         </section>
       )}
       {/* 备注（#98）：字段用改版样式；有未保存的改动才出现“保存”，有自己写的备注才能“用来源的”。 */}
-      <section className="insp-sec k-note">
+      <section className="insp-sec k-note" ref={noteSectionRef}>
         <label className="selection-note-field">
           <span className="insp-h">
             <StickyNote size={13} aria-hidden="true" />
@@ -178,7 +219,21 @@ function Detail({
             placeholder={t("note.placeholder")}
             value={draft}
             rows={3}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={(e) => {
+              revertingRef.current = false;
+              draftRef.current = e.target.value;
+              setDraft(e.target.value);
+            }}
+            onKeyDown={(e) => {
+              if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+                e.preventDefault();
+                flushNote(draftRef.current);
+              }
+            }}
+            onBlur={(e) => {
+              if (e.relatedTarget instanceof Node && noteSectionRef.current?.contains(e.relatedTarget)) return;
+              flushNote(draftRef.current);
+            }}
           />
         </label>
         {(draft !== saved || manual !== null) && (
@@ -188,7 +243,7 @@ function Detail({
                 type="button"
                 className="k-btn is-sm is-quiet"
                 aria-label={t("note.saveLabel")}
-                onClick={() => edit([{ kind: "setNote", text: draft }])}
+                onClick={() => flushNote(draftRef.current, { force: true })}
               >
                 <span className="k-label">{t("note.save")}</span>
               </button>
@@ -199,7 +254,19 @@ function Detail({
                 className="k-btn is-sm is-quiet selection-revert-note"
                 aria-label={t("note.revertLabel")}
                 disabled={manual === null}
-                onClick={() => edit([{ kind: "revertNote" }])}
+                onClick={() => {
+                  const snapshot = draftRef.current;
+                  revertingRef.current = true;
+                  lastSubmittedRef.current = snapshot;
+                  void revertNote(libraryId, detail.id).then((ok) => {
+                    if (!ok) {
+                      revertingRef.current = false;
+                      if (lastSubmittedRef.current === snapshot) {
+                        lastSubmittedRef.current = savedRef.current;
+                      }
+                    }
+                  });
+                }}
               >
                 <span className="k-label">{t("note.revert")}</span>
               </button>
@@ -227,149 +294,7 @@ function Detail({
   );
 }
 
-/**
- * 永久删除的确认（#67）：列出会受影响的参考组；没有时直接确认。执行时预览已过期（回收站、
- * 参考组或安全模式变了）就重新预览，让画师看过新的影响再确认。
- * emptyTrash：清空这个图库的回收站（#114），预览回收站里的全部图，之后走同一永久删除。
- */
-export function PermanentDeleteConfirm({
-  libraryId,
-  safeMode = false,
-  ids,
-  emptyTrash,
-  onDone,
-  onCancel,
-  onError,
-}: {
-  libraryId: string;
-  ids: string[];
-  emptyTrash?: { libraryName: string };
-  safeMode?: boolean;
-  onDone: () => void;
-  onCancel: () => void;
-  onError: (message: string) => void;
-}) {
-  const [preview, setPreview] = useState<PermanentDeletePreview | null>(null);
-  const [changed, setChanged] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const key = JSON.stringify([libraryId, ids, safeMode, Boolean(emptyTrash)]);
-  const currentKey = useRef(key);
-  currentKey.current = key;
-  useEffect(() => {
-    currentKey.current = key;
-    return () => {
-      currentKey.current = "";
-    };
-  }, [key]);
-
-  const load = () =>
-    (emptyTrash ? previewEmptyTrash(libraryId) : previewPermanentDelete(libraryId, ids)).then(
-      (value) => {
-        if (currentKey.current === key) setPreview(value);
-      },
-      (e) => {
-        if (currentKey.current !== key) return;
-        onError(errorText(e));
-        onCancel();
-      },
-    );
-
-  // 换了范围先清掉旧的预览；在渲染中比较，这一帧就不显示上一批的数字。重读留在 effect 里。
-  const [previewFor, setPreviewFor] = useState(key);
-  if (previewFor !== key) {
-    setPreviewFor(key);
-    setPreview(null);
-    setChanged(false);
-  }
-  // biome-ignore lint/correctness/useExhaustiveDependencies: key 已含图库、所选与安全模式，内容变了才重读；load 每次渲染都是新函数
-  useEffect(() => {
-    void load();
-  }, [libraryId, key]);
-
-  const confirm = () => {
-    if (!preview) return;
-    setBusy(true);
-    permanentDelete(libraryId, preview.imageIds, preview.token).then(
-      () => {
-        if (currentKey.current !== key) return;
-        setBusy(false);
-        onDone();
-      },
-      (e) => {
-        if (currentKey.current !== key) return;
-        setBusy(false);
-        if (isDeletePreviewStale(e)) {
-          setChanged(true);
-          setPreview(null);
-          void load();
-        } else {
-          onError(errorText(e));
-        }
-      },
-    );
-  };
-
-  const { t } = useTranslation("wall", { keyPrefix: "purge" });
-  const title = emptyTrash ? t("emptyTrash") : t("title");
-  // 提醒对话框挂在 body 上：详情面板收起（inert）时也能看到并操作（#98）。
-  return (
-    <AlertDialog.Root
-      open
-      onOpenChange={(open) => {
-        if (!open && !busy) onCancel();
-      }}
-    >
-      <AlertDialog.Portal>
-        <AlertDialog.Backdrop className="k-backdrop" />
-        <AlertDialog.Popup className="k-dialog is-alert permanent-delete" aria-label={title}>
-          <AlertDialog.Title className="k-title">{title}</AlertDialog.Title>
-          {!preview ? (
-            <p className="k-dialog-desc" role="status">
-              {t("checking")}
-            </p>
-          ) : (
-            <>
-              {changed && (
-                <p className="k-description is-spaced" role="status">
-                  {t("changed")}
-                </p>
-              )}
-              <AlertDialog.Description className="k-dialog-desc">
-                {emptyTrash
-                  ? t("confirmEmptyTrash", { library: emptyTrash.libraryName, count: preview.imageIds.length })
-                  : t("confirmCount", { count: preview.imageIds.length })}
-              </AlertDialog.Description>
-              {preview.groups.length > 0 && (
-                <>
-                  <p className="k-dialog-desc">{t("groupsIntro")}</p>
-                  <ul className="permanent-delete-groups" aria-label={t("groupsLabel")}>
-                    {preview.groups.map((g) => (
-                      <li key={g.groupId}>{t("groupCount", { name: g.name, count: g.imageIds.length })}</li>
-                    ))}
-                  </ul>
-                </>
-              )}
-            </>
-          )}
-          <div className="k-dialog-foot">
-            <span className="k-grow" />
-            <AlertDialog.Close className="k-btn" disabled={busy}>
-              <span className="k-label">{t("cancel")}</span>
-            </AlertDialog.Close>
-            <button
-              type="button"
-              className="k-btn is-danger"
-              disabled={busy || !preview || preview.imageIds.length === 0}
-              onClick={confirm}
-            >
-              <span className="k-label">{emptyTrash ? t("emptyTrash") : t("confirm")}</span>
-            </button>
-          </div>
-        </AlertDialog.Popup>
-      </AlertDialog.Portal>
-    </AlertDialog.Root>
-  );
-}
+export { PermanentDeleteConfirm } from "./PermanentDeleteConfirm";
 
 /** 选中参考图的详情：标签、分级、所在文件夹与备注；移动、删除这些操作在图片墙的右键菜单与悬浮栏里。 */
 export function SelectionPanel({
@@ -385,8 +310,10 @@ export function SelectionPanel({
   const { t } = useTranslation("inspector");
   const ids = [...selected];
   const single = ids.length === 1 ? ids[0] : null;
-  // 读到的详情记着它属于哪一次读取：切换选中图时先留着上一张的（不可操作），新的到了再换（#158）。
-  const [loaded, setLoaded] = useState<{ key: string; detail: ImageDetail } | null>(null);
+  // 读到的详情记着它属于哪一次读取与哪座资料库：切换选中图时先留着上一张的（不可操作），新的到了再换（#158）。
+  const [loaded, setLoadedState] = useState<{ key: string; libraryId: string; detail: ImageDetail } | null>(null);
+  const setLoaded = (next: { key: string; libraryId?: string; detail: ImageDetail } | null) =>
+    setLoadedState(next ? { ...next, libraryId: next.libraryId ?? libraryId } : null);
   const [failed, setFailed] = useState(false);
   const selectionKey = ids.join("\n");
   const requestKey = JSON.stringify([libraryId, selectionKey, safeMode]);
@@ -400,20 +327,25 @@ export function SelectionPanel({
   }, [requestKey]);
 
   const detailKey = JSON.stringify([requestKey, reloadKey]);
+  const currentDetailKey = useRef(detailKey);
+  currentDetailKey.current = detailKey;
+  const currentSafeMode = useRef(safeMode);
+  currentSafeMode.current = safeMode;
+  const noteSeqRef = useRef(new Map<string, number>());
   // biome-ignore lint/correctness/useExhaustiveDependencies(reloadKey): 重读信号，与下面的 generation 一样不在 effect 里读
   // biome-ignore lint/correctness/useExhaustiveDependencies(generation): 词表代次前进时重读详情
   useEffect(() => {
     let alive = true;
     setFailed(false);
     if (!single) {
-      setLoaded(null);
+      setLoadedState(null);
       return;
     }
     workspaceImage(libraryId, single).then(
-      (d) => alive && setLoaded({ key: detailKey, detail: d }),
+      (d) => alive && setLoadedState({ key: detailKey, libraryId, detail: d }),
       (e) => {
         if (alive) {
-          setLoaded(null);
+          setLoadedState(null);
           setFailed(true);
           onError(e);
         }
@@ -427,6 +359,14 @@ export function SelectionPanel({
   const detail = loaded?.detail ?? null;
   const stale = loaded?.key !== detailKey;
 
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
   const edit = (edits: ImageEdit[]) =>
     editImages(libraryId, ids, edits).then(
       (details) => {
@@ -438,6 +378,41 @@ export function SelectionPanel({
         if (currentKey.current === requestKey) onError(e);
       },
     );
+
+  const commitNoteEdit = (
+    targetLibraryId: string,
+    targetImageId: string,
+    edits: ImageEdit[],
+    silentOnUnmount = false,
+  ) => {
+    const noteTarget = `${targetLibraryId}\n${targetImageId}`;
+    const seq = (noteSeqRef.current.get(noteTarget) ?? 0) + 1;
+    noteSeqRef.current.set(noteTarget, seq);
+    return editImages(targetLibraryId, [targetImageId], edits).then(
+      (details) => {
+        if (
+          mountedRef.current &&
+          noteSeqRef.current.get(noteTarget) === seq &&
+          currentKey.current === JSON.stringify([targetLibraryId, targetImageId, currentSafeMode.current]) &&
+          details[0]
+        ) {
+          setLoadedState({ key: currentDetailKey.current, libraryId: targetLibraryId, detail: details[0] });
+        }
+        return true;
+      },
+      (e) => {
+        if (!silentOnUnmount && mountedRef.current) onError(e);
+        // 忽略失败：面板卸载时的兜底提交，不再向已卸载界面报错。
+        return false;
+      },
+    );
+  };
+
+  const saveNoteFor = (targetLibraryId: string, targetImageId: string, text: string, silentOnUnmount = false) =>
+    commitNoteEdit(targetLibraryId, targetImageId, [{ kind: "setNote", text }], silentOnUnmount);
+
+  const revertNoteFor = (targetLibraryId: string, targetImageId: string) =>
+    commitNoteEdit(targetLibraryId, targetImageId, [{ kind: "revertNote" }]);
 
   return (
     <div className="selection" aria-label={t("selection.label")}>
@@ -464,7 +439,17 @@ export function SelectionPanel({
           }
         />
       )}
-      {detail && <Detail key={detail.id} detail={detail} stale={stale} edit={(e) => void edit(e)} />}
+      {loaded && (
+        <Detail
+          key={`${loaded.libraryId}\n${loaded.detail.id}`}
+          libraryId={loaded.libraryId}
+          detail={loaded.detail}
+          stale={stale}
+          edit={(e) => void edit(e)}
+          saveNote={saveNoteFor}
+          revertNote={revertNoteFor}
+        />
+      )}
     </div>
   );
 }

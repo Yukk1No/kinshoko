@@ -21,6 +21,8 @@ export type DockEntry = {
   tone?: "danger" | "primary";
   badge?: number;
   disabled?: boolean;
+  /** 独立于单选 `value` 的开关激活态（如查看器的水平翻转）。 */
+  pressed?: boolean;
   tray?: DockTrayItem[];
   trayValue?: string;
   /** Menu items (`MenuItem`s) that open upward from the dock when the item is clicked (#180). */
@@ -167,7 +169,7 @@ export function Dock({
                 <motion.button
                   type="button"
                   className={`k-dock-item${item.tone ? ` is-${item.tone}` : ""}`}
-                  aria-pressed={item.tray ? undefined : value === item.id}
+                  aria-pressed={item.tray ? undefined : (item.pressed ?? value === item.id)}
                   aria-label={
                     item.shortcut ? t("dockItem", { label: item.label, shortcut: item.shortcut }) : item.label
                   }
@@ -181,12 +183,14 @@ export function Dock({
                   whileTap={item.disabled ? undefined : { scale: 0.9 }}
                   transition={reduced ? instant : arcSpring.snappy}
                 >
-                  {value === item.id && (
+                  {value === item.id ? (
                     <motion.span
                       layoutId="k-dock-sel"
                       className="k-dock-sel"
                       transition={reduced ? instant : arcSpring.morph}
                     />
+                  ) : (
+                    item.pressed && <span className="k-dock-sel" aria-hidden="true" />
                   )}
                   <span className="k-dock-icon">{item.icon}</span>
                   {!!item.badge && <span className="k-badge">{item.badge}</span>}
