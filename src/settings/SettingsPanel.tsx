@@ -13,6 +13,7 @@ import { TagNamePanel } from "../library/TagNamePanel";
 import { TagIdentityPanel } from "../library/TagIdentityPanel";
 import { ApplicationSettingsBackup } from "./ApplicationSettingsBackup";
 import { TagDisplaySettings } from "./TagDisplaySettings";
+import { InterfaceLanguageSetting } from "./InterfaceLanguageSetting";
 import { BackupSettings } from "./Backup";
 import { AutoTaggingSettings } from "./AutoTaggingSettings";
 import { UpdateSection } from "../Update";
@@ -187,6 +188,7 @@ export function SettingsPanel({
                       onCheckedChange={(on) => void apply({ kind: "autostart", on })}
                     />
                   </SettingsRow>
+                  <InterfaceLanguageSetting onError={setError} />
                   {uiScale !== undefined && onUiScale && (
                     <SettingsRow
                       icon={<Scaling size={16} />}

@@ -97,6 +97,7 @@ pub fn run() {
             run_log::log_timing,
             commands::interface_language,
             commands::set_interface_language,
+            commands::interface_language_choice,
             commands::ui_scale,
             commands::set_ui_scale,
             commands::double_click,

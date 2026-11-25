@@ -347,12 +347,15 @@ section + section {
 }
 .k-set-toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  gap: 8px 12px;
   margin-bottom: 10px;
 }
 .k-search {
   flex: 1;
+  /* 英文的筛选项较长：放不下时筛选项换到下一行，查找框不被挤窄（#358）。 */
+  min-width: 240px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -466,4 +469,10 @@ section + section {
 }
 .k-settings select:not(.k-select) {
   max-width: 100%;
+}
+
+/* 设置里的分段开关不截断（#358）：英文的选项长短不一，等分宽度会把最长的一项截掉；
+   每段至少放下自己的文字，多出的地方再平分。 */
+.k-settings .k-seg-item {
+  flex: 1 0 auto;
 }

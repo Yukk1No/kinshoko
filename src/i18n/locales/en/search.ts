@@ -31,14 +31,14 @@ const search: Translation<typeof zh> = {
     or: "or similar: ",
     builtin: "Built-in",
     personal: "Personal",
-    dismissLabel: "Don't expand “{{name}}”",
+    dismissLabel: "Leave out similar tags for “{{name}}”",
     addLabel: "Add a similar tag to “{{name}}”",
   },
   dismiss: {
-    label: "Don't expand similar tag",
-    prompt: "Don't expand “{{name}}”:",
+    label: "Leave out similar tags",
+    prompt: "Leave out similar tags for “{{name}}”:",
     once: "Just this time",
-    forever: "Never expand it",
+    forever: "Always leave them out",
     cancel: "Cancel",
   },
   add: {

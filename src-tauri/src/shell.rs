@@ -8,7 +8,7 @@ use kinshoko_core::CommandError;
 use std::sync::Mutex;
 
 use kinshoko_core::diagnostics::{LogEvent, WindowKind};
-use kinshoko_core::interface_lang;
+use kinshoko_core::interface_lang::{self, InterfaceLanguageSetting};
 use kinshoko_core::{
     AppSettings, GlobalShortcuts, HotkeyFailure, HotkeyRegistrar, ShellSettingsView,
     ShortcutAction, UiScale,
@@ -42,6 +42,9 @@ pub struct Shell {
 }
 
 pub struct ShellState(pub Mutex<Shell>);
+
+/// 设置里选的界面语言（#358）。与 [`ShellState`] 分开一把锁，命令不在持锁时通知窗口。
+pub struct InterfaceLanguageState(pub Mutex<InterfaceLanguageSetting>);
 
 /// 主窗口的界面缩放（#173）。与 [`ShellState`] 分开一把锁：打开主窗口（托盘、第二次启动的
 /// 回调，在主线程上）要读它；改档位的命令不在持锁时调用 WebView。
@@ -77,6 +80,10 @@ pub fn start(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     }
     // 先定下 WebView2 启动参数（强制 sRGB），之后才建窗口。
     crate::diagnostics::start(app, &settings)?;
+    // 托盘与第一个窗口建好之前按设置里的界面语言来（#358）。
+    let language = InterfaceLanguageSetting::open(crate::data_dirs::app_data(app).settings())?;
+    interface_lang::set(choose_interface_language(language.choice()));
+    app.manage(InterfaceLanguageState(Mutex::new(language)));
     let ui_scale = UiScale::open(crate::data_dirs::app_data(app).settings())?;
     app.manage(UiScaleState(Mutex::new(ui_scale)));
     let placement =
@@ -98,16 +105,21 @@ pub fn start(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-/// 定下界面语言（#354）。设置里的选项随 #358 上线，在那之前界面是简体中文；
-/// `KINSHOKO_INTERFACE_LANG`（`en` 或 `system`）供开发时指定。在准备数据目录之前调用：
-/// 迁移旧数据时留下的说明与启动失败的对话框也按界面语言写。
+/// 先按系统语言定下界面语言（#354）。在准备数据目录之前调用：迁移旧数据时留下的说明与
+/// 启动失败的对话框也按界面语言写。设置里的选择在数据目录准备好之后由 [`start`] 读进来。
 pub fn start_interface_language() {
+    interface_lang::set(choose_interface_language(interface_lang::SYSTEM));
+}
+
+/// 设置里的选择（`system` 或某种界面语言）对应的界面语言。`KINSHOKO_INTERFACE_LANG`
+/// （`zh-CN`、`en` 或 `system`）供开发时指定，优先于设置。
+pub fn choose_interface_language(choice: &str) -> &'static str {
     let specified = std::env::var("KINSHOKO_INTERFACE_LANG").ok();
     let system = sys_locale::get_locale();
-    interface_lang::set(interface_lang::choose(
-        specified.as_deref(),
+    interface_lang::choose(
+        Some(specified.as_deref().unwrap_or(choice)),
         system.as_deref(),
-    ));
+    )
 }
 
 /// 告诉各窗口界面语言改了。

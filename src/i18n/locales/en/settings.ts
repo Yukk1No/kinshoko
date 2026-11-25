@@ -22,6 +22,13 @@ const settings: Translation<typeof zh> = {
     group: "General",
     autostart: "Start at sign-in",
     autostartHint: "Wait in the tray",
+    language: "Language",
+    languageHint: "Follow system: Simplified Chinese on Chinese systems, English on others",
+    languages: {
+      system: "Follow system",
+      "zh-CN": "简体中文",
+      en: "English",
+    },
     uiScale: "Interface scale",
     uiScaleHint: "Enlarges only the main window; pins and screenshots stay the same",
     pinsGroup: "Desktop pins",
@@ -76,7 +83,7 @@ const settings: Translation<typeof zh> = {
       groups: "Groups",
       approx: "Similar",
       mapping: "Mapping",
-      appearance: "Appearance",
+      appearance: "Style",
     },
     approxGroup: "Similar tags",
     showSource: "Show source",
@@ -90,8 +97,8 @@ const settings: Translation<typeof zh> = {
     scopeHint:
       "Which rating level and up to hide. Unrated images show as usual; “R18” in search means every level in scope",
     scopeOption: {
-      sensitive: "Mild and up",
-      questionable: "Sensitive and up",
+      sensitive: "Mild+",
+      questionable: "Sensitive+",
       explicit: "Adult only",
     },
     keepSelection: "Keep selection when switching",

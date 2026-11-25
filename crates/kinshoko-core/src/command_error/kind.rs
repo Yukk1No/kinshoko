@@ -415,6 +415,10 @@ pub enum ErrorKind {
     UnknownInterfaceLanguage {
         lang: String,
     },
+    /// 保存设置里选的界面语言失败（#358）。
+    InterfaceLanguageIo {
+        detail: String,
+    },
     AutostartFailed {
         cause: Box<ErrorKind>,
     },

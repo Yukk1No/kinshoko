@@ -45,7 +45,7 @@ describe("英文界面：详情侧栏", () => {
       originLine({ kind: "manual" }, DEFAULT_TAG_DISPLAY),
       originLine({ kind: "source", source: "eagle:x", score: null }, DEFAULT_TAG_DISPLAY),
     ];
-    expect(lines).toEqual(["Auto tag, confidence 90% (high)", "Source: added by you", "Source: imported from Eagle"]);
+    expect(lines).toEqual(["Auto-tag, confidence 90% (high)", "Source: added by you", "Source: imported from Eagle"]);
   });
 
   it("标签浮层：类别与未翻译提示", async () => {

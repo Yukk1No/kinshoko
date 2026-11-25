@@ -17,8 +17,8 @@ const workspace: Translation<typeof zh> = {
   pane: {
     folders: "Folders",
     groups: "Reference groups",
-    captures: "Captures",
-    capturesLabel: "Capture history",
+    captures: "Screenshots",
+    capturesLabel: "Screenshot history",
   },
   inspector: {
     label: "Details",

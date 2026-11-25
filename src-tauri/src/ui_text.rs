@@ -55,7 +55,7 @@ fn in_lang(lang: &str, key: Text) -> &'static str {
     let en = lang == interface_lang::EN;
     match key {
         Text::TrayOpen => pick(en, "打开 Kinshoko", "Open Kinshoko"),
-        Text::TrayCapture => pick(en, "截图", "Capture"),
+        Text::TrayCapture => pick(en, "截图", "Screenshot"),
         Text::TrayPinClipboard => pick(en, "钉住剪贴板", "Pin clipboard"),
         Text::TrayEdgeHide => pick(en, "收起 / 显示钉图", "Hide or show pins"),
         Text::TrayQuit => pick(en, "退出", "Quit"),
@@ -97,11 +97,11 @@ fn in_lang(lang: &str, key: Text) -> &'static str {
             en,
             "Kinshoko 读不出桌面上的参考组：\n{path}\n\n原因：{error}\n\n这个文件原样留着，没有改动。\
              把它挪到别处（或修好）后重新启动 Kinshoko；参考组本身都还在。",
-            "Kinshoko can't read the reference group on the desk:\n{path}\n\nReason: {error}\n\n\
+            "Kinshoko can't read the reference group on the desktop:\n{path}\n\nReason: {error}\n\n\
              The file is left as it is. Move it somewhere else (or fix it), then start Kinshoko again; \
              your reference groups are all still there.",
         ),
-        Text::CaptureWindowTitle => pick(en, "Kinshoko 截图", "Kinshoko capture"),
+        Text::CaptureWindowTitle => pick(en, "Kinshoko 截图", "Kinshoko screenshot"),
         Text::MenuWindowTitle => pick(en, "Kinshoko 菜单", "Kinshoko menu"),
         Text::PinUnreadable => pick(
             en,
@@ -129,7 +129,7 @@ fn in_lang(lang: &str, key: Text) -> &'static str {
         Text::PinCaptureMissing => pick(
             en,
             "参考组里的截图文件缺失",
-            "The capture file in the reference group is missing",
+            "The screenshot file in the reference group is missing",
         ),
     }
 }
