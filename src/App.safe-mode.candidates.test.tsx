@@ -15,7 +15,7 @@ import {
   sent,
   push,
 } from "./App.fixtures";
-import { book, cardOf, changed } from "./App.safe-mode.fixture";
+import { book, cardOf, changed } from "./App.safe-mode.fixtures";
 import type { Args } from "./test/backend";
 
 describe("安全模式", () => {

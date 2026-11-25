@@ -4,7 +4,7 @@ import type { ContentRating } from "./bindings/ContentRating";
 import type { SafeModeScope } from "./bindings/SafeModeScope";
 import { App } from "./App";
 import { library, clean, detail, backend, sent, selectionPanel } from "./App.fixtures";
-import { cardOf } from "./App.safe-mode.fixture";
+import { cardOf } from "./App.safe-mode.fixtures";
 import type { Args } from "./test/backend";
 
 describe("安全模式", () => {
