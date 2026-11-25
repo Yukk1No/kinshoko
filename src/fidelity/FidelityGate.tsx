@@ -87,12 +87,17 @@ async function decode(
   };
 }
 
-async function measure(item: GateItem): Promise<SampleResult & { canvas: Canvas }> {
+async function measure(item: GateItem, track: (url?: string) => void): Promise<SampleResult & { canvas: Canvas }> {
   const derivative = item.display === "sdrDerivative";
+  const decodeAndTrack = async (what: "original" | "display" | { thumbnail: number }, needUrl = true) => {
+    const decoded = await decode(await gateImage(item.imageId, what), needUrl);
+    track(decoded.url);
+    return decoded;
+  };
   const [original, shownOrNull, thumbnail] = await Promise.all([
-    gateImage(item.imageId, "original").then((bytes) => decode(bytes, !derivative)),
-    derivative ? gateImage(item.imageId, "display").then((bytes) => decode(bytes, true)) : Promise.resolve(null),
-    gateImage(item.imageId, { thumbnail: THUMB_PX }).then((bytes) => decode(bytes, true)),
+    decodeAndTrack("original", !derivative),
+    derivative ? decodeAndTrack("display") : Promise.resolve(null),
+    decodeAndTrack({ thumbnail: THUMB_PX }),
   ]);
   // 应用在 1:1 时显示的图：派生图，或交给 WebView2 的原图。
   const shown = shownOrNull ?? original;
@@ -253,9 +258,7 @@ export function FidelityGate() {
       for (const item of p.items) {
         let result: SampleResult;
         try {
-          const { canvas, ...r } = await measure(item);
-          track(r.originalUrl);
-          track(r.thumbnailUrl);
+          const { canvas, ...r } = await measure(item, track);
           if (cancelled) return;
           setCanvasSpace(canvas.colorSpace);
           result = r;
@@ -279,7 +282,9 @@ export function FidelityGate() {
       const pins = await gatePins();
       if (cancelled) return;
       setPins(pins);
-    })().catch((e) => setError(String(e)));
+    })().catch((e) => {
+      if (!cancelled) setError(String(e));
+    });
     return () => {
       cancelled = true;
       for (const url of createdUrls) URL.revokeObjectURL(url);

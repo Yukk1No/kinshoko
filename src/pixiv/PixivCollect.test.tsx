@@ -322,7 +322,7 @@ describe("应用内浏览的收图", () => {
         }),
     );
     act(() => {
-      result.current.track([work("9")]);
+      result.current.track([work("2")]);
     });
     await act(async () => {
       finishCollect();
@@ -339,5 +339,34 @@ describe("应用内浏览的收图", () => {
       await Promise.resolve();
     });
     expect(result.current.collected.get("2")?.has(0)).toBe(true);
+  });
+
+  it("组件卸载后收图收尾不再补发已收查询（#716）", async () => {
+    setup({ libraryId: "L", folderId: "F" });
+    let finishCollect: () => void = () => {};
+    fake.on(
+      "subscription_collect",
+      () =>
+        new Promise<HandReport>((resolve) => {
+          finishCollect = () => resolve({ collected: 1, already: 0, failed: 0, skipped: false });
+        }),
+    );
+    const { result, unmount } = renderHook(() => useCollect([], null), {
+      wrapper: ({ children }) => <SaveDestinationProvider safe={false}>{children}</SaveDestinationProvider>,
+    });
+    await waitFor(() => expect(fake.calls("workspace_directories").length).toBeGreaterThan(0));
+    await new Promise((r) => setTimeout(r, 0));
+
+    act(() => {
+      result.current.collect(work("2"));
+    });
+    await waitFor(() => expect(fake.calls("subscription_collect")).toHaveLength(1));
+    const before = fake.calls("subscription_collected").length;
+    unmount();
+    await act(async () => {
+      finishCollect();
+      for (let i = 0; i < 6; i++) await Promise.resolve();
+    });
+    expect(fake.calls("subscription_collected")).toHaveLength(before);
   });
 });

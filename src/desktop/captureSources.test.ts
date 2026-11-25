@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { createElement } from "react";
-import { render } from "@testing-library/react";
+import { act, render } from "@testing-library/react";
 import { emit } from "@tauri-apps/api/event";
 import { fakeBackend } from "../test/backend";
 import { captureImage, readCaptureFrame, useCaptureSources } from "./captureSources";
@@ -111,5 +111,48 @@ it("平时不常驻根级 MutationObserver，仅在收到截图请求后按需�
     expect(reports[1].generation).toBeGreaterThan(reports[0].generation);
   } finally {
     view.unmount();
+  }
+});
+
+it("无变动时 generation 不变，5 秒空闲后停止 DOM 观察（#716）", async () => {
+  vi.useFakeTimers();
+  const reports: Array<{ generation: number }> = [];
+  fakeBackend({
+    report_capture_references: (args) => {
+      reports.push((args as { frame: { generation: number } }).frame);
+      return null;
+    },
+  });
+  const disconnectSpy = vi.spyOn(MutationObserver.prototype, "disconnect");
+  function Harness() {
+    useCaptureSources(() => [], -100);
+    return null;
+  }
+  const view = render(createElement(Harness));
+  try {
+    await act(async () => {});
+    const request = async (name: string) => {
+      await act(async () => {
+        await emit("capture-reference-request", { request: name });
+      });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(40);
+      });
+    };
+    await request("r1");
+    expect(reports).toHaveLength(1);
+
+    await request("r2");
+    expect(reports).toHaveLength(2);
+    expect(reports[1].generation).toBe(reports[0].generation);
+    expect(disconnectSpy).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000);
+    });
+    expect(disconnectSpy).toHaveBeenCalled();
+  } finally {
+    view.unmount();
+    vi.useRealTimers();
   }
 });

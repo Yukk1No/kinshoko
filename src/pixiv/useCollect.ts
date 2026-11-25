@@ -132,7 +132,7 @@ export function useCollect(works: PixivWork[] = NO_WORKS, feedback: Feedback | n
             return next;
           });
         }
-        await refresh([work.id]);
+        if (alive.current) await refresh([work.id]);
       }
     },
     [refresh, t, feedback],

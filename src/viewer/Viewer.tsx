@@ -87,14 +87,15 @@ export function Viewer({
   const [name, setName] = useState<string | null>(null);
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
-  const activeCardRef = useRef<{ libraryId: string; id: string } | null>({ libraryId, id: card.id });
+  const activeCardRef = useRef({ libraryId, id: card.id });
   activeCardRef.current = { libraryId, id: card.id };
-  useEffect(
-    () => () => {
-      activeCardRef.current = null;
-    },
-    [],
-  );
+  const mountedRef = useRef(false);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
   const fitWidth = Math.min(
     card.width,
     Math.floor(viewport.width * dpr),
@@ -224,19 +225,21 @@ export function Viewer({
     return { x: e.clientX - rect.left, y: e.clientY - rect.top };
   };
   const isCurrentCard = (target: { libraryId: string; id: string }) =>
-    activeCardRef.current?.libraryId === target.libraryId && activeCardRef.current?.id === target.id;
+    mountedRef.current &&
+    activeCardRef.current.libraryId === target.libraryId &&
+    activeCardRef.current.id === target.id;
   /** 钉到桌面：整图（crop 为 null）或选区；钉图以它此刻在查看器里的位置为中心出现。 */
   const pin = (region: Region | null) => {
     const target = { libraryId, id: card.id };
     const rect: CssRect = region ? cropOnScreen(region, shown, natural) : { x: left, y: top, width, height };
     pinReference(target.libraryId, target.id, region, toScreenRect(rect, viewport, dpr)).then(
       () => {
-        if (activeCardRef.current) toast.show({ title: region ? t("pinnedPart") : t("pinnedWhole"), tone: "success" });
+        toast.show({ title: region ? t("pinnedPart") : t("pinnedWhole"), tone: "success" });
       },
       (e) => {
         if (isUnknownImage(e)) {
           if (isCurrentCard(target)) closeRef.current();
-        } else if (activeCardRef.current) {
+        } else {
           toast.error(t("common:image.pinFailed", { error: errorText(e) }));
         }
       },
@@ -247,12 +250,12 @@ export function Viewer({
     const target = { libraryId, id: card.id };
     copyReferenceImage(target.libraryId, target.id).then(
       () => {
-        if (activeCardRef.current) toast.show({ title: t("common:image.copied"), tone: "success" });
+        toast.show({ title: t("common:image.copied"), tone: "success" });
       },
       (e) => {
         if (isUnknownImage(e)) {
           if (isCurrentCard(target)) closeRef.current();
-        } else if (activeCardRef.current) {
+        } else {
           toast.error(t("common:image.copyFailed", { error: errorText(e) }));
         }
       },
@@ -263,7 +266,7 @@ export function Viewer({
     revealReferenceImage(target.libraryId, target.id).catch((e) => {
       if (isUnknownImage(e)) {
         if (isCurrentCard(target)) closeRef.current();
-      } else if (activeCardRef.current) {
+      } else {
         toast.error(t("common:image.revealFailed", { error: errorText(e) }));
       }
     });

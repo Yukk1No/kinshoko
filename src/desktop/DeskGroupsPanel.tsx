@@ -53,7 +53,7 @@ let deskStop: (() => void) | null = null;
 const deskListeners = new Set<() => void>();
 
 function notifyDesk() {
-  for (const listener of deskListeners) listener();
+  for (const listener of [...deskListeners]) listener();
 }
 
 function loadDesk(session: number) {
