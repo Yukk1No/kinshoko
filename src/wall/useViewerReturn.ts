@@ -4,7 +4,7 @@ import type { MutableRefObject } from "react";
 import type { masonry } from "./layout";
 import type { createSmoothWheel } from "./smoothWheel";
 import { stackHolding } from "./imageSets";
-import type { BrowserCard } from "./wallShared";
+import { findCardElement, type BrowserCard } from "./wallShared";
 
 export function useViewerLeave({
   viewerOpen,
@@ -63,7 +63,7 @@ export function useReturnFocus({
       el.scrollTop = Math.max(0, box.y - Math.max(0, (el.clientHeight - box.h) / 2));
       syncMount(el);
     }
-    el.querySelector<HTMLElement>(`.card[data-id="${id}"]`)?.focus({ preventScroll: true });
+    findCardElement(el, id)?.focus({ preventScroll: true });
   });
 }
 

@@ -75,13 +75,20 @@ export function CaptureHistoryPanel({
 
   useEffect(() => {
     let alive = true;
-    captureHistory().then((value) => alive && setEntries(value));
-    const unlisten = onCaptureHistory((value) => setEntries(value));
+    captureHistory().then(
+      (value) => alive && setEntries(value),
+      (e) => {
+        if (alive) toast.error(errorText(e));
+      },
+    );
+    const unlisten = onCaptureHistory((value) => {
+      if (alive) setEntries(value);
+    });
     return () => {
       alive = false;
       void unlisten.then((stop) => stop());
     };
-  }, []);
+  }, [toast]);
 
   const run = (action: Promise<unknown>) => {
     action.catch((e) => toast.error(errorText(e)));

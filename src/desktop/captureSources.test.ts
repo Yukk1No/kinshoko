@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { captureImage, readCaptureFrame } from "./captureSources";
+import { createElement } from "react";
+import { act, render } from "@testing-library/react";
+import { emit } from "@tauri-apps/api/event";
+import { fakeBackend } from "../test/backend";
+import { captureImage, readCaptureFrame, useCaptureSources } from "./captureSources";
 
 // #216：截图前后主窗口各报告一次可见参考图。每张图都重新遍历整个文档、读一遍所有元素的矩形时，
 // 图片墙和侧栏越大越慢；一次报告里所有图共用同一份矩形。
@@ -78,4 +82,77 @@ it("共用矩形与逐张读取得到相同的可见范围与遮挡", () => {
   expect(shared).toEqual(alone);
   expect(shared[0]?.covered).toEqual([{ x: 40, y: 40, width: 20, height: 20 }]);
   expect(shared.slice(1).every((reference) => reference?.covered.length === 0)).toBe(true);
+});
+
+it("平时不常驻根级 MutationObserver，仅在收到截图请求后按需观察并推进 generation（#716）", async () => {
+  const reports: Array<{ generation: number }> = [];
+  fakeBackend({
+    report_capture_references: (args) => {
+      reports.push((args as { frame: { generation: number } }).frame);
+      return null;
+    },
+  });
+  const observeSpy = vi.spyOn(MutationObserver.prototype, "observe");
+  function Harness() {
+    useCaptureSources(() => [], -100);
+    return null;
+  }
+  const view = render(createElement(Harness));
+  try {
+    expect(observeSpy).not.toHaveBeenCalled();
+
+    await emit("capture-reference-request", { request: "r1" });
+    await vi.waitFor(() => expect(reports).toHaveLength(1));
+    expect(observeSpy).toHaveBeenCalledTimes(1);
+
+    document.body.setAttribute("data-probe", "changed");
+    await emit("capture-reference-request", { request: "r2" });
+    await vi.waitFor(() => expect(reports).toHaveLength(2));
+    expect(reports[1].generation).toBeGreaterThan(reports[0].generation);
+  } finally {
+    view.unmount();
+  }
+});
+
+it("无变动时 generation 不变，5 秒空闲后停止 DOM 观察（#716）", async () => {
+  vi.useFakeTimers();
+  const reports: Array<{ generation: number }> = [];
+  fakeBackend({
+    report_capture_references: (args) => {
+      reports.push((args as { frame: { generation: number } }).frame);
+      return null;
+    },
+  });
+  const disconnectSpy = vi.spyOn(MutationObserver.prototype, "disconnect");
+  function Harness() {
+    useCaptureSources(() => [], -100);
+    return null;
+  }
+  const view = render(createElement(Harness));
+  try {
+    await act(async () => {});
+    const request = async (name: string) => {
+      await act(async () => {
+        await emit("capture-reference-request", { request: name });
+      });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(40);
+      });
+    };
+    await request("r1");
+    expect(reports).toHaveLength(1);
+
+    await request("r2");
+    expect(reports).toHaveLength(2);
+    expect(reports[1].generation).toBe(reports[0].generation);
+    expect(disconnectSpy).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000);
+    });
+    expect(disconnectSpy).toHaveBeenCalled();
+  } finally {
+    view.unmount();
+    vi.useRealTimers();
+  }
 });
