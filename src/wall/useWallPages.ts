@@ -30,6 +30,8 @@ export function useWallPages({
   restoring,
   anchor,
   shownCards,
+  visibleCardId,
+  preservedIds,
   measureBeforeReflow,
   onWorkspaceStatus,
   releasePage,
@@ -52,6 +54,10 @@ export function useWallPages({
   restoring: MutableRefObject<boolean>;
   anchor: MutableRefObject<Anchor | null>;
   shownCards: MutableRefObject<BrowserCard[]>;
+  /** 此刻视口顶部附近的卡片；锚点图刚被移走时用它代表邻近可见位置。 */
+  visibleCardId: () => string | null;
+  /** 重新浏览后仍要留在已读前缀里的图（选中项；查看器当前图按 #179 同步进选中）。 */
+  preservedIds: MutableRefObject<ReadonlySet<string>>;
   measureBeforeReflow: (keepSafe?: boolean) => void;
   onWorkspaceStatus: ((status: WorkspaceStatus, cards: BrowserCard[]) => void) | undefined;
   releasePage: MutableRefObject<boolean>;
@@ -93,13 +99,21 @@ export function useWallPages({
 
   const reloadTarget = useCallback(() => {
     const shown = shownCards.current;
-    const targetId = anchor.current?.id;
-    if (targetId && shown.length > PAGE) {
-      const idx = shown.findIndex((c) => c.id === targetId || c.set?.pages.some((p) => p.id === targetId));
-      if (idx >= 0) return Math.max(PAGE, Math.min(shown.length, idx + KNOWN_MARGIN));
+    const wanted = new Set<string>();
+    if (anchor.current?.id) wanted.add(anchor.current.id);
+    const visible = visibleCardId();
+    if (visible) wanted.add(visible);
+    for (const id of preservedIds.current) wanted.add(id);
+    let furthest = -1;
+    if (wanted.size) {
+      for (let i = 0; i < shown.length; i++) {
+        const card = shown[i];
+        if (wanted.has(card.id) || card.set?.pages.some((page) => wanted.has(page.id))) furthest = i;
+      }
     }
+    if (furthest >= 0 && shown.length > PAGE) return Math.max(PAGE, Math.min(shown.length, furthest + KNOWN_MARGIN));
     return Math.min(Math.max(shown.length, PAGE), MAX_RELOAD);
-  }, [shownCards, anchor]);
+  }, [shownCards, anchor, visibleCardId, preservedIds]);
 
   /** 从头取至少 want 张，一次替换，避免列表闪空。之前还在路上的请求一律作废。 */
   const reload = useCallback(

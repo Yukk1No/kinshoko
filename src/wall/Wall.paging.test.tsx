@@ -138,6 +138,108 @@ it("重新浏览一直撞上游标过期：重取几次后报错，不无限重�
   expect(document.querySelector('[role="alert"]')?.textContent).toBe(EXPIRED_TEXT);
 });
 
+it("查看器里跨页浏览时重新浏览保留正在看的图", async () => {
+  const wallRef = createRef<WallHandle>();
+  let loadedIds: string[] = [];
+  const pageCards = (start: number) => Array.from({ length: PAGE }, (_, i) => card(`c${start + i}`));
+  const record = (cards: { id: string }[]) => {
+    loadedIds = cards.map((c) => c.id);
+  };
+  const view = render(
+    <Wall ref={wallRef} {...base} safeMode={false} reloadKey={0} viewerOpen onCardsChange={record} />,
+  );
+  await settle();
+
+  await act(async () => calls[0].resolve(workspacePage(pageCards(0), PAGE * 3, "c1")));
+  await settle();
+  // 打开查看器前墙停在首页顶部：锚点就是首页的图。
+  const scroller = document.querySelector<HTMLElement>(".wall")!;
+  scroller.scrollTop = 0;
+  fireEvent.scroll(scroller);
+  for (let page = 1; page < 3; page++) {
+    act(() => wallRef.current!.loadMore());
+    await settle();
+    await act(async () =>
+      calls[page].resolve(workspacePage(pageCards(page * PAGE), PAGE * 3, page < 2 ? `c${page + 1}` : null)),
+    );
+    await settle();
+  }
+  expect(loadedIds).toHaveLength(PAGE * 3);
+
+  // 查看器已经走到第 3 页；墙因查看器盖着没有滚动，视口锚点仍停在首页。
+  const reloadStarts = calls.length;
+  view.rerender(
+    <Wall
+      ref={wallRef}
+      {...base}
+      safeMode={false}
+      reloadKey={1}
+      viewerOpen
+      selected={new Set(["c1200"])}
+      onCardsChange={record}
+    />,
+  );
+  await settle();
+  expect(calls.length).toBeGreaterThan(reloadStarts);
+  for (let page = 0; page < 3; page++) {
+    const call = calls[reloadStarts + page];
+    if (!call) break;
+    await act(async () =>
+      call.resolve(workspacePage(pageCards(page * PAGE), PAGE * 3, page < 2 ? `r${page + 1}` : null)),
+    );
+    await settle();
+  }
+  expect(loadedIds).toHaveLength(PAGE * 3);
+  expect(loadedIds).toContain("c1200");
+});
+
+it("视口锚点图被移走时重新浏览仍以邻近可见位置为下界", async () => {
+  const wallRef = createRef<WallHandle>();
+  let loadedIds: string[] = [];
+  const pageCards = (start: number) => Array.from({ length: PAGE }, (_, i) => card(`c${start + i}`));
+  const record = (cards: { id: string }[]) => {
+    loadedIds = cards.map((c) => c.id);
+  };
+  const view = render(<Wall ref={wallRef} {...base} safeMode={false} reloadKey={0} onCardsChange={record} />);
+  await settle();
+
+  for (let page = 0; page < 5; page++) {
+    await act(async () =>
+      calls[page].resolve(workspacePage(pageCards(page * PAGE), PAGE * 5, page < 4 ? `c${page + 1}` : null)),
+    );
+    await settle();
+    if (page < 4) {
+      act(() => wallRef.current!.loadMore());
+      await settle();
+    }
+  }
+  expect(loadedIds).toHaveLength(PAGE * 5);
+
+  // 1000px 宽、240px 目标列宽时一列行距是 246px；c2000 在第 500 行最左列顶端。
+  const scroller = document.querySelector<HTMLElement>(".wall")!;
+  scroller.scrollTop = 12 + 500 * 246;
+  fireEvent.scroll(scroller);
+  act(() => wallRef.current!.remove(["c2000"]));
+  await settle();
+  expect(loadedIds).not.toContain("c2000");
+
+  const reloadStarts = calls.length;
+  view.rerender(<Wall ref={wallRef} {...base} safeMode={false} reloadKey={1} onCardsChange={record} />);
+  await settle();
+  expect(calls.length).toBeGreaterThan(reloadStarts);
+  for (let page = 0; page < 5; page++) {
+    const call = calls[reloadStarts + page];
+    if (!call) break;
+    await act(async () =>
+      call.resolve(workspacePage(pageCards(page * PAGE), PAGE * 5, page < 4 ? `r${page + 1}` : null)),
+    );
+    await settle();
+  }
+  // c2000 原来的位置旁边就是 c2001；重拉不能只停在 2000 张的默认上限。
+  expect(loadedIds).toHaveLength(PAGE * 5 - 1);
+  expect(loadedIds).toContain("c2001");
+});
+
 it("加载多页但锚点停在首屏顶部时，重新浏览只拉取首屏所需页数而不全量重拉已加载页", async () => {
   const wallRef = createRef<WallHandle>();
   const makePage = (prefix: string) => Array.from({ length: PAGE }, (_, i) => card(`${prefix}${i}`));

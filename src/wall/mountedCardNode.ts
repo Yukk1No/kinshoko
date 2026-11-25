@@ -21,6 +21,7 @@ export type RenderedCards = Map<
     language: string;
     trayPage: number;
     veiledPages: string;
+    scopeKind: string | undefined;
     node: ReactNode;
   }
 >;
@@ -41,8 +42,8 @@ function sameSources(a: BrowserCard["sources"], b: BrowserCard["sources"]): bool
       s.matches === o.matches &&
       s.deleted === o.deleted &&
       (s.unavailable === o.unavailable ||
-        (s.unavailable !== null &&
-          o.unavailable !== null &&
+        (s.unavailable != null &&
+          o.unavailable != null &&
           s.unavailable.code === o.unavailable.code &&
           JSON.stringify(s.unavailable) === JSON.stringify(o.unavailable)))
     );
@@ -118,6 +119,7 @@ export function mountedCardNode({
   const landing = arriving.has(card.id);
   // 托盘里的页记下页码（从 1 起）。
   const trayPage = tray && i >= tray.at && i < tray.at + tray.count ? i - tray.at + 1 : 0;
+  const scopeKind = workspaceScope?.kind;
   // 没变的卡片沿用上次的元素，React 跳过整张卡片的比对（#109）。
   const kept = renderedCards.current.get(card.id);
   if (
@@ -132,7 +134,8 @@ export function mountedCardNode({
     kept.tier === tier &&
     kept.language === language &&
     kept.trayPage === trayPage &&
-    kept.veiledPages === veiledPages
+    kept.veiledPages === veiledPages &&
+    kept.scopeKind === scopeKind
   ) {
     nextRendered.set(card.id, kept);
     return kept.node;
@@ -164,6 +167,7 @@ export function mountedCardNode({
     language,
     trayPage,
     veiledPages,
+    scopeKind,
     node,
   });
   return node;

@@ -157,5 +157,14 @@ describe("mountedCardNode 卡片复用缓存", () => {
       nextRendered: new Map(),
     });
     expect(nodePlaceholder).not.toBe(node1);
+
+    // 浏览范围种类参与卡片的 draggable，缓存键也要算上。
+    const nodeScope = mountedCardNode({
+      ...base,
+      workspaceScope: { kind: "library", libraryId: "L1", scope: { kind: "all" } },
+      renderedCards: { current: next1 },
+      nextRendered: new Map(),
+    });
+    expect(nodeScope).not.toBe(node1);
   });
 });

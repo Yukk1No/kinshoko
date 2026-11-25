@@ -1,5 +1,4 @@
 import {
-  memo,
   useCallback,
   useEffect,
   useImperativeHandle,
@@ -17,6 +16,7 @@ import { pixivImageSrc } from "../ipc/pixivBrowse";
 import { mountWindow, type MountWindow } from "../wall/prefetch";
 import { CAP_RATIO, GAP, OVERSCAN, PAD, TARGET } from "../wall/wallShared";
 import { pixivMasonry, visibleIn, type PixivLayout } from "./layout";
+import { PixivWallCard as Card } from "./PixivWallCard";
 import type { CollectedPages, CollectOptions } from "./useCollect";
 import { useFeedbackContext } from "./useFeedback";
 import { useSubscriptionsContext } from "./useSubscriptions";
@@ -79,11 +79,7 @@ export function PixivWall({
   const [size, setSize] = useState({ width: 0, height: 0 });
   const scrollTopRef = useRef(0);
   const mountRef = useRef<MountWindow | null>(null);
-  const [mount, setMount] = useState<MountWindow>(() => {
-    const initial = mountWindow(null, 0, 0, OVERSCAN);
-    mountRef.current = initial;
-    return initial;
-  });
+  const [mount, setMount] = useState<MountWindow>({ top: 0, bottom: 0 });
   const syncMount = useCallback((top: number, height: number) => {
     const next = mountWindow(mountRef.current, top, height, OVERSCAN);
     if (next === mountRef.current) return;
@@ -99,8 +95,10 @@ export function PixivWall({
     const measure = () => {
       const width = el.clientWidth;
       const height = el.clientHeight;
+      const top = el.scrollTop;
+      scrollTopRef.current = top;
       setSize((prev) => (prev.width === width && prev.height === height ? prev : { width, height }));
-      syncMount(scrollTopRef.current, height);
+      syncMount(top, height);
     };
     measure();
     const observer = new ResizeObserver(measure);
@@ -132,6 +130,16 @@ export function PixivWall({
     });
   }, [shown, size.width, density, current, bandHeight]);
   const total = placed.reduce((sum, s) => sum + s.layout.height, 0);
+
+  // 画布变矮时浏览器会先把 scrollTop 夹回去，这个变化不一定经过 scroll 事件：按真实位置同步挂载窗口。
+  // biome-ignore lint/correctness/useExhaustiveDependencies(total): 画布高度变了就按真实 scrollTop 重新同步
+  useLayoutEffect(() => {
+    const el = scroller.current;
+    if (!el) return;
+    const top = el.scrollTop;
+    scrollTopRef.current = top;
+    syncMount(top, el.clientHeight);
+  }, [total, syncMount]);
 
   // 视口顶上是哪一段，以及接近墙底时边沿触发（不逐像素重渲染）。
   const reported = useRef<string | undefined>(undefined);
@@ -279,69 +287,6 @@ export function PixivWall({
     </div>
   );
 }
-
-const Card = memo(function Card({
-  sectionKey,
-  work,
-  left,
-  top,
-  width,
-  height,
-  on,
-  collected,
-  busy,
-  onSelect,
-  onCollect,
-}: {
-  sectionKey: string;
-  work: PixivWork;
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-  on: boolean;
-  collected: boolean;
-  busy: boolean;
-  onSelect: (section: string, id: string) => void;
-  onCollect?: (work: PixivWork, options?: CollectOptions) => void;
-}) {
-  const { t } = useTranslation("subscriptions");
-  const feedback = useFeedbackContext();
-  const src = pixivImageSrc(work.pages[0]?.preview ?? "");
-  // 动图不收，不给收图按钮。
-  const collectable = !!onCollect && work.kind !== "animation";
-  return (
-    <div className="pw-card" data-on={on || undefined} style={{ left, top, width, height }}>
-      <button
-        type="button"
-        className="pw-card-open"
-        aria-pressed={on}
-        aria-label={t("browse.work", { title: work.title, artist: work.artist.name })}
-        onClick={() => onSelect(sectionKey, work.id)}
-      >
-        {src && <img src={src} alt="" loading="lazy" decoding="async" draggable={false} />}
-      </button>
-      {work.pages.length > 1 && <span className="pw-pages">{t("browse.pages", { count: work.pages.length })}</span>}
-      {collected ? (
-        <span className="pw-collected">{t("browse.collected")}</span>
-      ) : busy ? (
-        <span className="pw-collected">{t("browse.collecting")}</span>
-      ) : (
-        collectable && (
-          <button
-            type="button"
-            className="pw-collect k-btn"
-            aria-label={t("browse.favoriteWork", { title: work.title })}
-            disabled={feedback?.bookmarkPending(work.id) ?? false}
-            onClick={(e) => onCollect?.(work, { bookmark: true, from: e.currentTarget.closest(".pw-card") })}
-          >
-            {t("browse.favorite")}
-          </button>
-        )
-      )}
-    </div>
-  );
-});
 
 /** 在墙里原地展开的一格：左边大图，右边作品信息。 */
 function Band({

@@ -63,7 +63,16 @@ export function useSealRelease({
       }
     }
     const prev = revealedRef.current;
-    if (adultIds.size === prev.size && [...adultIds].every((id) => prev.has(id))) return;
+    let unchanged = adultIds.size === prev.size;
+    if (unchanged) {
+      for (const id of adultIds) {
+        if (!prev.has(id)) {
+          unchanged = false;
+          break;
+        }
+      }
+    }
+    if (unchanged) return;
     const frame = requestAnimationFrame(() => setRevealed(adultIds));
     return () => cancelAnimationFrame(frame);
   }, [cards, safeMode]);
