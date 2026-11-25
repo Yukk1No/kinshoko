@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { MenuPopup } from "../ui/Menu";
 import type { WallMenuTarget } from "./WallMenu";
-import { masonry, type Anchor } from "./layout";
+import { captureAnchor, masonry, type Anchor } from "./layout";
 import { createNotchCounter } from "./zoom";
 import type { createSmoothWheel } from "./smoothWheel";
 import { mountWindow, type MountWindow } from "./prefetch";
@@ -168,6 +168,15 @@ export function Wall({
     beforeBoxes,
     live,
   });
+  const selectedForReload = useRef(selected);
+  selectedForReload.current = selected;
+  /** 此刻视口顶部附近的卡片；不读记忆的锚点，锚点图刚被移走时仍能代表邻近可见位置。 */
+  const visibleCardId = useCallback(() => {
+    const el = scroller.current;
+    const current = live.current.layout;
+    if (!el || !current) return null;
+    return captureAnchor(current, live.current.ids, el.scrollTop, el.clientHeight)?.id ?? null;
+  }, []);
 
   /** 封印后按原型节奏移走飞走的图的那一帧（requestAnimationFrame id）；0 表示没有。 */
   const sealDrop = useRef(0);
@@ -241,7 +250,6 @@ export function Wall({
   }, [shown, onCardsChange]);
   useWallCaptureSources({ viewerOpen, scroller, cards: shown });
   const { loadMore } = useWallPages({
-    cards,
     setCards,
     cursor,
     setCursor,
@@ -253,6 +261,8 @@ export function Wall({
     restoring,
     anchor,
     shownCards,
+    visibleCardId,
+    preservedIds: selectedForReload,
     measureBeforeReflow,
     onWorkspaceStatus,
     releasePage,

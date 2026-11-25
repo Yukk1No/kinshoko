@@ -44,23 +44,36 @@ export function useSealRelease({
 }) {
   /** 已经放出（不再遮蔽）的含成人内容的图。 */
   const [revealed, setRevealed] = useState<ReadonlySet<string>>(new Set());
+  const revealedRef = useRef(revealed);
+  revealedRef.current = revealed;
   useEffect(() => {
     if (safeMode) {
-      setRevealed(new Set());
+      setRevealed((prev) => (prev.size === 0 ? prev : new Set()));
       return;
     }
     // 先以遮蔽的样子出现，下一帧再放出，遮蔽才有过渡可以淡出。
     // 一摞里的各页（#418）也算：托盘里的页与纸张按自己的 adult 放出，不只看封面。
-    const frame = requestAnimationFrame(() =>
-      setRevealed(
-        new Set(
-          cards
-            .flatMap((c) => [c, ...(c.set?.pages ?? [])])
-            .filter((c) => c.adult)
-            .map((c) => c.id),
-        ),
-      ),
-    );
+    const adultIds = new Set<string>();
+    for (const c of cards) {
+      if (c.adult) adultIds.add(c.id);
+      if (c.set) {
+        for (const page of c.set.pages) {
+          if (page.adult) adultIds.add(page.id);
+        }
+      }
+    }
+    const prev = revealedRef.current;
+    let unchanged = adultIds.size === prev.size;
+    if (unchanged) {
+      for (const id of adultIds) {
+        if (!prev.has(id)) {
+          unchanged = false;
+          break;
+        }
+      }
+    }
+    if (unchanged) return;
+    const frame = requestAnimationFrame(() => setRevealed(adultIds));
     return () => cancelAnimationFrame(frame);
   }, [cards, safeMode]);
   // ------------------------------------------------------------ 封印与释放（#27，原型 sealfx）

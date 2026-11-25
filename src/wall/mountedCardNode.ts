@@ -12,6 +12,7 @@ export type RenderedCards = Map<
   {
     card: BrowserCard;
     box: Box;
+    uiScale: number;
     chosen: boolean;
     veiled: boolean;
     leaving: boolean;
@@ -20,9 +21,53 @@ export type RenderedCards = Map<
     language: string;
     trayPage: number;
     veiledPages: string;
+    scopeKind: string | undefined;
     node: ReactNode;
   }
 >;
+
+function sameBox(a: Box, b: Box): boolean {
+  return a === b || (a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h);
+}
+
+function sameSources(a: BrowserCard["sources"], b: BrowserCard["sources"]): boolean {
+  if (a === b) return true;
+  if (!a || !b || a.length !== b.length) return false;
+  return a.every((s, idx) => {
+    const o = b[idx];
+    return (
+      s.libraryId === o.libraryId &&
+      s.libraryName === o.libraryName &&
+      s.imageId === o.imageId &&
+      s.matches === o.matches &&
+      s.deleted === o.deleted &&
+      (s.unavailable === o.unavailable ||
+        (s.unavailable != null &&
+          o.unavailable != null &&
+          s.unavailable.code === o.unavailable.code &&
+          JSON.stringify(s.unavailable) === JSON.stringify(o.unavailable)))
+    );
+  });
+}
+
+function sameCard(a: BrowserCard, b: BrowserCard): boolean {
+  if (a === b) return true;
+  if (
+    a.id !== b.id ||
+    a.width !== b.width ||
+    a.height !== b.height ||
+    a.adult !== b.adult ||
+    a.libraryId !== b.libraryId ||
+    a.imageId !== b.imageId ||
+    a.placeholder !== b.placeholder ||
+    !sameSources(a.sources, b.sources)
+  ) {
+    return false;
+  }
+  if (a.set === b.set) return true;
+  if (!a.set || !b.set || a.set.key !== b.set.key || a.set.pages.length !== b.set.pages.length) return false;
+  return a.set.pages.every((page, idx) => sameCard(page, b.set!.pages[idx]));
+}
 
 type Args = {
   i: number;
@@ -74,12 +119,14 @@ export function mountedCardNode({
   const landing = arriving.has(card.id);
   // 托盘里的页记下页码（从 1 起）。
   const trayPage = tray && i >= tray.at && i < tray.at + tray.count ? i - tray.at + 1 : 0;
+  const scopeKind = workspaceScope?.kind;
   // 没变的卡片沿用上次的元素，React 跳过整张卡片的比对（#109）。
   const kept = renderedCards.current.get(card.id);
   if (
     kept &&
-    kept.card === card &&
-    kept.box === b &&
+    sameCard(kept.card, card) &&
+    sameBox(kept.box, b) &&
+    kept.uiScale === uiScale &&
     kept.chosen === chosen &&
     kept.veiled === veiled &&
     kept.leaving === leaving &&
@@ -87,7 +134,8 @@ export function mountedCardNode({
     kept.tier === tier &&
     kept.language === language &&
     kept.trayPage === trayPage &&
-    kept.veiledPages === veiledPages
+    kept.veiledPages === veiledPages &&
+    kept.scopeKind === scopeKind
   ) {
     nextRendered.set(card.id, kept);
     return kept.node;
@@ -110,6 +158,7 @@ export function mountedCardNode({
   nextRendered.set(card.id, {
     card,
     box: b,
+    uiScale,
     chosen,
     veiled,
     leaving,
@@ -118,6 +167,7 @@ export function mountedCardNode({
     language,
     trayPage,
     veiledPages,
+    scopeKind,
     node,
   });
   return node;
