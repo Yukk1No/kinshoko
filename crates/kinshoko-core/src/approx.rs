@@ -9,6 +9,7 @@
 
 use std::collections::BTreeSet;
 use std::fmt;
+use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -18,12 +19,21 @@ const FORMAT_VERSION: u32 = 1;
 const BUNDLED: &str = include_str!("../data/builtin-approx-table.json");
 
 /// 内置近似对应表：相近的外部名称对。
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default)]
 pub struct BuiltinApproxTable {
     table_version: u32,
     /// 每对按字母序存一次（小的在前）。
-    pairs: BTreeSet<(String, String)>,
+    pairs: Arc<BTreeSet<(String, String)>>,
 }
+
+impl PartialEq for BuiltinApproxTable {
+    fn eq(&self, other: &Self) -> bool {
+        self.table_version == other.table_version
+            && (Arc::ptr_eq(&self.pairs, &other.pairs)
+                || self.pairs.as_ref() == other.pairs.as_ref())
+    }
+}
+impl Eq for BuiltinApproxTable {}
 
 /// 内置近似对应表读不懂。
 #[derive(Debug)]
@@ -94,11 +104,13 @@ impl BuiltinApproxTable {
     ) -> BuiltinApproxTable {
         BuiltinApproxTable {
             table_version,
-            pairs: pairs
-                .into_iter()
-                .filter(|(a, b)| a != b)
-                .map(|(a, b)| ordered(a.to_owned(), b.to_owned()))
-                .collect(),
+            pairs: Arc::new(
+                pairs
+                    .into_iter()
+                    .filter(|(a, b)| a != b)
+                    .map(|(a, b)| ordered(a.to_owned(), b.to_owned()))
+                    .collect(),
+            ),
         }
     }
 

@@ -6,9 +6,11 @@ import type { SearchInput } from "../bindings/SearchInput";
 import type { TagLabel } from "../bindings/TagLabel";
 import { SaveDestinationProvider, useSaveDestination } from "../library/SaveDestination";
 import { fakeBackend } from "../test/backend";
+import { i18n } from "../i18n";
 import { SearchBox } from "./SearchBox";
 import * as fitChips from "./fitChips";
 
+const noop = () => {};
 const emptyInput: SearchInput = { conditions: [], exact: false };
 const oneConditionInput: SearchInput = {
   conditions: [{ any: [{ kind: "text", text: "蓝", dismissed: [] }], negate: false }],
@@ -47,8 +49,8 @@ describe("SearchBox 与 SaveDestinationProvider 性能", () => {
             input={input}
             tree={null}
             showSource={false}
-            onChange={() => {}}
-            onError={() => {}}
+            onChange={noop}
+            onError={noop}
           />
         </div>
       );
@@ -65,6 +67,36 @@ describe("SearchBox 与 SaveDestinationProvider 性能", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "1" }));
     expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it("界面语言变化时重新测量条件宽度", async () => {
+    fakeBackend();
+    const spy = vi.spyOn(fitChips, "chipsThatFit").mockReturnValue(Infinity);
+    render(
+      <SearchBox
+        workspace
+        libraryId="workspace"
+        safe={false}
+        generation={1}
+        input={oneConditionInput}
+        tree={null}
+        showSource={false}
+        onChange={noop}
+        onError={noop}
+      />,
+    );
+    expect(spy).toHaveBeenCalledTimes(1);
+
+    try {
+      await act(async () => {
+        await i18n.changeLanguage("en");
+      });
+      expect(spy).toHaveBeenCalledTimes(2);
+    } finally {
+      await act(async () => {
+        await i18n.changeLanguage("zh-CN");
+      });
+    }
   });
 
   it("连续快速击键合并为一次候选请求，清空输入立即隐藏候选且不发请求", async () => {
@@ -84,9 +116,10 @@ describe("SearchBox 与 SaveDestinationProvider 性能", () => {
         input={emptyInput}
         tree={null}
         showSource={false}
-        onChange={() => {}}
-        onError={() => {}}
+        onChange={noop}
+        onError={noop}
       />,
+      { reactStrictMode: true },
     );
 
     const input = screen.getByRole("combobox", { name: "查找参考图" });

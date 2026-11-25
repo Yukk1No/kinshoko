@@ -364,3 +364,6 @@ fn unavailable_known_adult_source_keeps_veto_after_restart_until_refresh_or_expl
 
 #[path = "workspace_queries.rs"]
 mod queries;
+
+#[path = "workspace_search_cache.rs"]
+mod search_cache;

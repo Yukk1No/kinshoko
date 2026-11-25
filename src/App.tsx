@@ -87,6 +87,11 @@ function MainWindow() {
   const [unfinishedRequest, setUnfinishedRequest] = useState(0);
   const [section, setSection] = useState<Section>("browse");
   const [paneOpen, setPaneOpen] = useState(true);
+  const togglePane = useCallback(() => setPaneOpen((open) => !open), []);
+  const openBrowse = useCallback(() => {
+    setSection("browse");
+    setPaneOpen(true);
+  }, []);
   const subscriptions = useSubscriptionSection(section, setSection);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -309,12 +314,9 @@ function MainWindow() {
                     referenceRequest={referenceRequest}
                     section={section}
                     paneOpen={paneOpen}
-                    onPaneToggle={() => setPaneOpen((open) => !open)}
+                    onPaneToggle={togglePane}
                     onPaneOpen={setPaneOpen}
-                    onOpenBrowse={() => {
-                      setSection("browse");
-                      setPaneOpen(true);
-                    }}
+                    onOpenBrowse={openBrowse}
                     libraryControls={libraryControls}
                     hidden={empty || subscriptions.page !== null}
                     safe={lensSafe}
@@ -337,7 +339,7 @@ function MainWindow() {
                   subscriptions={subscriptions}
                   safe={lensSafe}
                   paneOpen={paneOpen}
-                  onPaneToggle={() => setPaneOpen((open) => !open)}
+                  onPaneToggle={togglePane}
                   onOpenImage={(libraryId, imageId) => {
                     setSection("browse");
                     setPaneOpen(true);
