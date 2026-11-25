@@ -246,7 +246,7 @@ export function ViewerMenu({
       <MenuItem icon={<CropIcon size={14} />} kbd="F1" onClick={pinPart}>
         {t("common:image.pinPart")}
       </MenuItem>
-      <MenuItem icon={<Copy size={14} />} kbd="Ctrl+C" onClick={copy}>
+      <MenuItem icon={<Copy size={14} />} kbd="Ctrl C" onClick={copy}>
         {t("common:image.copy")}
       </MenuItem>
       <MenuSeparator />
