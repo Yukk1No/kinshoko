@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Plus } from "lucide-react";
 import type { CatalogGroupView } from "../bindings/CatalogGroupView";
@@ -14,6 +14,8 @@ import {
 import type { Lens } from "../search/useCandidates";
 import { useUiLang } from "../i18n";
 import { useToast } from "../ui/Toast";
+import { createBackendMirror } from "../ipc/backendMirror";
+import { useBackendMirror } from "../ipc/useBackendMirror";
 
 type Props = {
   /** Kept for callers from the previous local UI; group ownership is always application-wide. */
@@ -30,46 +32,53 @@ import { GroupRow } from "./TagGroupsRow";
 
 export { NewGroup };
 
+/** 应用级标签分组列表镜像：工作区对话框与设置页里的同一个透镜共用读取、重试与防乱序。 */
+const sharedTagGroupsMirror = createBackendMirror<string, CatalogGroupView[]>({
+  read: (key) => {
+    const [lang, safe] = JSON.parse(key) as [string, boolean];
+    return sharedTagGroups(lang, safe);
+  },
+  stale: isLensChanged,
+});
+const tagGroupsKey = (lang: string, safe: boolean) => JSON.stringify([lang, safe]);
+
 /** Reuses the formal sidebar editor and the accepted prototype's tag-chip structure.
  * Shared IDs are already query identities. Group actions never edit an image's tags. */
 export function TagGroupsPane({ safe, generation, onBrowse, onError, label: labelProp }: Props) {
   const { t } = useTranslation("tagGroups");
   const label = labelProp ?? t("label");
-  const [found, setFound] = useState<{ key: string; safe: boolean | null; groups: CatalogGroupView[] }>({
-    key: "",
-    safe: null,
-    groups: [],
-  });
   const [creating, setCreating] = useState(false);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [picking, setPicking] = useState<string | null>(null);
-  const [refresh, setRefresh] = useState(0);
-  const [pendingKey, setPendingKey] = useState<string | null>(null);
-  const view = JSON.stringify([safe, generation]);
+  const [pending, setPending] = useState(false);
   const lang = useUiLang();
-  const key = JSON.stringify([view, refresh, lang]);
-  const current = useRef(key);
-  current.current = key;
+  const key = tagGroupsKey(lang, safe);
+  const mirror = useBackendMirror(sharedTagGroupsMirror, key);
+  const currentKey = useRef(key);
+  currentKey.current = key;
   // Preserve editor identity during refresh, but never display stale server labels or members.
-  const groups = found.safe === safe ? found.groups : [];
-  const fresh = found.key === key;
-  const busy = pendingKey === key;
+  const groups = mirror.value ?? [];
+  const fresh = mirror.value !== null && !mirror.refreshing && !mirror.error;
+  const busy = pending || mirror.refreshing;
   const lens: Lens = { libraryId: "workspace", safe, generation, workspace: true };
+  const invalidateCurrent = useCallback(() => sharedTagGroupsMirror.invalidate(currentKey.current), []);
+  const refreshed = useRef({ key, generation });
+  useLayoutEffect(() => {
+    const before = refreshed.current;
+    refreshed.current = { key, generation };
+    if (before.key === key && before.generation !== generation) invalidateCurrent();
+  }, [key, generation, invalidateCurrent]);
+  const reported = useRef<unknown>(null);
 
   useEffect(() => {
-    let alive = true;
-    sharedTagGroups(lang, safe).then(
-      (value) => {
-        if (alive && current.current === key) setFound({ key, safe, groups: value });
-      },
-      (error) => {
-        if (alive && current.current === key && !isLensChanged(error)) onError(error);
-      },
-    );
-    return () => {
-      alive = false;
-    };
-  }, [key, safe, onError, lang]);
+    if (!mirror.error) {
+      reported.current = null;
+      return;
+    }
+    if (reported.current === mirror.error || isLensChanged(mirror.error)) return;
+    reported.current = mirror.error;
+    onError(mirror.error);
+  }, [mirror.error, onError]);
   // 切换安全模式时收起正在进行的编辑；读到新的分组后，清掉已不存在的分组上的编辑。
   // 都在渲染中比较，这一帧就不显示旧的编辑。
   const [editingUnder, setEditingUnder] = useState(safe);
@@ -117,14 +126,14 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label: labe
     // 明确指定了焦点去处（如删除分组后的相邻分组）就用它，不取当前聚焦的按钮：那个按钮随行消失。
     if (focus !== undefined) restore.current = focus;
     else remember();
-    setPendingKey(key);
+    setPending(true);
     try {
       await action;
-      if (current.current === key) setRefresh((n) => n + 1);
+      if (currentKey.current === key) invalidateCurrent();
     } catch (error) {
-      if (current.current === key) onError(error);
+      if (currentKey.current === key) onError(error);
     } finally {
-      setPendingKey((pending) => (pending === key ? null : pending));
+      setPending(false);
     }
   };
   const edit = (action: CatalogGroupEdit) => run(editSharedTagGroup(action, safe));
@@ -143,7 +152,7 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label: labe
           action: {
             label: t("deleted.undo"),
             onClick: () => {
-              void restoreSharedTagGroup(deleted).then(() => setRefresh((n) => n + 1), onError);
+              void restoreSharedTagGroup(deleted).then(invalidateCurrent, onError);
             },
           },
         });
