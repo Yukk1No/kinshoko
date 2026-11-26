@@ -9,11 +9,18 @@ function pressBackdrop() {
   fireEvent.click(backdrop, { button: 0 });
 }
 
-function AlertSample({ onOpenChange = () => {} }: { onOpenChange?: (open: boolean) => void }) {
+function AlertSample({
+  onOpenChange = () => {},
+  busy = false,
+}: {
+  onOpenChange?: (open: boolean) => void;
+  busy?: boolean;
+}) {
   const cancel = useRef<HTMLButtonElement>(null);
   return (
     <AlertDialog
       open
+      busy={busy}
       onOpenChange={onOpenChange}
       title="永久删除"
       description="删除后不能恢复。"
@@ -84,6 +91,56 @@ describe("DialogShell", () => {
     const dialog = await screen.findByRole("dialog", { name: "向导" });
     expect(dialog.querySelector(".k-dialog-height")).toBeTruthy();
   });
+
+  it("支持无可见标题、仅通过 aria-label 提供无障碍标题", async () => {
+    render(
+      <DialogShell open purpose="form" aria-label="标签的外部对应" onOpenChange={() => {}}>
+        内容
+      </DialogShell>,
+    );
+    const dialog = await screen.findByRole("dialog", { name: "标签的外部对应" });
+    expect(dialog.querySelector(".k-title")).toBeNull();
+    expect(dialog.getAttribute("aria-label")).toBe("标签的外部对应");
+  });
+
+  it("busy 时阻止 Esc、点遮罩与右上角关闭", async () => {
+    const onOpenChange = vi.fn();
+    render(
+      <DialogShell open purpose="info" busy title="正在保存" closeLabel="关闭" onOpenChange={onOpenChange}>
+        内容
+      </DialogShell>,
+    );
+    await screen.findByRole("dialog", { name: "正在保存" });
+    const closeButton = screen.getByRole("button", { name: "关闭" });
+    expect(closeButton.hasAttribute("disabled")).toBe(true);
+    pressBackdrop();
+    fireEvent.click(closeButton);
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog", { name: "正在保存" })).toBeTruthy();
+  });
+
+  it("form 对话框在 busy 时拦截 Esc，解除 busy 后恢复可关闭", async () => {
+    const onOpenChange = vi.fn();
+    const { rerender } = render(
+      <DialogShell open purpose="form" busy title="保存位置" onOpenChange={onOpenChange}>
+        内容
+      </DialogShell>,
+    );
+    await screen.findByRole("dialog", { name: "保存位置" });
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(onOpenChange).not.toHaveBeenCalled();
+
+    rerender(
+      <DialogShell open purpose="form" busy={false} title="保存位置" onOpenChange={onOpenChange}>
+        内容
+      </DialogShell>,
+    );
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
+  });
 });
 
 describe("AlertDialog 骨架", () => {
@@ -103,5 +160,14 @@ describe("AlertDialog 骨架", () => {
     expect(onOpenChange).not.toHaveBeenCalled();
     fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
     await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
+  });
+
+  it("busy 时拦截 Esc 取消", async () => {
+    const onOpenChange = vi.fn();
+    render(<AlertSample busy onOpenChange={onOpenChange} />);
+    await screen.findByRole("alertdialog", { name: "永久删除" });
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(onOpenChange).not.toHaveBeenCalled();
   });
 });
