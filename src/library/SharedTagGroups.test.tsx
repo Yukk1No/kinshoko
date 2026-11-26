@@ -121,6 +121,26 @@ describe("T05 shared groups", () => {
     expect(screen.queryByText("封印旧标签")).toBeNull();
     expect(screen.queryByText("旧视角")).toBeNull();
   });
+  it("keeps old groups stale when a generation refresh fails", async () => {
+    let fail = false;
+    backend(() => (fail ? Promise.reject({ code: "system" }) : groups));
+    const error = vi.fn();
+    const view = render(
+      <ToastProvider>
+        <TagGroupsPane libraryId="" safe generation={0} onBrowse={vi.fn()} onError={error} />
+      </ToastProvider>,
+    );
+    const create = await screen.findByRole("button", { name: "新建标签分组" });
+    await waitFor(() => expect(create).toHaveProperty("disabled", false));
+    fail = true;
+    view.rerender(
+      <ToastProvider>
+        <TagGroupsPane libraryId="" safe generation={1} onBrowse={vi.fn()} onError={error} />
+      </ToastProvider>,
+    );
+    await waitFor(() => expect(error).toHaveBeenCalled());
+    expect(create).toHaveProperty("disabled", true);
+  });
   it("undoing a group delete works after safe mode changed while the toast was shown", async () => {
     const fake = backend();
     fake.on("delete_shared_tag_group", {

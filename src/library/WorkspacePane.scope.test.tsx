@@ -51,7 +51,7 @@ it("读取时目录修订改变会自动重读，不留下要求用户操作的�
   await settle();
   await act(async () => pending[0].reject({ code: "cursorExpired" }));
   await settle();
-  expect(pending).toHaveLength(2);
+  await vi.waitFor(() => expect(pending).toHaveLength(2));
   await act(async () => pending[1].resolve(forest("fresh")));
   expect(document.querySelectorAll("[data-folder-id]")).toHaveLength(2);
   expect(props.onError).not.toHaveBeenCalled();

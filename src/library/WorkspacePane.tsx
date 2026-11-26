@@ -9,7 +9,8 @@ import { PermanentDeleteConfirm } from "./SelectionPanel";
 import type { WorkspaceDirectories } from "../bindings/WorkspaceDirectories";
 import type { WorkspaceDirectory } from "../bindings/WorkspaceDirectory";
 import { errorText } from "../ipc/commandError";
-import { isCursorExpired, isLensChanged, revealLibrary, unregisterLibrary, workspaceDirectories } from "../ipc";
+import { isLensChanged, revealLibrary, unregisterLibrary } from "../ipc";
+import { invalidateWorkspaceDirectories, useWorkspaceDirectories } from "./workspaceDirectoriesMirror";
 import { acceptsDrag } from "./SidebarPane";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
 import type { WorkspaceStatus } from "../bindings/WorkspaceStatus";
@@ -63,32 +64,43 @@ export function WorkspacePane({
   // （status.revision 随每次进库前进，导入期间约每 1.5 秒一次）与单纯重读（reloadKey，每次列表过期加一）
   // 只重读：沿用上一份目录直到新结果到达，资料库行不因计数刷新整行变成不可用（#121）。
   const generation = JSON.stringify([status?.libraries, safeMode]);
-  const key = JSON.stringify([generation, status?.revision, reloadKey]);
+  const directories = useWorkspaceDirectories(safeMode);
   const [loaded, setLoaded] = useState<{ generation: string; forest: WorkspaceDirectories } | null>(null);
+  const delivered = useRef<WorkspaceDirectories | null | undefined>(undefined);
+  const requested = useRef({ generation, safeMode, statusKnown: status !== null });
+  useEffect(() => {
+    const before = requested.current;
+    const statusKnown = status !== null;
+    requested.current = { generation, safeMode, statusKnown };
+    if (!before.statusKnown && statusKnown) {
+      if (directories.value) setLoaded({ generation, forest: directories.value });
+      return;
+    }
+    if (before.safeMode === safeMode && before.generation !== generation) invalidateWorkspaceDirectories(safeMode);
+  }, [generation, safeMode, status, directories.value]);
+  useEffect(() => {
+    if (directories.value === delivered.current) return;
+    delivered.current = directories.value;
+    if (directories.value) setLoaded({ generation, forest: directories.value });
+  }, [generation, directories.value]);
   // 选文件夹总是连同子文件夹一起看（#608 取消了“含子文件夹”开关）。
   const descendants = true;
-  // biome-ignore lint/correctness/useExhaustiveDependencies(key): 目录内容变化与单纯重读（revision、reloadKey）都靠 key 触发
+  const reloaded = useRef({ safeMode, reloadKey });
   useEffect(() => {
-    let alive = true;
-    const load = async () => {
-      for (let attempt = 0; alive; attempt++) {
-        try {
-          const forest = await workspaceDirectories(safeMode);
-          if (alive) setLoaded({ generation, forest });
-          return;
-        } catch (error) {
-          if (!alive || isLensChanged(error)) return;
-          if (isCursorExpired(error) && attempt < 3) continue;
-          onError(error);
-          return;
-        }
-      }
-    };
-    void load();
-    return () => {
-      alive = false;
-    };
-  }, [key, generation, safeMode, onError]);
+    const before = reloaded.current;
+    reloaded.current = { safeMode, reloadKey };
+    if (before.safeMode === safeMode && before.reloadKey !== reloadKey) invalidateWorkspaceDirectories(safeMode);
+  }, [safeMode, reloadKey]);
+  const reported = useRef<unknown>(null);
+  useEffect(() => {
+    if (!directories.error) {
+      reported.current = null;
+      return;
+    }
+    if (reported.current === directories.error || isLensChanged(directories.error)) return;
+    reported.current = directories.error;
+    onError(directories.error);
+  }, [directories.error, onError]);
 
   // 展开规则：选中某库内的范围时只展开该库，选“全部图片”时全部折起；所选图库变了才重置，
   // 期间点箭头的临时展开保留。在渲染中比较而不用 effect，换库的这一帧就不闪出旧的展开。
@@ -171,7 +183,7 @@ export function WorkspacePane({
     </MenuItem>
   );
 
-  // A changed safety/provider revision hides old controls before a new request can complete.
+  // A changed safety/provider generation hides old controls before a new delivery can complete.
   const forest = loaded?.generation === generation ? loaded.forest : null;
   const providers =
     forest?.providers ??

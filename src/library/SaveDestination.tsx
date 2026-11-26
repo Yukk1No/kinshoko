@@ -8,15 +8,12 @@ import type { WorkspaceDirectories } from "../bindings/WorkspaceDirectories";
 import type { WorkspaceDirectory } from "../bindings/WorkspaceDirectory";
 import type { FolderNode } from "../bindings/FolderNode";
 import {
-  isCursorExpired,
-  onWorkspaceChanged,
   rememberImportDestination,
   rememberNewLibraryParent,
   rememberPixivDestination,
   rememberSubscriptionDestination,
-  saveMemory,
-  workspaceDirectories,
 } from "../ipc";
+import { acceptSaveMemoryUpdate, useSaveMemory, useWorkspaceDirectories } from "./workspaceDirectoriesMirror";
 import { libraryPathHint } from "./library-path";
 import { DialogShell } from "../ui/DialogShell";
 import { Select } from "../ui/Select";
@@ -58,9 +55,6 @@ const Context = createContext<SaveContext>({
 });
 export const useSaveDestination = () => useContext(Context);
 
-const RETRIES = 3,
-  RETRY_MS = 150;
-
 /** 保存入口看到的资料库：登记最早的在前（ADR-0016 的兜底），不跟侧栏的顺序。 */
 function inRegistrationOrder({ providers, registrationOrder }: WorkspaceDirectories) {
   const rank = (provider: WorkspaceDirectory) => registrationOrder.indexOf(provider.registration.library.id);
@@ -69,81 +63,42 @@ function inRegistrationOrder({ providers, registrationOrder }: WorkspaceDirector
 
 export function SaveDestinationProvider({ safe, children }: { safe: boolean; children: ReactNode }) {
   const [destination, setDestination] = useState<SaveDestination | null>(null);
-  const [providers, setProviders] = useState<WorkspaceDirectory[]>([]);
-  const [problem, setProblem] = useState<string | null>(null);
-  const [ready, setReady] = useState(false);
-  const [memory, setMemory] = useState(NOTHING_REMEMBERED);
+  const directories = useWorkspaceDirectories(safe);
+  const providers = useMemo(
+    () => (directories.value ? inRegistrationOrder(directories.value) : []),
+    [directories.value],
+  );
+  const problem = directories.error ? errorText(directories.error) : null;
+  const ready = directories.value !== null && !directories.error;
+  const memory = useSaveMemory().value ?? NOTHING_REMEMBERED;
   const rememberImport = useCallback((importDestination: SaveDestination) => {
-    setMemory((value) => ({ ...value, importDestination }));
     // 忽略失败：写不进时只是下次不记得，不打扰这次保存。
-    void rememberImportDestination(importDestination).catch(() => {});
+    void rememberImportDestination(importDestination).then(
+      () => acceptSaveMemoryUpdate((value) => ({ ...value, importDestination })),
+      () => {},
+    );
   }, []);
   const rememberPixiv = useCallback((pixivDestination: SaveDestination) => {
-    setMemory((value) => ({ ...value, pixivDestination }));
     // 忽略失败：写不进时只是下次不记得，不打扰这次保存。
-    void rememberPixivDestination(pixivDestination).catch(() => {});
+    void rememberPixivDestination(pixivDestination).then(
+      () => acceptSaveMemoryUpdate((value) => ({ ...value, pixivDestination })),
+      () => {},
+    );
   }, []);
   const rememberSubscription = useCallback((subscriptionDestination: SaveDestination) => {
-    setMemory((value) => ({ ...value, subscriptionDestination }));
     // 忽略失败：写不进时只是下次不记得。
-    void rememberSubscriptionDestination(subscriptionDestination).catch(() => {});
+    void rememberSubscriptionDestination(subscriptionDestination).then(
+      () => acceptSaveMemoryUpdate((value) => ({ ...value, subscriptionDestination })),
+      () => {},
+    );
   }, []);
   const rememberParent = useCallback((newLibraryParent: string) => {
-    setMemory((value) => ({ ...value, newLibraryParent }));
     // 忽略失败：写不进时只是下次不记得，不打扰这次保存。
-    void rememberNewLibraryParent(newLibraryParent).catch(() => {});
+    void rememberNewLibraryParent(newLibraryParent).then(
+      () => acceptSaveMemoryUpdate((value) => ({ ...value, newLibraryParent })),
+      () => {},
+    );
   }, []);
-  useEffect(() => {
-    let alive = true,
-      sequence = 0,
-      revision = "",
-      retry: ReturnType<typeof setTimeout> | undefined;
-    setReady(false);
-    const refresh = (attempt = 0) => {
-      const request = ++sequence;
-      clearTimeout(retry);
-      void workspaceDirectories(safe).then(
-        (value) => {
-          if (!alive || request !== sequence) return;
-          revision = value.status.revision;
-          setProviders(inRegistrationOrder(value));
-          setProblem(null);
-          setReady(true);
-        },
-        (error) => {
-          if (!alive || request !== sequence) return;
-          // 读取期间修订变了：结果已过时，稍后按新修订重读，不当作问题显示（#98）；连续 3 次仍在变才显示。
-          if (isCursorExpired(error) && attempt < RETRIES) {
-            retry = setTimeout(() => refresh(attempt + 1), RETRY_MS);
-            return;
-          }
-          setProblem(errorText(error));
-          setReady(false);
-        },
-      );
-    };
-    // 取消登记会清掉记住的目标，所以登记变化时一并重读。
-    const readMemory = () =>
-      void saveMemory().then(
-        (value) => {
-          if (alive && value) setMemory(value);
-        },
-        () => {},
-      );
-    refresh();
-    readMemory();
-    const stop = onWorkspaceChanged((value) => {
-      if (value.revision !== revision) {
-        refresh();
-        readMemory();
-      }
-    });
-    return () => {
-      alive = false;
-      clearTimeout(retry);
-      void stop.then((fn) => fn());
-    };
-  }, [safe]);
   const contextValue = useMemo(
     () => ({
       destination,

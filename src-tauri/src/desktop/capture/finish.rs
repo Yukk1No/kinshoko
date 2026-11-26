@@ -14,6 +14,7 @@ use kinshoko_core::reference_groups::ReferenceSource;
 use tauri::{AppHandle, Manager};
 
 use super::{CloseOnDrop, Pending, Session};
+use crate::blocking::blocking;
 use crate::desktop::{clipboard::PreparedImage, history_changed, lock, pins, state};
 
 /// Recheck the frozen source after decoding, while the final visibility permit is held.
@@ -92,7 +93,7 @@ pub async fn finish_capture(
     };
     // 框选窗口留到结果可用（剪贴板写好／钉图已显示）才隐藏，期间页面显示进度（#127）：
     // 读大原图可能要一秒左右，先关掉窗口会让人以为按键没生效。
-    tauri::async_runtime::spawn_blocking(move || {
+    blocking(move || {
         // 出错甚至 panic 也要结束会话、隐藏窗口，否则之后的 F1 都被当成还在截。
         let close = CloseOnDrop(&app, &token);
         let started = std::time::Instant::now();
@@ -114,7 +115,6 @@ pub async fn finish_capture(
         result.map(|_| ())
     })
     .await
-    .map_err(CommandError::system)?
 }
 
 /// 完成一次框选：解码、提交并产生结果。钉住时返回新钉图的 id。
