@@ -20,6 +20,16 @@ import {
 import { ago } from "./relativeTime";
 import { formatMoment } from "../i18n/format";
 import { errorText } from "../ipc/commandError";
+import { createBackendMirror } from "../ipc/backendMirror";
+import { useBackendMirror } from "../ipc/useBackendMirror";
+
+const CAPTURE_HISTORY_KEY = "capture-history";
+
+/** 截图历史的后端镜像（#761）：事件携带完整历史，直接接受，先发出的旧读取不能盖掉它。 */
+const captureHistoryMirror = createBackendMirror<typeof CAPTURE_HISTORY_KEY, CaptureEntry[]>({
+  read: () => captureHistory(),
+  listen: (_invalidate, accept) => onCaptureHistory((entries) => accept(CAPTURE_HISTORY_KEY, entries)),
+});
 
 /** 当天只显示时间，其他天带日期，免得跨天的两条同是“09:05”分不清。 */
 const time = (ms: number) => formatMoment(ms, { todayAsTime: true });
@@ -62,7 +72,7 @@ export function CaptureHistoryPanel({
   request?: { id: string; stamp: number } | null;
   onRequestHandled?: () => void;
 }) {
-  const [entries, setEntries] = useState<CaptureEntry[] | null>(null);
+  const { value: entries, error } = useBackendMirror(captureHistoryMirror, CAPTURE_HISTORY_KEY);
   const [collecting, setCollecting] = useState<string | null>(null);
   useEffect(() => {
     if (request) {
@@ -74,21 +84,8 @@ export function CaptureHistoryPanel({
   const { t } = useTranslation("desktop", { keyPrefix: "history" });
 
   useEffect(() => {
-    let alive = true;
-    captureHistory().then(
-      (value) => alive && setEntries(value),
-      (e) => {
-        if (alive) toast.error(errorText(e));
-      },
-    );
-    const unlisten = onCaptureHistory((value) => {
-      if (alive) setEntries(value);
-    });
-    return () => {
-      alive = false;
-      void unlisten.then((stop) => stop());
-    };
-  }, [toast]);
+    if (error) toast.error(errorText(error));
+  }, [error, toast]);
 
   const run = (action: Promise<unknown>) => {
     action.catch((e) => toast.error(errorText(e)));
