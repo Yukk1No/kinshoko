@@ -18,7 +18,7 @@ import { WallEmptyAction } from "./WallEmptyAction";
 import { useWallActions } from "../wall/useWallActions";
 import { useViewerFlight } from "../viewer/ViewerFlight";
 import { useImportTasks } from "./useImportTasks";
-import { useInvalidation } from "./useInvalidation";
+import { useBrowseResults } from "./useBrowseResults";
 import { useLibraryEvents } from "./useLibraryEvents";
 import { useReferenceRequest } from "./useReferenceRequest";
 import { useSearchTree } from "./useSearchTree";
@@ -31,7 +31,6 @@ import { useWorkspaceInspector } from "./useWorkspaceInspector";
 import { wallFloatBar } from "./wallFloatBar";
 import { ViewerLayer } from "./ViewerLayer";
 import { WorkspaceTopbar } from "./WorkspaceTopbar";
-import { useWorkspaceStatus } from "./useWorkspaceStatus";
 import type { WorkspaceProps } from "./workspaceProps";
 
 /**
@@ -110,35 +109,33 @@ export function LibraryWorkspace({
    * 删除、新增了叫法，或在安全模式下被封印）。与后端 Search 缓存的修订号和安全模式对应。
    */
   const [vocabularyKey, setVocabularyKey] = useState(0);
-  const { invalidate, observations } = useInvalidation({
-    wall,
-    loadedCards,
-    setViewing: (next) => {
+  const viewerOpen = viewing !== null;
+  const errorHandler = useRef<(error: unknown) => void>(() => {});
+  const { status, recheck, invalidate, pager } = useBrowseResults({
+    safe,
+    onError: (error) => errorHandler.current(error),
+    selected,
+    viewerOpen,
+    closeViewer: () => {
       flight.cut();
-      setViewing(next);
+      setViewing(null);
     },
+    clearSources: () => setSources(null),
     setSelected,
-    setSources,
+    setResultCount,
     setReloadKey,
     setVocabularyKey,
   });
   const onError = useWorkspaceError(toast, invalidate);
+  errorHandler.current = onError;
   const safeChanged = useRef(onSafeChanged);
   safeChanged.current = onSafeChanged;
-  const viewerOpen = viewing !== null;
-  // 修订变化后的选择修剪：等图片墙读完新的结果，然后只保留仍在的图。范围或安全模式变了时图片墙先清空（等它读完）；
-  // 只是修订前进时图片墙保留旧卡片、原地换成新的一页（#142），这一页到达就修剪。
-  // biome-ignore lint/correctness/useExhaustiveDependencies(loadedCards): 图片墙每读完一页就报一次
-  useEffect(() => {
-    invalidate({ kind: "pageAccepted", ready: resultCount !== null });
-  }, [loadedCards, resultCount, invalidate]);
   const { viewingIndex, step, loaded } = useViewerStep({ viewing, setViewing, loadedCards, resultCount, wall });
   /** 序号在飞回途中留着：顶栏淡出时不跳动。 */
   const viewerPosition = useRef<{ index: number; total: number } | undefined>(undefined);
   if (viewing)
     viewerPosition.current =
       viewingIndex < 0 ? undefined : { index: viewingIndex, total: Math.max(resultCount ?? 0, loaded) };
-  const { status, onWallStatus, recheck } = useWorkspaceStatus({ safe, onError, invalidate, observations });
 
   // 视角一变就在这次渲染里推进重读序号（#183）：图片墙的重新浏览与视角变化在同一次提交里、
   // 先于这里的状态与侧栏刷新发出。后端让这些查询排队用同一组资源，浏览排在后面要多等上百毫秒。
@@ -320,7 +317,7 @@ export function LibraryWorkspace({
                 workspaceScope={workspaceScope}
                 onInspectSources={openSources}
                 onCardsChange={setLoadedCards}
-                onWorkspaceStatus={onWallStatus}
+                browsePager={pager}
                 scope={scope}
                 conditions={tree}
                 reloadKey={reloadKey}

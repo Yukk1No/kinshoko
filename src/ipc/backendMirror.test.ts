@@ -74,6 +74,32 @@ describe("createBackendMirror", () => {
     await vi.waitFor(() => expect(mirror.snapshot("lens").error).toMatchObject({ code: "cursorExpired" }));
   });
 
+  it("事件携带完整真相时直接接受，先发的旧读取回来也不能盖掉", async () => {
+    let resolveRead!: (value: string) => void;
+    let publish: ((value: string) => void) | null = null;
+    fakeBackend({
+      read: () =>
+        new Promise<string>((resolve) => {
+          resolveRead = resolve;
+        }),
+    });
+    const mirror = createBackendMirror({
+      read: () => invoke<string>("read"),
+      listen: (_invalidate, accept) => {
+        publish = (value) => accept("lens", value);
+        return () => {};
+      },
+    });
+    mirror.subscribe("lens", () => {});
+    await flush();
+
+    publish!("new");
+    expect(mirror.snapshot("lens").value).toBe("new");
+    resolveRead("old");
+    await flush();
+    expect(mirror.snapshot("lens").value).toBe("new");
+  });
+
   it("最后一个订阅者退订后，等待重试的令牌作废，不再发新的读取", async () => {
     let calls = 0;
     let releaseWait: (() => void) | null = null;

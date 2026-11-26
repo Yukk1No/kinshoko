@@ -1,5 +1,5 @@
 // 工作区的失效决策（#324）：收到哪种事实，要撤销什么、关掉什么、重读什么。只做决定，不碰 React；
-// 副作用由调用方按返回的决定执行（LibraryWorkspace 的 `useInvalidation`）。
+// 副作用由调用方按返回的决定执行（LibraryWorkspace 的 `useBrowseResults`）。
 
 /** 修订变化后的选择修剪进度：等图片墙读完新的结果，只保留仍在的图。 */
 export type Prune = "idle" | "reset" | "loading";
@@ -20,8 +20,8 @@ export type InvalidationState = {
 
 export const initialInvalidation: InvalidationState = { revision: null, observations: 0, prune: "idle" };
 
-/** 状态快照从哪里来：主动读取、变更通知、图片墙某页带回、“重新连接”。 */
-export type StatusOrigin = "read" | "notification" | "page" | "recheck";
+/** 状态快照从哪里来：主动读取、变更通知、图片墙某页带回、后端状态镜像、“重新连接”。 */
+export type StatusOrigin = "read" | "notification" | "page" | "mirror" | "recheck";
 
 export type InvalidationEvent =
   /** 按当前视角发出状态读取（首次或安全模式视角变了）：之前接受的修订不再作数。 */
@@ -45,9 +45,8 @@ export type InvalidationEvent =
   /** 换了查找条件（搜索框、标签分组、打开回收站）。 */
   | { kind: "conditionsChanged" }
   /**
-   * 图片墙交来的卡片或张数变了；`ready` 为张数已知（这一页读完）。
-   * 顺序契约：图片墙先报这一页带回的状态（`statusObserved`，origin `page`），再交出这一页的卡片，
-   * 所以那份状态要求的修剪落在这一页上。
+   * 一页结果已经就绪；`ready` 为张数已知。外部调用方不直接报它：浏览结果模块在原子交付一页时，
+   * 内部把它与这页带回的状态合成同一步（#742），因此不存在“先报修订、再交卡片”的顺序契约。
    */
   | { kind: "pageAccepted"; ready: boolean };
 
@@ -101,9 +100,12 @@ export function decide(state: InvalidationState, event: InvalidationEvent): Outc
         return event.origin === "recheck" ? act(observed, { reload: true }) : keep(observed);
       }
       // 通知与“重新连接”本身就说明内容变了；读取或页带回的新修订只在已有修订时才算前进
-      // （这个视角下的第一份快照只是采用）。
-      const pushed = event.origin === "notification" || event.origin === "recheck";
-      const advanced = pushed || observed.revision !== null;
+      // （这个视角下的第一份快照只是采用）。镜像已经按代次排除了旧读取，因此它后来给出的新修订
+      // 同样是更新的事实；只有这个视角下的第一份镜像快照是单纯采用。
+      const first = observed.revision === null;
+      const mirror = event.origin === "mirror";
+      const advanced = mirror ? !first : event.origin === "notification" || event.origin === "recheck" || !first;
+      const pushed = event.origin === "notification" || event.origin === "recheck" || (mirror && advanced);
       const next = { ...observed, revision: event.revision, prune: advanced ? ("reset" as const) : observed.prune };
       return act(next, { acceptStatus: true, revokeWall: pushed, ...(advanced ? REVISION_ADVANCED : {}) });
     }

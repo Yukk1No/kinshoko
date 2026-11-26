@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { errorText, isCursorExpired } from "../ipc";
 import type { ToastApi } from "../ui/Toast";
-import type { Invalidate } from "./useInvalidation";
+import type { Invalidate } from "./useBrowseResults";
 
 /**
  * 工作区读取期间修订变了（CursorExpired）：那次读到的结果已经过时，不是要用户处理的问题。

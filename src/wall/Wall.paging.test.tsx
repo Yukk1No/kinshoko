@@ -10,7 +10,7 @@ import type { WorkspaceQuery } from "../bindings/WorkspaceQuery";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
 import { type CardSeed, workspacePage } from "../test/workspacePage";
 import { Wall, type WallHandle } from "./Wall";
-import { PAGE } from "./wallShared";
+import { PAGE, type BrowsePageDelivery, type BrowsePager } from "./wallShared";
 import { fakeBackend } from "../test/backend";
 
 type Call = {
@@ -60,13 +60,31 @@ const settle = () =>
   act(async () => {
     await new Promise((r) => setTimeout(r, 0));
   });
+
+/** 记录原子交付的测试 pager；令牌规则与图片墙本地 adapter 相同。 */
+function recordingPager(deliveries: BrowsePageDelivery[]): BrowsePager {
+  let generation = 0;
+  return {
+    begin: () => ++generation,
+    token: () => generation,
+    current: (token) => token === generation,
+    invalidate: () => {
+      generation += 1;
+    },
+    deliver: (page) => {
+      if (page.token !== generation) return false;
+      deliveries.push(page);
+      return true;
+    },
+  };
+}
 const shown = () => [...document.querySelectorAll<HTMLElement>(".card")].map((c) => c.dataset.id);
 const total = () => document.querySelector<HTMLElement>(".wall")!.dataset.total;
 
 it("翻页带着同一范围、查找条件与安全模式，下一页接在后面，张数取最新一页的", async () => {
-  const status = vi.fn();
+  const deliveries: BrowsePageDelivery[] = [];
   const wall = createRef<WallHandle>();
-  render(<Wall ref={wall} {...base} safeMode onWorkspaceStatus={status} />);
+  render(<Wall ref={wall} {...base} safeMode browsePager={recordingPager(deliveries)} />);
   await settle();
   expect(calls).toHaveLength(1);
   expect(calls[0]).toMatchObject({
@@ -78,7 +96,7 @@ it("翻页带着同一范围、查找条件与安全模式，下一页接在后�
   await settle();
   // 第一页已取够一屏，停在这里，等滚到底部再翻。
   expect(calls).toHaveLength(1);
-  expect(status).toHaveBeenCalledTimes(1);
+  expect(deliveries).toHaveLength(1);
   act(() => wall.current!.loadMore());
   await settle();
   expect(calls).toHaveLength(2);
@@ -89,9 +107,9 @@ it("翻页带着同一范围、查找条件与安全模式，下一页接在后�
   await act(async () => calls[1].resolve(workspacePage([card("b"), card("c")], PAGE + 2)));
   await settle();
   expect(total()).toBe(String(PAGE + 2));
-  // 每一页回来都把已接受的工作区快照交给父界面，带上那时墙上的全部卡片。
-  expect(status).toHaveBeenCalledTimes(2);
-  expect(status.mock.lastCall![1].map((c: CardSeed) => c.id)).toEqual([...firstPage.map((c) => c.id), "b", "c"]);
+  // 每一页回来都把修订与那时墙上的全部卡片作为一次原子交付交给浏览结果模块。
+  expect(deliveries).toHaveLength(2);
+  expect(deliveries.at(-1)!.cards.map((c) => c.id)).toEqual([...firstPage.map((c) => c.id), "b", "c"]);
   // 没有下一页了：不再翻。
   act(() => wall.current!.loadMore());
   await settle();

@@ -5,7 +5,7 @@ import type { FinishedImport, RunningImport } from "../library/ImportBar";
 import { safeTiming } from "../shell/safeTiming";
 import type { ToastApi } from "../ui/Toast";
 import type { ImportTasks } from "./useImportTasks";
-import type { Invalidate } from "./useInvalidation";
+import type { Invalidate } from "./useBrowseResults";
 
 /** 资料库事件：列表与词表失效、安全模式确认、导入进度与结束；另一个图库整理等导入收尾时的轻提示。 */
 export function useLibraryEvents({

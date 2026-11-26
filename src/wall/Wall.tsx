@@ -21,6 +21,7 @@ import {
   TARGET,
   loadAnchor,
   type BrowserCard,
+  type BrowsePager,
   type WallProps,
 } from "./wallShared";
 import { type CardHandlers } from "./WallCard";
@@ -44,6 +45,20 @@ import { usePasteShortcut, wallInteractions } from "./wallInteractions";
 export { DRAG_IMAGE_SOURCES, DRAG_IMAGES, scopeKey } from "./wallShared";
 export type { BrowserCard, CardCommand, WallHandle } from "./wallShared";
 
+/** standalone 图片墙的本地浏览令牌 adapter；工作区挂载时由浏览结果模块替换它。 */
+function createLocalBrowsePager(): BrowsePager {
+  let generation = 0;
+  return {
+    begin: () => ++generation,
+    token: () => generation,
+    current: (token) => token === generation,
+    invalidate: () => {
+      generation += 1;
+    },
+    deliver: (page) => page.token === generation,
+  };
+}
+
 /**
  * 图片墙：按资料库记录的尺寸用纯函数排出瀑布流，只挂载视口附近的卡片。
  * 单击只选中这一张（详情面板跟着选择），再单击当前唯一选中的那张、双击或 Enter 打开查看器（#146、#179）；
@@ -55,7 +70,7 @@ export function Wall({
   workspaceScope,
   onInspectSources,
   onCardsChange,
-  onWorkspaceStatus,
+  browsePager,
   density = TARGET,
   onDensityPreview,
   onDensityCommit,
@@ -115,8 +130,10 @@ export function Wall({
    * 请求代次：重新浏览、视角（浏览范围、条件、安全模式）变化与卸载时前进。
    * 响应回来时代次已经不同就整个丢掉，不改卡片、游标、数量、错误与加载状态（#77 UI-A）。
    */
-  const generation = useRef(0);
-  /** 正在进行的请求所属代次；没有时为 null。被作废的请求不会占着它。 */
+  const localPager = useRef<BrowsePager | null>(null);
+  if (!localPager.current) localPager.current = createLocalBrowsePager();
+  const pager = browsePager ?? localPager.current;
+  /** 正在进行的请求所属令牌；没有时为 null。被作废的请求不会占着它。 */
   const inflight = useRef<number | null>(null);
   /** 当前视角。请求发出时按这里取，不用首次渲染时的值。 */
   const view = useRef({ conditions, workspaceScope, safeMode });
@@ -125,14 +142,14 @@ export function Wall({
   // biome-ignore lint/correctness/useExhaustiveDependencies(lens): 视角变了就作废在途请求
   useLayoutEffect(() => {
     // 视角变了：还在路上的请求按旧视角作废，旧游标也不再接着翻；等调用方按新视角重新浏览。
-    generation.current += 1;
+    pager.invalidate();
     inflight.current = null;
     setCursor(null);
     return () => {
-      generation.current += 1;
+      pager.invalidate();
       inflight.current = null;
     };
-  }, [lens]);
+  }, [lens, pager]);
   /** 正在看的那张图。重开或重新浏览后滚回这里。 */
   const anchor = useRef<Anchor | null>(storeKey ? loadAnchor(storeKey) : null);
   /** 要记下的位置（见 storableAnchor）。 */
@@ -187,7 +204,7 @@ export function Wall({
     ref,
     measureBeforeReflow,
     setPreviewDensity,
-    generation,
+    pager,
     inflight,
     loadMoreRef,
     selectAllRef,
@@ -255,7 +272,7 @@ export function Wall({
     setCursor,
     setTotal,
     setError,
-    generation,
+    pager,
     inflight,
     view,
     restoring,
@@ -264,7 +281,6 @@ export function Wall({
     visibleCardId,
     preservedIds: selectedForReload,
     measureBeforeReflow,
-    onWorkspaceStatus,
     releasePage,
     reloadKey,
     loadMoreRef,
