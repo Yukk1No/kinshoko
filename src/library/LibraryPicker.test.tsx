@@ -57,7 +57,7 @@ it("其他入口登记的新资料库随工作区变化出现在“管理图库�
     await emit("workspace-changed", { revision: "r2", libraries: structuredClone(registered) });
   });
   await act(async () => {});
-  expect(reads).toBeGreaterThan(before);
+  expect(reads).toBe(before);
   expect(within(dialog).getByText("同名资料库（恢复）")).toBeTruthy();
   expect(within(dialog).getByText("移动盘没插")).toBeTruthy();
 });

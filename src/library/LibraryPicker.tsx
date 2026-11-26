@@ -3,9 +3,9 @@ import { Dialog } from "@base-ui/react/dialog";
 import { useTranslation } from "react-i18next";
 import { ChevronRight, FolderOpen, FolderPlus, Library, Plus, RefreshCw, Settings2 } from "lucide-react";
 import type { LibraryInfo } from "../bindings/LibraryInfo";
-import type { LibraryRegistration } from "../bindings/LibraryRegistration";
 import { describeCommandError, errorText } from "../ipc/commandError";
-import { onWorkspaceChanged, pickFolder, registeredLibraries, registerLibrary, unregisterLibrary } from "../ipc";
+import { pickFolder, registerLibrary, unregisterLibrary } from "../ipc";
+import { invalidateRegisteredLibraries, useRegisteredLibraries } from "./workspaceDirectoriesMirror";
 import { BrandMark } from "../ui/BrandMark";
 import { Menu, MenuItem, MenuPopup } from "../ui/Menu";
 import { useToast } from "../ui/Toast";
@@ -34,49 +34,29 @@ export function LibraryPicker({
   layout?: "menu" | "inline";
 }) {
   const { t } = useTranslation("library");
-  const [entries, setEntries] = useState<LibraryRegistration[]>([]);
+  const registrations = useRegisteredLibraries(ready);
+  const entries = registrations.value ?? [];
   const [busy, setBusy] = useState(false);
-  const [revision, setRevision] = useState(0);
   const [managing, setManaging] = useState(false);
   const managePopup = useRef<HTMLDivElement>(null);
   const toast = useToast();
   const disabled = busy || blocked || !ready;
+  const reported = useRef<unknown>(null);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: revision 是重读信号；fail 每次渲染都是新函数，只调 toast
   useEffect(() => {
-    if (!ready) return;
-    let alive = true;
-    registeredLibraries().then(
-      (value) => alive && setEntries(value),
-      (e) => alive && fail(errorText(e)),
-    );
-    return () => {
-      alive = false;
-    };
-  }, [ready, revision]);
-
-  // Registrations can also change outside this picker (content restore, unregistration elsewhere).
-  // Re-read the list when the workspace's provider set changes.
-  useEffect(() => {
-    let ids: string | null = null;
-    const stop = onWorkspaceChanged((status) => {
-      const next = status.libraries
-        .map((entry) => entry.library.id)
-        .sort()
-        .join("|");
-      if (ids !== null && next === ids) return;
-      ids = next;
-      setRevision((value) => value + 1);
-    });
-    return () => {
-      void stop.then((unlisten) => unlisten());
-    };
-  }, []);
+    if (!registrations.error) {
+      reported.current = null;
+      return;
+    }
+    if (reported.current === registrations.error) return;
+    reported.current = registrations.error;
+    toast.error(errorText(registrations.error));
+  }, [registrations.error, toast]);
 
   function fail(message: string) {
     toast.error(message);
   }
-  const refresh = () => setRevision((value) => value + 1);
+  const refresh = () => invalidateRegisteredLibraries();
   const run = async (action: () => Promise<void>) => {
     setBusy(true);
     try {
