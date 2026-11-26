@@ -266,6 +266,16 @@
     transform var(--t-slow) var(--ease),
     opacity var(--t-slow) var(--ease);
 }
+/* 对话框本身是初始焦点的落点，不画焦点环；里面的控件照常画。 */
+.k-dialog:focus-visible {
+  outline: 0;
+}
+.k-dialog-x {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 1;
+} /* 32 px button centred on the 24 px title line inside the 20 px inset */
 .k-dialog-desc {
   margin: 4px 0 14px;
   color: var(--ink-2);

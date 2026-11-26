@@ -72,7 +72,7 @@ describe("订阅页主区", () => {
     expect(screen.getAllByRole("button", { name: "作品1，画师" })).toHaveLength(1);
     // 多页作品标页数。
     expect(
-      within(screen.getByRole("button", { name: "作品3，画师" }).parentElement as HTMLElement).getByText("2 页"),
+      within(screen.getByRole("button", { name: "作品3，画师" }).closest(".pw-card") as HTMLElement).getByText("2 页"),
     ).toBeTruthy();
   });
 

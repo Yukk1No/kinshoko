@@ -25,17 +25,6 @@
 .legacy-name-migration > .k-dialog-foot > .k-link:disabled {
   box-shadow: var(--btn-lift-disabled);
 }
-/* 对话框本身是初始焦点的落点（设置：不落在关闭按钮上），不画焦点环；里面的控件照常画。 */
-.k-dialog:focus-visible {
-  outline: 0;
-}
-.k-dialog-x {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  z-index: 1;
-} /* 32 px button centred on the 24 px title line inside the 20 px inset */
-
 /* ---- Radio cards (import target, old-name wizard) ---- */
 .k-radio-cards {
   display: flex;

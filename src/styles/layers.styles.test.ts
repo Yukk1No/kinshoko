@@ -11,6 +11,8 @@ const EXPECTED: Record<string, string> = {
   "./library/tag-panel.css": "ui",
   "./shell/sidebar-base.css": "ui",
   "./ui/ui.css": "ui",
+  "./ui/page-frame.css": "ui",
+  "./ui/media-card.css": "ui",
   "./ui/empty-state.css": "ui",
   "./ui/token.css": "ui",
   "./ui/spinner.css": "ui",

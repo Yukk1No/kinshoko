@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AlertDialog } from "@base-ui/react/alert-dialog";
+import { AlertDialog } from "../ui/DialogShell";
 import type { PermanentDeletePreview } from "../bindings/PermanentDeletePreview";
 import { isDeletePreviewStale, permanentDelete, previewEmptyTrash, previewPermanentDelete } from "../ipc";
 import { errorText } from "../ipc/commandError";
@@ -90,61 +90,63 @@ export function PermanentDeleteConfirm({
   const { t } = useTranslation("wall", { keyPrefix: "purge" });
   const title = emptyTrash ? t("emptyTrash") : t("title");
   // 提醒对话框挂在 body 上：详情面板收起（inert）时也能看到并操作（#98）。
+  const cancel = useRef<HTMLButtonElement>(null);
   return (
-    <AlertDialog.Root
+    <AlertDialog
       open
       onOpenChange={(open) => {
         if (!open && !busy) onCancel();
       }}
+      title={title}
+      description={
+        preview
+          ? emptyTrash
+            ? t("confirmEmptyTrash", { library: emptyTrash.libraryName, count: preview.imageIds.length })
+            : t("confirmCount", { count: preview.imageIds.length })
+          : undefined
+      }
+      className="permanent-delete"
+      cancelRef={cancel}
+      footer={
+        <>
+          <span className="k-grow" />
+          <button ref={cancel} type="button" className="k-btn" disabled={busy} onClick={onCancel}>
+            <span className="k-label">{t("cancel")}</span>
+          </button>
+          <button
+            type="button"
+            className="k-btn is-danger"
+            disabled={busy || !preview || preview.imageIds.length === 0}
+            onClick={confirm}
+          >
+            <span className="k-label">{emptyTrash ? t("emptyTrash") : t("confirm")}</span>
+          </button>
+        </>
+      }
     >
-      <AlertDialog.Portal>
-        <AlertDialog.Backdrop className="k-backdrop" />
-        <AlertDialog.Popup className="k-dialog is-alert permanent-delete" aria-label={title}>
-          <AlertDialog.Title className="k-title">{title}</AlertDialog.Title>
-          {!preview ? (
-            <p className="k-dialog-desc" role="status">
-              {t("checking")}
+      {!preview ? (
+        <p className="k-dialog-desc" role="status">
+          {t("checking")}
+        </p>
+      ) : (
+        <>
+          {changed && (
+            <p className="k-description is-spaced" role="status">
+              {t("changed")}
             </p>
-          ) : (
+          )}
+          {preview.groups.length > 0 && (
             <>
-              {changed && (
-                <p className="k-description is-spaced" role="status">
-                  {t("changed")}
-                </p>
-              )}
-              <AlertDialog.Description className="k-dialog-desc">
-                {emptyTrash
-                  ? t("confirmEmptyTrash", { library: emptyTrash.libraryName, count: preview.imageIds.length })
-                  : t("confirmCount", { count: preview.imageIds.length })}
-              </AlertDialog.Description>
-              {preview.groups.length > 0 && (
-                <>
-                  <p className="k-dialog-desc">{t("groupsIntro")}</p>
-                  <ul className="permanent-delete-groups" aria-label={t("groupsLabel")}>
-                    {preview.groups.map((g) => (
-                      <li key={g.groupId}>{t("groupCount", { name: g.name, count: g.imageIds.length })}</li>
-                    ))}
-                  </ul>
-                </>
-              )}
+              <p className="k-dialog-desc">{t("groupsIntro")}</p>
+              <ul className="permanent-delete-groups" aria-label={t("groupsLabel")}>
+                {preview.groups.map((g) => (
+                  <li key={g.groupId}>{t("groupCount", { name: g.name, count: g.imageIds.length })}</li>
+                ))}
+              </ul>
             </>
           )}
-          <div className="k-dialog-foot">
-            <span className="k-grow" />
-            <AlertDialog.Close className="k-btn" disabled={busy}>
-              <span className="k-label">{t("cancel")}</span>
-            </AlertDialog.Close>
-            <button
-              type="button"
-              className="k-btn is-danger"
-              disabled={busy || !preview || preview.imageIds.length === 0}
-              onClick={confirm}
-            >
-              <span className="k-label">{emptyTrash ? t("emptyTrash") : t("confirm")}</span>
-            </button>
-          </div>
-        </AlertDialog.Popup>
-      </AlertDialog.Portal>
-    </AlertDialog.Root>
+        </>
+      )}
+    </AlertDialog>
   );
 }

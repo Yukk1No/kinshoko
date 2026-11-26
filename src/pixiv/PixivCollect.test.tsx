@@ -101,7 +101,7 @@ function renderHome() {
   );
 }
 
-const card = (name: string) => screen.getByRole("button", { name }).parentElement as HTMLElement;
+const card = (name: string) => screen.getByRole("button", { name }).closest(".pw-card") as HTMLElement;
 
 beforeEach(() => {
   Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1000 });

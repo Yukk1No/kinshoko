@@ -1,0 +1,46 @@
+/* 页面骨架原语（#743）：只定骨架高度、工作面底材与纵横排列；页面内容仍写在功能层。 */
+
+.k-page-frame {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.k-page-body {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.k-page-topbar {
+  display: flex;
+  height: var(--page-topbar-h);
+  min-height: var(--page-topbar-h);
+  align-items: center;
+  flex-shrink: 0;
+  gap: 6px;
+  padding: 0 8px;
+  user-select: none;
+}
+
+.k-page-subbar {
+  display: flex;
+  min-height: var(--page-subbar-h);
+  align-items: center;
+  flex-shrink: 0;
+  gap: 8px;
+  padding: 0 12px;
+}
+
+.k-page-surface {
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+  background: var(--wall);
+}

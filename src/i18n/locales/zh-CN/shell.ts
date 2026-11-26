@@ -22,6 +22,7 @@ export default {
     restore: "还原",
     close: "关闭",
   },
+  dialogClose: "关闭",
   toast: {
     label: "提示",
     gotIt: "知道了",

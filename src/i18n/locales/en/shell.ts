@@ -24,6 +24,7 @@ const shell: Translation<typeof zh> = {
     restore: "Restore",
     close: "Close",
   },
+  dialogClose: "Close",
   toast: {
     label: "Notifications",
     gotIt: "Got it",

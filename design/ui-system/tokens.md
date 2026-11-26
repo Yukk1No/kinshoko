@@ -2,7 +2,7 @@
 
 ## 令牌来源
 
-`src/styles/tokens.css` 是界面令牌的唯一来源：颜色、封印书的 `--seal-acc`、圆角、控件高度、层级、动效时长都在 `:root` 里。档位见 [scales.md](scales.md)。
+`src/styles/tokens.css` 是界面令牌的唯一来源：颜色、封印书的 `--seal-acc`、圆角、控件与页面骨架高度、层级、动效时长都在 `:root` 里。档位见 [scales.md](scales.md)。
 
 - 改颜色只改这一个文件。其他样式表只写 `var(--token)`，不写十六进制颜色。
 - `src/styles/tokens.styles.test.ts` 扫描 `src/` 下所有样式表，在令牌文件之外发现十六进制颜色就失败。确有理由写死的，列进该测试的 `ALLOWED` 并写明理由。

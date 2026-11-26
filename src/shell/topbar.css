@@ -36,8 +36,8 @@
 /* ---- Main header ---- */
 
 .topbar {
-  height: 56px;
-  min-height: 56px;
+  height: var(--page-topbar-h);
+  min-height: var(--page-topbar-h);
   flex: none;
   display: flex;
   align-items: center;

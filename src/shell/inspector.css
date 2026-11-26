@@ -46,7 +46,7 @@
 }
 .insp-head {
   width: calc(var(--inspector-width, 320px) - var(--sheet-gap));
-  height: 56px;
+  height: var(--page-topbar-h);
   flex: none;
   display: flex;
   align-items: center;
