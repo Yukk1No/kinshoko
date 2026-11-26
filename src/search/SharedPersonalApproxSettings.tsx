@@ -1,16 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import type { CatalogApproxEdit } from "../bindings/CatalogApproxEdit";
 import type { CatalogApproxView } from "../bindings/CatalogApproxView";
-import {
-  editSharedApprox,
-  isLensChanged,
-  onSafeModeSetting,
-  onWorkspaceChanged,
-  safeMode,
-  sharedPersonalApprox,
-  workspaceStatus,
-} from "../ipc";
+import { editSharedApprox, isLensChanged, sharedPersonalApprox } from "../ipc";
+import { createBackendMirror } from "../ipc/backendMirror";
+import { useBackendMirror } from "../ipc/useBackendMirror";
 import { libraryPathHint } from "../library/library-path";
+import { useSafeModeSetting } from "../shell/useShellSettings";
+import { workspaceStatusKey, workspaceStatusMirror } from "../workspace/workspaceStatusMirror";
 import { TagMarks, tagName } from "./SearchBox";
 import { useUiLang } from "../i18n";
 import { i18n } from "../i18n/instance";
@@ -19,86 +15,59 @@ import { Tip } from "../ui/Tip";
 
 const relationName = (relation: string) =>
   i18n.t(relation === "similar" ? "tagSettings:approx.similar" : "tagSettings:approx.notSimilar");
+
+const approxKey = (lang: string, safe: boolean, safeGeneration: number, revision: string | null) =>
+  JSON.stringify([lang, safe, safeGeneration, revision]);
+const readApproxKey = (key: string): [string, boolean] => {
+  const [lang, safe] = JSON.parse(key) as [string, boolean, number, string];
+  return [lang, safe];
+};
+
+/** 个人近似对应表的应用级镜像。查询键含界面语言、安全模式视角/代次与工作区修订；修订变化由工作区镜像换成新键。 */
+const sharedPersonalApproxMirror = createBackendMirror<string, CatalogApproxView>({
+  read: (key) => {
+    const [lang, safe] = readApproxKey(key);
+    return sharedPersonalApprox(lang, safe);
+  },
+  stale: isLensChanged,
+});
+
 /** Same formal settings structure, with stable shared identities and source-aware conflict choices. */
 export function SharedPersonalApproxSettings({ onError }: { onError: (error: unknown) => void }) {
-  const [safe, setSafe] = useState<boolean | null>(null);
-  const [generation, setGeneration] = useState(0);
-  const [refresh, setRefresh] = useState(0);
-  const [found, setFound] = useState<{ key: string; view: CatalogApproxView } | null>(null);
+  const safeMode = useSafeModeSetting();
+  const safe = safeMode.value?.on ?? null;
+  const safeGeneration = safeMode.value?.generation ?? 0;
   const [pending, setPending] = useState<string | null>(null);
-  const mode = useRef(0),
-    revision = useRef<string | null>(null),
-    events = useRef(0);
   const lang = useUiLang();
   const { t } = useTranslation("tagSettings", { keyPrefix: "approx" });
-  const key = JSON.stringify([safe, generation, refresh, lang]);
-  const current = useRef(key);
-  current.current = key;
-  const view = found?.key === key ? found.view : null;
+  const workspace = useBackendMirror(workspaceStatusMirror, workspaceStatusKey(safe ?? true), safe !== null);
+  const revision = workspace.value?.revision ?? null;
+  const key = approxKey(lang, safe ?? true, safeGeneration, revision);
+  const found = useBackendMirror(sharedPersonalApproxMirror, key, safe !== null && revision !== null);
+  const view = safe === null || revision === null ? null : found.value;
+  const onErrorRef = useRef(onError);
   useEffect(() => {
-    let alive = true;
-    const initial = mode.current;
-    const baseline = async (on: boolean, expected: number) => {
-      const event = events.current;
-      try {
-        const status = await workspaceStatus(on);
-        if (alive && mode.current === expected && events.current === event) revision.current = status?.revision ?? null;
-      } catch (error) {
-        if (alive && mode.current === expected && !isLensChanged(error)) onError(error);
-      }
-    };
-    void safeMode()
-      .then(async (on) => {
-        if (!alive || mode.current !== initial) return;
-        await baseline(on, initial);
-        if (alive && mode.current === initial) setSafe(on);
-      })
-      .catch((error) => {
-        if (alive && mode.current === initial) onError(error);
-      });
-    const stopMode = onSafeModeSetting((on) => {
-      if (!alive) return;
-      mode.current++;
-      setSafe(on);
-      setGeneration((n) => n + 1);
-      void baseline(on, mode.current);
-    });
-    const stopWorkspace = onWorkspaceChanged((status) => {
-      if (!alive) return;
-      events.current++;
-      if (revision.current === status.revision) return;
-      revision.current = status.revision;
-      setGeneration((n) => n + 1);
-    });
-    return () => {
-      alive = false;
-      // 忽略失败：收尾时取消监听；之后的事件不再处理。
-      for (const stop of [stopMode, stopWorkspace]) void stop.then((unlisten) => unlisten()).catch(() => {});
-    };
-  }, [onError]);
+    onErrorRef.current = onError;
+  });
+
   useEffect(() => {
-    if (safe === null) return;
-    let alive = true;
-    void sharedPersonalApprox(lang, safe).then(
-      (value) => {
-        if (alive && current.current === key) setFound({ key, view: value });
-      },
-      (error) => {
-        if (alive && current.current === key) onError(error);
-      },
-    );
-    return () => {
-      alive = false;
-    };
-  }, [safe, key, onError, lang]);
+    if (safeMode.error !== null) onErrorRef.current(safeMode.error);
+  }, [safeMode.error]);
+  useEffect(() => {
+    if (workspace.error !== null && !isLensChanged(workspace.error)) onErrorRef.current(workspace.error);
+  }, [workspace.error]);
+  useEffect(() => {
+    if (found.error !== null && !isLensChanged(found.error)) onErrorRef.current(found.error);
+  }, [found.error]);
+
   const edit = async (action: CatalogApproxEdit) => {
     if (safe === null) return;
     setPending(key);
     try {
       await editSharedApprox(action, safe);
-      if (current.current === key) setRefresh((n) => n + 1);
+      sharedPersonalApproxMirror.invalidate(key);
     } catch (error) {
-      if (current.current === key) onError(error);
+      onError(error);
     } finally {
       setPending((value) => (value === key ? null : value));
     }

@@ -18,6 +18,8 @@ import {
   taggingSetDevice,
 } from "../ipc";
 import { forgetTaggingDevice, useTaggingMemory, useTaggingStatus } from "../tagging/useTaggingStatus";
+import { createBackendMirror } from "../ipc/backendMirror";
+import { useBackendMirror } from "../ipc/useBackendMirror";
 import { describeCommandError, describeCommandErrors, errorText } from "../ipc/commandError";
 import { Select } from "../ui/Select";
 import { i18n } from "../i18n/instance";
@@ -56,6 +58,13 @@ function automatic(status: TaggingStatus | null, device: ReturnType<typeof useTa
   return t("autoDefault");
 }
 
+const TAGGING_MODELS_KEY = "tagging-models";
+
+/** 打标模型与各硬件档的下载状态镜像。重读不丢掉上一份，界面在后台刷新时不用收起模型区。 */
+const taggingModelsMirror = createBackendMirror<typeof TAGGING_MODELS_KEY, ModelChoice>({
+  read: () => taggingModels(),
+});
+
 /**
  * 设置 › 自动标签（#143）：打标状态（暂停、继续、下载），Tagger 模型（只读），硬件加速（自动／显卡／CPU），
  * 没有网络时导入模型包。状态是所有资料库合计（#414），与图片墙右下角的图标同一套处理。
@@ -73,35 +82,26 @@ export function AutoTaggingSettings({
   useTranslation("tagging");
   const status = useTaggingStatus();
   const memory = useTaggingMemory();
-  const [choice, setChoice] = useState<ModelChoice | null>(null);
+  const models = useBackendMirror(taggingModelsMirror, TAGGING_MODELS_KEY);
+  const choice = models.value;
+  const phase = status?.state ?? null;
+  const seenPhase = useRef(phase);
+  // 状态阶段变化才重读模型清单；第一份还没回时先等它完成，模型区不用收起又展开。
+  useEffect(() => {
+    if (seenPhase.current === phase || models.refreshing) return;
+    seenPhase.current = phase;
+    taggingModelsMirror.invalidate(TAGGING_MODELS_KEY);
+  }, [phase, models.refreshing]);
   const [busy, setBusy] = useState(false);
   const toast = useToast();
   const [error, setError] = useState<string | null>(null);
-  /** 画师改过选择（换档、导入、下载）的次数：在这之前开始的重新读取晚到时不再采用，免得把刚选的档盖回去。 */
-  const changes = useRef(0);
-
-  // 状态变了（例如下载完成、换了档）就重读各档是否已下载。
-  const phase = status?.state ?? null;
-  // biome-ignore lint/correctness/useExhaustiveDependencies(phase): 打标状态一变就重读各档，effect 里不读它
-  useEffect(() => {
-    let alive = true;
-    const since = changes.current;
-    taggingModels().then(
-      (value) => alive && value && since === changes.current && setChoice(value),
-      () => {},
-    );
-    return () => {
-      alive = false;
-    };
-  }, [phase]);
 
   async function run(change: () => Promise<ModelChoice | null>, done: string | null) {
     setError(null);
-    changes.current += 1;
     try {
       const next = await change();
       if (next) {
-        setChoice(next);
+        taggingModelsMirror.accept(TAGGING_MODELS_KEY, next);
         if (done) toast.show({ title: done, tone: "success" });
       }
     } catch (reason) {

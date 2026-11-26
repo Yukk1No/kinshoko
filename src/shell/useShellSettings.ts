@@ -9,16 +9,42 @@ import type { UpdateChannel } from "../bindings/UpdateChannel";
 import {
   errorText,
   changeSetting,
+  onSafeModeSetting,
   rebindShortcut,
   restoreApplicationSettings,
+  safeMode,
   setRunLog,
   setSafeModeScope,
   setShortcutsPaused,
   setUpdateChannel,
   shellSettings,
 } from "../ipc";
+import { createBackendMirror } from "../ipc/backendMirror";
+import { useBackendMirror } from "../ipc/useBackendMirror";
 import { DEFAULT_TAG_DISPLAY } from "../tags/tagConfidence";
 import { createSettingsSubmitter, type SettingsCommand, type SubmitterState } from "./settingsSubmitter";
+
+const SAFE_MODE_KEY = "safe-mode-setting";
+
+type SafeModeSetting = { on: boolean; generation: number };
+
+/**
+ * 安全模式开关的本机设置镜像；事件带着保存后的布尔值，直接接受，迟到的旧读取不能盖掉它。
+ * 后端每次提交都推进视角代次，但事件不带这个代次；这里按本代订阅收到的事件计数，
+ * 让快速来回切换即使净开关不变，下游查询键也一定更换。
+ */
+const safeModeMirror = createBackendMirror<typeof SAFE_MODE_KEY, SafeModeSetting>({
+  read: async () => ({ on: await safeMode(), generation: 0 }),
+  listen: (_invalidate, accept) => {
+    let generation = 0;
+    return onSafeModeSetting((on) => accept(SAFE_MODE_KEY, { on, generation: ++generation }));
+  },
+});
+
+/** 安全模式开关与提交代次。只在读取本机设置与跟随设置事件时使用；主窗口的切换确认流程仍在 `useSafeMode`。 */
+export function useSafeModeSetting() {
+  return useBackendMirror(safeModeMirror, SAFE_MODE_KEY);
+}
 
 /**
  * 设置页直接交给统一改动入口、值就是最终结果的那几项。`SettingChange` 新加的分支自动在内；
@@ -89,12 +115,21 @@ const LOAD = "load";
  * `onChange` 按接受的顺序收到每份写入或恢复后的快照（读取不算），设置页开没开着都一样。
  */
 export function createShellSettings(onChange?: (view: ShellSettingsView) => void) {
+  const loadMirror = createBackendMirror<typeof LOAD, ShellSettingsView>({
+    read: async () => {
+      const result = await load();
+      if (!result.ok) throw result.reason;
+      return submitter.state().view!;
+    },
+  });
   const submitter = createSettingsSubmitter<ShellSettingsView>({
     describe: errorText,
     onAccepted: (view, command) => {
+      loadMirror.accept(LOAD, view);
       if (command.key !== LOAD && command.key !== "wallDensity") onChange?.(view);
     },
   });
+  const load = () => submitter.submit({ key: LOAD, merge: "keep", quiet: true, run: shellSettings });
   // 标签外观连着改时，后一项在最后改成的那份之上改。草稿放在这里而不在外观分区里，
   // 切走再回来的分区接着在它之上改，失败作废的同项改动也就都是真依赖失败那次的。
   // 命令只带改了的几项，执行时才叠到已接受的设置上（见 shellSettingsCommand）。
@@ -133,7 +168,8 @@ export function createShellSettings(onChange?: (view: ShellSettingsView) => void
         listeners.delete(listener);
       };
     },
-    load: () => submitter.submit({ key: LOAD, merge: "keep", quiet: true, run: shellSettings }),
+    load,
+    loadMirror,
     submit,
     changeWallDensity(density: number) {
       const revision = ++densityRevision;
@@ -224,20 +260,8 @@ export function useShellSettings(shared?: ShellSettings, onChange?: (view: Shell
   });
   const [store] = useState(() => shared ?? createShellSettings((view) => onChangeRef.current?.(view)));
   const state = useSyncExternalStore(store.subscribe, store.state);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [loadAttempt, setLoadAttempt] = useState(0);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies(loadAttempt): 点“重试”时重读
-  useEffect(() => {
-    let alive = true;
-    setLoadError(null);
-    void store.load().then((result) => {
-      if (alive && !result.ok) setLoadError(errorText(result.reason));
-    });
-    return () => {
-      alive = false;
-    };
-  }, [store, loadAttempt]);
+  const load = useBackendMirror(store.loadMirror, LOAD);
+  const loadError = !load.refreshing && load.error !== null ? errorText(load.error) : null;
 
   return {
     view: state.view,
@@ -248,7 +272,7 @@ export function useShellSettings(shared?: ShellSettings, onChange?: (view: Shell
     tagDisplay: state.tagDraft ?? state.view?.tagDisplay ?? DEFAULT_TAG_DISPLAY,
     changeTagDisplay: store.changeTagDisplay,
     loadError,
-    retryLoad: () => setLoadAttempt((n) => n + 1),
+    retryLoad: () => store.loadMirror.invalidate(LOAD),
     submit: store.submit,
     restore: store.restore,
     pauseShortcuts: store.pauseShortcuts,
