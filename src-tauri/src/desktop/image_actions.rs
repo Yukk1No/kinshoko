@@ -7,6 +7,7 @@ use kinshoko_core::CommandError;
 use kinshoko_core::command_error::ErrorKind;
 use tauri::AppHandle;
 
+use crate::blocking::blocking;
 use crate::library;
 
 /// 暂存剪贴板图片的目录（应用数据目录下）。导入从这里读，进库的是复制。
@@ -43,26 +44,24 @@ pub async fn reveal_reference_image(
     library_id: String,
     image_id: String,
 ) -> Result<(), CommandError> {
-    tauri::async_runtime::spawn_blocking(move || {
+    blocking(move || {
         let path = library::visible_source(&app, &library_id, &image_id)?
             .reveal_original(&image_id)
             .map_err(CommandError::from)?;
         select_in_explorer(&path)
     })
     .await
-    .map_err(CommandError::system)?
 }
 
 /// 在资源管理器中打开图库（#114）：打开图库在本设备上的文件夹。移动盘拔出、搬家等不在原处时报
 /// 原因（界面提示），不打开窗口。
 #[tauri::command]
 pub async fn reveal_library(app: AppHandle, library_id: String) -> Result<(), CommandError> {
-    tauri::async_runtime::spawn_blocking(move || {
+    blocking(move || {
         let folder = library::library_folder(&app, &library_id)?;
         open_in_explorer(&folder)
     })
     .await
-    .map_err(CommandError::system)?
 }
 
 #[cfg(windows)]
@@ -126,9 +125,7 @@ fn select_in_explorer(path: &std::path::Path) -> Result<(), CommandError> {
 /// 剪贴板里有没有图片（空白处菜单的“从剪贴板导入”据此禁用）。只看格式，不读出图片。
 #[tauri::command]
 pub async fn clipboard_has_image() -> Result<bool, CommandError> {
-    tauri::async_runtime::spawn_blocking(has_image)
-        .await
-        .map_err(CommandError::system)
+    blocking(|| Ok(has_image())).await
 }
 
 #[cfg(windows)]
@@ -151,7 +148,7 @@ fn has_image() -> bool {
 /// （保存位置照常选择）。剪贴板没有图片时报错。
 #[tauri::command]
 pub async fn stage_clipboard_import(app: AppHandle) -> Result<String, CommandError> {
-    tauri::async_runtime::spawn_blocking(move || {
+    blocking(move || {
         let image = arboard::Clipboard::new()
             .and_then(|mut c| c.get_image())
             .map_err(|_| CommandError::new(ErrorKind::ClipboardNoImage, "剪贴板里没有图片"))?;
@@ -172,7 +169,6 @@ pub async fn stage_clipboard_import(app: AppHandle) -> Result<String, CommandErr
             .map_err(CommandError::from)
     })
     .await
-    .map_err(CommandError::system)?
 }
 
 #[tauri::command]
@@ -197,11 +193,10 @@ pub async fn stage_dropped_image(
     let name = percent_encoding::percent_decode_str(name)
         .decode_utf8_lossy()
         .into_owned();
-    tauri::async_runtime::spawn_blocking(move || {
+    blocking(move || {
         let dir = library::data_dir(&app).join(CLIPBOARD_IMPORT_DIR);
         kinshoko_core::library::stage_dropped_image(&dir, &name, &bytes)
             .map(|path| path.to_string_lossy().into_owned())
     })
     .await
-    .map_err(CommandError::system)?
 }
