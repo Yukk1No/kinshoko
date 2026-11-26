@@ -53,6 +53,7 @@ use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent}
 use tauri::{AppHandle, Manager, Wry};
 
 use crate::app_notice::{AppNotice, publish};
+use crate::blocking::blocking;
 use crate::sync::lock;
 use crate::{library, shell};
 
@@ -275,9 +276,7 @@ async fn close_desktop_menu(app: AppHandle, generation: u32) {
 /// 截图历史条目菜单“复制”（#106）：把截图复制到剪贴板。
 #[tauri::command]
 async fn copy_capture(app: AppHandle, id: String) -> Result<(), CommandError> {
-    tauri::async_runtime::spawn_blocking(move || pins::copy_capture_image(&app, &id))
-        .await
-        .map_err(CommandError::system)?
+    blocking(move || pins::copy_capture_image(&app, &id)).await
 }
 
 #[tauri::command]
@@ -296,7 +295,7 @@ async fn collect_capture(
     id: String,
     destination: kinshoko_core::library::SaveDestination,
 ) -> Result<CollectedCapture, CommandError> {
-    tauri::async_runtime::spawn_blocking(move || {
+    blocking(move || {
         let collected = library::with_destination_published(&app, &destination, |library| {
             let pending = lock(&state(&app).history)
                 .prepare_collect(&id)
@@ -311,7 +310,6 @@ async fn collect_capture(
         Ok(collected)
     })
     .await
-    .map_err(CommandError::system)?
 }
 
 /// 贴边隐藏全部钉图，或让它们回到原位（与全局快捷键相同）。
