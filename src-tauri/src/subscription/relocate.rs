@@ -6,6 +6,7 @@
 
 use std::collections::{BTreeMap, HashSet};
 
+use crate::blocking::blocking;
 use kinshoko_core::command_error::CommandError;
 use kinshoko_core::library::{self, Library, SaveDestination};
 use kinshoko_core::reference_groups::{GroupError, GroupUsage, ReferenceGroupUsage};
@@ -90,12 +91,11 @@ pub async fn subscription_old_images(
     ids: Vec<String>,
 ) -> Result<Vec<OldImages>, CommandError> {
     let store = require(&app)?.store.clone();
-    tauri::async_runtime::spawn_blocking(move || {
+    blocking(move || {
         let used = used_in_groups(&app, &store, &ids)?;
         relocate::old_images(&store, &Opened(app.clone()), &used, &ids)
     })
     .await
-    .map_err(CommandError::system)?
 }
 
 /// 把这几条订阅留在旧库、没整理过的图移到它们现在收进的图库。
@@ -106,12 +106,11 @@ pub async fn subscription_move_old(
 ) -> Result<MoveReport, CommandError> {
     let store = require(&app)?.store.clone();
     let worker = app.clone();
-    let report = tauri::async_runtime::spawn_blocking(move || {
+    let report = blocking(move || {
         let used = used_in_groups(&worker, &store, &ids)?;
         relocate::move_old(&store, &Opened(worker.clone()), &used, &ids)
     })
-    .await
-    .map_err(CommandError::system)??;
+    .await?;
     publish(&app);
     Ok(report)
 }
@@ -124,11 +123,7 @@ pub async fn subscription_undo_move(
 ) -> Result<(), CommandError> {
     let store = require(&app)?.store.clone();
     let worker = app.clone();
-    tauri::async_runtime::spawn_blocking(move || {
-        relocate::undo_move(&store, &Opened(worker), &works)
-    })
-    .await
-    .map_err(CommandError::system)??;
+    blocking(move || relocate::undo_move(&store, &Opened(worker), &works)).await?;
     publish(&app);
     Ok(())
 }
