@@ -12,8 +12,8 @@ const sources = import.meta.glob<string>(["../**/*.{ts,tsx}", "!../**/*.test.*",
 });
 const sheets = import.meta.glob<string>("../**/*.css", { query: "?raw", import: "default", eager: true });
 
-// #743 之后仍待迁移的既有对话框。新对话框不能再直接拼 Root/Portal/Backdrop/Popup，也不能手写底部操作区；
-// 迁移一个就从这里删一个，删完保留空表作为护栏。
+// #743/#763 之后仍待迁移的既有对话框。新对话框不能直接从 Base UI 导入底层对话框原语，
+// 也不能手写关闭叉或底部操作区；迁移一个就从这里删一个，删完保留空表作为护栏。
 const DIRECT_DIALOG_ALLOWLIST = new Set([
   "../App.tsx",
   "../library/CreateLibrary.tsx",
@@ -26,6 +26,12 @@ const DIRECT_DIALOG_ALLOWLIST = new Set([
   "../subscriptions/ArtistDialog.tsx",
   "../subscriptions/FirstRunDialog.tsx",
   "../subscriptions/FollowingDialog.tsx",
+  "../workspace/TagGroupsDialog.tsx",
+]);
+const MANUAL_CLOSE_ALLOWLIST = new Set([
+  "../App.tsx",
+  "../library/LegacyNameMigrationPanel.tsx",
+  "../library/SealedImportPreview.tsx",
   "../workspace/TagGroupsDialog.tsx",
 ]);
 const MANUAL_FOOTER_ALLOWLIST = new Set([
@@ -42,9 +48,16 @@ const MANUAL_FOOTER_ALLOWLIST = new Set([
 // 主墙仍是未迁移的遗留实现；新墙与浏览页统一走 MediaCardFrame。
 const LEGACY_CARD_CSS = new Set(["../wall/wall.css"]);
 
-const DIALOG_PART = /<(Dialog|AlertDialog)\.(Root|Portal|Backdrop|Popup)\b/;
+const BASE_UI_DIALOG_SPECIFIER = /(?:from\s+|import\s*\(\s*)["']@base-ui\/react\/(?:alert-)?dialog(?:\/[^"']*)?["']/;
+const BASE_UI_ROOT_DIALOG_IMPORT =
+  /\b(?:import|export)\s*\{[^}]*\b(?:Alert)?Dialog\b[^}]*\}\s*from\s*["']@base-ui\/react["']/;
+const MANUAL_CLOSE_CLASS = /\bk-dialog-x\b/;
 const HEADER_SELECTOR = /(?:^|[,\s])\.(?:topbar|pw-tabs|pane-head|insp-head|startup-head|pw-subbar)\b/;
 const HARD_HEADER_HEIGHT = /(?:min-)?height:\s*(?:56|48)px\b/;
+
+function importsBaseUiDialog(source: string): boolean {
+  return BASE_UI_DIALOG_SPECIFIER.test(source) || BASE_UI_ROOT_DIALOG_IMPORT.test(source);
+}
 
 function rules(css: string): [string, string][] {
   return [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(([, selector, body]) => [selector.trim(), body]);
@@ -93,11 +106,21 @@ describe("L1 骨架原语样式", () => {
 });
 
 describe("L1 静态护栏", () => {
-  it("业务模块不能直接拼底层对话框弹窗", () => {
+  it("业务模块不能直接导入 Base UI 底层对话框原语", () => {
     const offenders = Object.entries(sources)
       .filter(
         ([path, source]) =>
-          path !== "./DialogShell.tsx" && !DIRECT_DIALOG_ALLOWLIST.has(path) && DIALOG_PART.test(source),
+          path !== "./DialogShell.tsx" && !DIRECT_DIALOG_ALLOWLIST.has(path) && importsBaseUiDialog(source),
+      )
+      .map(([path]) => path);
+    expect(offenders).toEqual([]);
+  });
+
+  it("业务模块不能手写 k-dialog-x 关闭叉", () => {
+    const offenders = Object.entries(sources)
+      .filter(
+        ([path, source]) =>
+          path !== "./DialogShell.tsx" && !MANUAL_CLOSE_ALLOWLIST.has(path) && MANUAL_CLOSE_CLASS.test(source),
       )
       .map(([path]) => path);
     expect(offenders).toEqual([]);
@@ -127,8 +150,16 @@ describe("L1 静态护栏", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("扫描能认出直接拼对话框、手写高度与复制选中描边", () => {
-    expect(DIALOG_PART.test('<Dialog.Root open><Dialog.Popup className="k-dialog" /></Dialog.Root>')).toBe(true);
+  it("扫描能认出直接导入底层对话框、手写关闭叉、手写高度与复制选中描边", () => {
+    expect(importsBaseUiDialog('import { Dialog } from "@base-ui/react/dialog";')).toBe(true);
+    expect(importsBaseUiDialog('import { Dialog as BaseDialog } from "@base-ui/react/dialog";')).toBe(true);
+    expect(importsBaseUiDialog("import * as BaseAlert from '@base-ui/react/alert-dialog';")).toBe(true);
+    expect(importsBaseUiDialog('export { AlertDialog } from "@base-ui/react/alert-dialog";')).toBe(true);
+    expect(importsBaseUiDialog('const mod = import("@base-ui/react/dialog");')).toBe(true);
+    expect(importsBaseUiDialog('import { Dialog as BaseDialog } from "@base-ui/react";')).toBe(true);
+    expect(importsBaseUiDialog('import { DialogShell } from "../ui/DialogShell";')).toBe(false);
+    expect(importsBaseUiDialog('import { Menu } from "@base-ui/react/menu";')).toBe(false);
+    expect(MANUAL_CLOSE_CLASS.test('<button className="k-icon-btn k-dialog-x" />')).toBe(true);
     expect(hardcodedHeaderHeights(".pw-tabs { height: 56px } .pw-subbar{min-height:48px}")).toEqual([
       ".pw-tabs",
       ".pw-subbar",
