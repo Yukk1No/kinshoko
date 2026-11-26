@@ -28,6 +28,18 @@ describe("工作区失效决策", () => {
     expect(last).toMatchObject({ acceptStatus: true, closeViewer: false, reload: false, revokeWall: false });
   });
 
+  it("这个视角的第一份快照若是变更通知，仍按内容变化整套失效", () => {
+    const { state: reading } = run([{ kind: "statusRead" }]);
+    const { last } = run([{ kind: "statusObserved", revision: "r1", origin: "notification" }], reading);
+    expect(last).toMatchObject({
+      acceptStatus: true,
+      revokeWall: true,
+      closeViewer: true,
+      reload: true,
+      refreshVocabulary: true,
+    });
+  });
+
   it("同修订的重复通知只消重，不关掉刚打开的查看器", () => {
     const { decisions } = run(
       [
@@ -74,6 +86,21 @@ describe("工作区失效决策", () => {
       refreshVocabulary: false,
     });
     expect(last.acceptStatus).toBe(false);
+  });
+
+  it("状态镜像在这个视角的第一份快照只采用，后来的新修订按更新的事实整套失效", () => {
+    const { state: reading } = run([{ kind: "statusRead" }]);
+    const first = run([{ kind: "statusObserved", revision: "r1", origin: "mirror" }], reading);
+    expect(first.last).toMatchObject({ acceptStatus: true, revokeWall: false, closeViewer: false, reload: false });
+
+    const second = run([{ kind: "statusObserved", revision: "r2", origin: "mirror" }], first.state);
+    expect(second.last).toMatchObject({
+      acceptStatus: true,
+      revokeWall: true,
+      closeViewer: true,
+      reload: true,
+      refreshVocabulary: true,
+    });
   });
 
   it("旧浏览页与新通知同批到达：哪个先到，最后都停在通知的修订，且只整套失效一次", () => {

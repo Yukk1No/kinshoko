@@ -3,7 +3,7 @@ import type { ConditionTree } from "../bindings/ConditionTree";
 import type { SearchInput } from "../bindings/SearchInput";
 import { isLensChanged, workspaceResolve } from "../ipc";
 import { useUiLang } from "../i18n";
-import type { Invalidate } from "./useInvalidation";
+import type { Invalidate } from "./useBrowseResults";
 
 /** 查找条件与它解析成的条件树。 */
 export function useSearchTree({

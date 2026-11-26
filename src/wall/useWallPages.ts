@@ -7,7 +7,7 @@ import type { WorkspaceStatus } from "../bindings/WorkspaceStatus";
 import { workspaceBrowse, isCursorExpired, isLensChanged } from "../ipc";
 import { safeTiming } from "../shell/safeTiming";
 import type { Anchor } from "./layout";
-import { PAGE, type BrowserCard } from "./wallShared";
+import { PAGE, type BrowserCard, type BrowsePager } from "./wallShared";
 import { startupWallPage } from "../startupGate";
 import { markStartup } from "../startupTiming";
 import { errorText } from "../ipc/commandError";
@@ -24,16 +24,16 @@ export function useWallPages({
   setCursor,
   setTotal,
   setError,
-  generation,
+  pager,
   inflight,
   view,
   restoring,
   anchor,
   shownCards,
+  publishCards,
   visibleCardId,
   preservedIds,
   measureBeforeReflow,
-  onWorkspaceStatus,
   releasePage,
   reloadKey,
   loadMoreRef,
@@ -48,18 +48,19 @@ export function useWallPages({
   setCursor: Dispatch<SetStateAction<string | null>>;
   setTotal: Dispatch<SetStateAction<number | null>>;
   setError: Dispatch<SetStateAction<string | null>>;
-  generation: MutableRefObject<number>;
+  pager: BrowsePager;
   inflight: MutableRefObject<number | null>;
   view: MutableRefObject<{ conditions: ConditionTree; workspaceScope: WorkspaceScope; safeMode: boolean }>;
   restoring: MutableRefObject<boolean>;
   anchor: MutableRefObject<Anchor | null>;
   shownCards: MutableRefObject<BrowserCard[]>;
+  /** 原子交付被接受后，在同一批状态更新里把这一页实际会显示的格子交给调用方。 */
+  publishCards: MutableRefObject<(cards: BrowserCard[]) => void>;
   /** 此刻视口顶部附近的卡片；锚点图刚被移走时用它代表邻近可见位置。 */
   visibleCardId: () => string | null;
   /** 重新浏览后仍要留在已读前缀里的图（选中项；查看器当前图按 #179 同步进选中）。 */
   preservedIds: MutableRefObject<ReadonlySet<string>>;
   measureBeforeReflow: (keepSafe?: boolean) => void;
-  onWorkspaceStatus: ((status: WorkspaceStatus, cards: BrowserCard[]) => void) | undefined;
   releasePage: MutableRefObject<boolean>;
   reloadKey: number;
   loadMoreRef: MutableRefObject<() => void>;
@@ -82,7 +83,7 @@ export function useWallPages({
   // biome-ignore lint/correctness/useExhaustiveDependencies(reloadKey): 重新浏览时作废在途请求（卡片保留）
   // biome-ignore lint/correctness/useExhaustiveDependencies(safeMode): 安全模式切换时作废在途请求（卡片保留）
   useLayoutEffect(() => {
-    generation.current += 1;
+    pager.invalidate();
     inflight.current = null;
     // 只是修订号前进（自动打标每写一张图一次，#142）或安全模式切换：保留旧卡片，等新的一页回来原地替换。
     // 安全模式开启的那一刻成人卡片已原地遮蔽，封印动画从它们飞出（#154），资料库确认后它们才离开。
@@ -95,7 +96,7 @@ export function useWallPages({
     setCards([]);
     setTotal(null);
     setCursor(null);
-  }, [reloadKey, safeMode, workspaceKey, generation, inflight, restoring, setCards, setTotal, setCursor]);
+  }, [reloadKey, safeMode, workspaceKey, pager, inflight, restoring, setCards, setTotal, setCursor]);
 
   const reloadTarget = useCallback(() => {
     const shown = shownCards.current;
@@ -118,10 +119,10 @@ export function useWallPages({
   /** 从头取至少 want 张，一次替换，避免列表闪空。之前还在路上的请求一律作废。 */
   const reload = useCallback(
     async (want: number) => {
-      const gen = ++generation.current;
+      const gen = pager.begin();
       inflight.current = gen;
       const { conditions, workspaceScope, safeMode } = view.current;
-      const current = () => gen === generation.current;
+      const current = () => pager.current(gen);
       if (!safeMode) safeTiming.mark("rebrowse-start");
       // 墙上已有的占位图（#313）：按内容寻址、永远不变。每页请求报上这一段原有卡片里已有的，
       // 后端只给其余的卡片带，回来后从这里补上；顺序变了的卡片只是多带一次，不会缺。
@@ -188,8 +189,10 @@ export function useWallPages({
             prev.length === next.length &&
             prev.every((c, i) => c.id === next[i].id && c.width === next[i].width && c.height === next[i].height);
           if (!unchanged) measureBeforeReflow();
-          // 顺序契约（#324）：先报这一页带回的状态，再交出卡片。状态若要求修剪选择，修剪就落在这一页上。
-          if (acceptedStatus) onWorkspaceStatus?.(acceptedStatus, next);
+          if (!acceptedStatus) return;
+          // 原子交付（#742）：修订、卡片与总数一起给浏览结果模块；迟到响应在这里整页丢弃。
+          if (!pager.deliver({ token: gen, status: acceptedStatus, cards: next, total: count + stacked })) return;
+          publishCards.current(next);
           if (!safeMode) {
             safeTiming.mark("cards-returned");
             releasePage.current = true;
@@ -211,12 +214,12 @@ export function useWallPages({
     },
     [
       measureBeforeReflow,
-      onWorkspaceStatus,
       stackSets,
-      generation,
+      pager,
       inflight,
       view,
       shownCards,
+      publishCards,
       restoring,
       anchor,
       pendingRemoval,
@@ -231,7 +234,7 @@ export function useWallPages({
 
   const loadMore = useCallback(async () => {
     if (inflight.current !== null || !cursor || pendingRemoval.current.size) return;
-    const gen = generation.current;
+    const gen = pager.token();
     inflight.current = gen;
     const { conditions, workspaceScope, safeMode } = view.current;
     let expired = false;
@@ -240,17 +243,19 @@ export function useWallPages({
         { scope: workspaceScope, conditions, cursor, limit: PAGE, knownPlaceholders: [], stackSets },
         safeMode,
       );
-      if (gen !== generation.current) return;
+      if (!pager.current(gen)) return;
       const next = [...shownCards.current, ...page.cards];
-      onWorkspaceStatus?.(page.status, next);
+      const stacked = (page.images ?? page.total) - page.total;
+      if (!pager.deliver({ token: gen, status: page.status, cards: next, total: page.total + stacked })) return;
+      publishCards.current(next);
       // 瀑布流追加时已有卡片的位置不变，不必量旧位置、起重排动画（#109）。
       setCards(next);
       setCursor(page.nextCursor);
       setTotal(page.total);
-      setStacked((page.images ?? page.total) - page.total);
+      setStacked(stacked);
       setError(null);
     } catch (e) {
-      if (gen !== generation.current) return;
+      if (!pager.current(gen)) return;
       // 结果集变了，接着翻会遗漏或重复：从第一页重读，保持正在看的位置。
       if (isCursorExpired(e)) expired = true;
       else if (!isLensChanged(e)) setError(errorText(e));
@@ -260,14 +265,14 @@ export function useWallPages({
     if (expired) void reload(reloadTarget());
   }, [
     shownCards,
+    publishCards,
     reloadTarget,
     cursor,
     reload,
-    onWorkspaceStatus,
     stackSets,
     inflight,
     pendingRemoval,
-    generation,
+    pager,
     view,
     setCards,
     setCursor,

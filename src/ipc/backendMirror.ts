@@ -31,9 +31,10 @@ export type BackendMirrorOptions<Key extends string, Value> = {
   read: (key: Key) => Promise<Value>;
   /**
    * 有订阅者时挂后端事件；返回退订函数（可以是 Promise，与 Tauri 的 listen 相同）。
-   * 事件处理里调 `invalidate`；不给键表示全部键失效。
+   * 事件处理里调 `invalidate`；不给键表示全部键失效。事件本身带着完整后端真相时，
+   * 也可以用 `accept` 同步交付，让还在路上的旧读取不能盖掉它。
    */
-  listen?: (invalidate: (key?: Key) => void) => Promise<Unlisten> | Unlisten;
+  listen?: (invalidate: (key?: Key) => void, accept: (key: Key, value: Value) => void) => Promise<Unlisten> | Unlisten;
   /** 这种失败表示读取途中后端状态已变，按统一策略重试。 */
   stale?: (error: unknown) => boolean;
   /** 测试用的计时接缝；产品代码不传，统一是 150ms。 */
@@ -140,12 +141,24 @@ export function createBackendMirror<Key extends string, Value>(
     for (const [name, entry] of entries) startRead(name, entry);
   }
 
+  function acceptValue(key: Key, value: Value) {
+    const entry = entries.get(key);
+    if (!entry) return;
+    entry.generation++;
+    publish(key, entry, {
+      value,
+      error: null,
+      loading: false,
+      refreshing: entry.reads > 0,
+    });
+  }
+
   function attachEvents() {
     if (audience !== 1 || !options.listen) return;
     const generation = ++eventGeneration;
     let started: Promise<Unlisten> | Unlisten;
     try {
-      started = options.listen(invalidate);
+      started = options.listen(invalidate, acceptValue);
     } catch {
       return;
     }
@@ -197,16 +210,6 @@ export function createBackendMirror<Key extends string, Value>(
       return entries.get(key)?.snapshot ?? (EMPTY as MirrorSnapshot<Value>);
     },
     invalidate,
-    accept(key, value) {
-      const entry = entries.get(key);
-      if (!entry) return;
-      entry.generation++;
-      publish(key, entry, {
-        value,
-        error: null,
-        loading: false,
-        refreshing: entry.reads > 0,
-      });
-    },
+    accept: acceptValue,
   };
 }

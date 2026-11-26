@@ -69,13 +69,36 @@ export type BrowserCard = Omit<ImageCard, "thumbnail"> &
   Pick<WorkspaceCard, "libraryId" | "imageId"> &
   Partial<Pick<WorkspaceCard, "sources" | "set">>;
 
+/** 一次完整接受或整页丢弃的浏览结果；分页游标与滚动位置仍归图片墙，不进这里。 */
+export type BrowsePageDelivery = {
+  /** 发出这次浏览时拿到的当代令牌；失效后令牌过期，整页不得交付。 */
+  token: number;
+  status: WorkspaceStatus;
+  cards: BrowserCard[];
+  /** 画师看到的总张数（叠放时按各页计）。 */
+  total: number;
+};
+
+/** 浏览结果模块交给图片墙的最小接缝：图片墙只发请求、交完整页，不再知道修订与卡片的交付顺序。 */
+export type BrowsePager = {
+  /** 开始一次从头浏览，返回这次浏览各请求共用的令牌。 */
+  begin: () => number;
+  /** 当前令牌；翻下一页沿用从头浏览那次的令牌。 */
+  token: () => number;
+  current: (token: number) => boolean;
+  /** 视图自身作废旧响应（换视角、卸载、先移走卡片）。 */
+  invalidate: () => void;
+  /** 原子交付一页；false 表示它是迟到响应，整页已丢弃。 */
+  deliver: (page: BrowsePageDelivery) => boolean;
+};
+
 export type WallProps = {
   ref?: Ref<WallHandle>;
   workspaceScope: WorkspaceScope;
   onInspectSources?: (card: WorkspaceCard) => void;
   onCardsChange?: (cards: BrowserCard[]) => void;
-  /** 只有当前请求已完整接受的工作区快照，才能成为父界面的已知状态。 */
-  onWorkspaceStatus?: (status: WorkspaceStatus, cards: BrowserCard[]) => void;
+  /** 工作区给的浏览结果接缝； standalone 图片墙用本地令牌 adapter。 */
+  browsePager?: BrowsePager;
   /** Artist-selected target card width; preview stays local until the slider commits. */
   density?: number;
   /** Ctrl+滚轮缩放中的本地预览（#111），让图片大小滑条跟着走；null 为撤掉预览。 */
@@ -122,6 +145,20 @@ export type WallProps = {
   /** 空状态下紧跟在那句话后面的操作（空图库的导入、没有结果时的清除条件）；不给出时只有那句话。 */
   emptyAction?: (searching: boolean) => ReactNode;
 };
+
+/** standalone 图片墙的本地浏览令牌 adapter；工作区挂载时由浏览结果模块替换它。 */
+export function createLocalBrowsePager(): BrowsePager {
+  let generation = 0;
+  return {
+    begin: () => ++generation,
+    token: () => generation,
+    current: (token) => token === generation,
+    invalidate: () => {
+      generation += 1;
+    },
+    deliver: (page) => page.token === generation,
+  };
+}
 
 /** 每个范围各自记住位置。“全部”沿用 #44 的键。 */
 export const scopeKey = (scope: BrowseScope) =>
