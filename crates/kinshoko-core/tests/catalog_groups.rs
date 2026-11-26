@@ -1,10 +1,13 @@
 //! T05 shared groups: public core actions, real SQLite and files.
+//! Legacy Library group rows are seeded directly because Library no longer writes them.
 use image::{Rgba, RgbaImage};
 use kinshoko_core::library::{FactSource, ImportSource, SourceTag, TagNamespace, TagRef};
 use kinshoko_core::tag_catalog::TagCatalog;
 use kinshoko_core::workspace::Workspace;
 use kinshoko_core::{DeviceLibraries, Library};
 use std::path::Path;
+
+use crate::legacy_tag_groups::insert_tag_group;
 
 fn image(library: &Library, root: &Path, name: &str, red: u8, external: &str) -> (String, String) {
     let path = root.join(format!("{name}.png"));
@@ -54,9 +57,7 @@ fn legacy_group_is_shared_across_libraries_and_restart_without_rewriting_image_t
     let (bi, purple_b) = image(&b, dir.path(), "b", 20, "purple_hair");
     let (_, purple_a) = image(&a, dir.path(), "a2", 30, "purple_hair");
     assert_ne!(purple_a, purple_b);
-    let old_group = a.create_tag_group("发色", None).unwrap();
-    a.set_tag_group_tags(&old_group, &[blue_a, purple_a])
-        .unwrap();
+    insert_tag_group(&a, "发色", None, &[blue_a, purple_a]);
     let before_a = a.image_tags(&ai, "zh-CN").unwrap();
     let before_b = b.image_tags(&bi, "zh-CN").unwrap();
     let mut catalog = TagCatalog::open(&app).unwrap();
@@ -236,10 +237,8 @@ fn shared_group_query_is_visible_or_for_each_source_and_missing_mapping_is_not_d
     let b = device.create(&dir.path().join("b"), "B").unwrap();
     let (_, blue) = image(&a, dir.path(), "blue", 61, "blue_hair");
     let (_, purple) = image(&b, dir.path(), "purple", 62, "purple_hair");
-    let group = a.create_tag_group("发色", None).unwrap();
-    a.set_tag_group_tags(&group, &[blue]).unwrap();
-    let other = b.create_tag_group("紫色", None).unwrap();
-    b.set_tag_group_tags(&other, &[purple]).unwrap();
+    insert_tag_group(&a, "发色", None, std::slice::from_ref(&blue));
+    insert_tag_group(&b, "紫色", None, std::slice::from_ref(&purple));
     let mut catalog = TagCatalog::open(&app).unwrap();
     let mut w = Workspace::open(&app).unwrap();
     let groups = w.tag_groups(&device, &mut catalog, "", "en", true).unwrap();
@@ -332,12 +331,8 @@ fn same_named_legacy_groups_keep_distinct_members_and_sources_and_deleted_group_
     let b = device.create(&dir.path().join("b"), "B").unwrap();
     let (_, blue) = image(&a, dir.path(), "blue", 71, "blue_hair");
     let (_, red) = image(&b, dir.path(), "red", 72, "red_hair");
-    let ga = a.create_tag_group("发色", None).unwrap();
-    a.set_tag_group_tags(&ga, std::slice::from_ref(&blue))
-        .unwrap();
-    let gb = b.create_tag_group("发色", None).unwrap();
-    b.set_tag_group_tags(&gb, std::slice::from_ref(&red))
-        .unwrap();
+    let ga = insert_tag_group(&a, "发色", None, std::slice::from_ref(&blue));
+    insert_tag_group(&b, "发色", None, std::slice::from_ref(&red));
     let mut catalog = TagCatalog::open(&app).unwrap();
     let mut w = Workspace::open(&app).unwrap();
     w.tag_groups(&device, &mut catalog, "", "en", true).unwrap();

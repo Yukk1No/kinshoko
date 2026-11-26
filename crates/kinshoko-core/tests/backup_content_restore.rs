@@ -1,10 +1,14 @@
 //! #78 T12: content restore uses real public Library/TagCatalog/Backup actions.
+//! Legacy Library group rows are seeded directly because Library no longer writes them.
 
 #[path = "support/backup_content.rs"]
 mod backup_content;
 #[path = "support/group_fixture.rs"]
 mod group_fixture;
+#[path = "support/legacy_tag_groups.rs"]
+mod legacy_tag_groups;
 use group_fixture::GroupFixture;
+use legacy_tag_groups::insert_tag_group;
 
 use backup_content::*;
 
@@ -453,7 +457,7 @@ fn older_content_snapshot_cannot_replay_legacy_program_settings() {
         .find(|tag| tag.id != local)
         .unwrap()
         .id;
-    source.create_tag_group("旧版程序分组", None).unwrap();
+    insert_tag_group(&source, "旧版程序分组", None, &[]);
     source
         .set_tag_approx(
             &local,

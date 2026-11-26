@@ -1,9 +1,13 @@
 //! #78 T12: content backup uses real public Library/TagCatalog/Backup actions.
+//! Legacy Library group rows are seeded directly because Library no longer writes them.
 
 #[path = "support/backup_content.rs"]
 mod backup_content;
+#[path = "support/legacy_tag_groups.rs"]
+mod legacy_tag_groups;
 
 use backup_content::*;
+use legacy_tag_groups::insert_tag_group;
 
 use image::{Rgba, RgbaImage};
 use kinshoko_core::backup::{BackupSources, BackupTarget, ScopeSelection, compute_scope};
@@ -122,10 +126,12 @@ fn content_backup_does_not_reimport_legacy_application_groups_or_personal_rules(
         .find(|tag| tag.id != local)
         .unwrap()
         .id;
-    let legacy = source.create_tag_group("原程序的分组", None).unwrap();
-    source
-        .set_tag_group_tags(&legacy, &[local.clone(), other.clone()])
-        .unwrap();
+    insert_tag_group(
+        &source,
+        "原程序的分组",
+        None,
+        &[local.clone(), other.clone()],
+    );
     source
         .set_tag_approx(
             &local,

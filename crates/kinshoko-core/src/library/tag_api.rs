@@ -194,45 +194,6 @@ impl Library {
         eagle_tags::map_tag_external(&self.inner, tag_id, input, vocabulary)
     }
 
-    /// 建立标签分组，排在最后。给出 `namespace` 时分组列出该命名空间的全部标签。
-    pub fn create_tag_group(
-        &self,
-        name: &str,
-        namespace: Option<TagNamespace>,
-    ) -> Result<String, Error> {
-        tags::create_tag_group(&self.inner, name, namespace)
-    }
-
-    pub fn rename_tag_group(&self, group_id: &str, name: &str) -> Result<(), Error> {
-        tags::rename_tag_group(&self.inner, group_id, name)
-    }
-
-    /// 设置画师整理的分组的成员及顺序。
-    pub fn set_tag_group_tags(&self, group_id: &str, tag_ids: &[String]) -> Result<(), Error> {
-        tags::set_tag_group_tags(&self.inner, group_id, tag_ids)
-    }
-
-    /// 把标签加进画师整理的分组，排在最后；已在分组里的不动。安全模式开启时，只在被封印的图上
-    /// 出现的标签当作不存在（[`Error::UnknownTag`]）。
-    pub fn add_to_tag_group(&self, group_id: &str, tag_ids: &[String]) -> Result<(), Error> {
-        tags::add_to_tag_group(&self.inner, group_id, tag_ids)
-    }
-
-    /// 把标签移出画师整理的分组。浏览视角看不见的成员不受影响（与 `set_tag_group_tags` 不同，
-    /// 界面整理分组时用它）。
-    pub fn remove_from_tag_group(&self, group_id: &str, tag_ids: &[String]) -> Result<(), Error> {
-        tags::remove_from_tag_group(&self.inner, group_id, tag_ids)
-    }
-
-    /// 按给出的顺序排列标签分组。
-    pub fn order_tag_groups(&self, group_ids: &[String]) -> Result<(), Error> {
-        tags::order_tag_groups(&self.inner, group_ids)
-    }
-
-    pub fn delete_tag_group(&self, group_id: &str) -> Result<(), Error> {
-        tags::delete_tag_group(&self.inner, group_id)
-    }
-
     /// 在个人近似对应表中记下 `a` 与 `b` 相近或不相近（无方向）。同一对已有记录时改为这次的判断。
     /// “以后都不展开”记不相近，“＋”记相近。
     pub fn set_tag_approx(&self, a: &str, b: &str, relation: ApproxRelation) -> Result<(), Error> {
@@ -255,7 +216,7 @@ impl Library {
         tags::tag_group_definitions(&self.inner)
     }
 
-    /// 侧栏的标签分组及计数，名称按界面语言 `lang`。
+    /// 库内遗留标签分组及计数，名称按界面语言 `lang`。分组改写由应用统一标签目录负责。
     pub fn tag_groups(&self, lang: &str) -> Result<Vec<TagGroupView>, Error> {
         tags::tag_groups(&self.inner, lang)
     }
@@ -288,16 +249,7 @@ impl Library {
                 library_id: self.inner.info.id.clone(),
             });
         }
-        match outcome {
-            ImportOutcome::ReadFailed { reason } => Err(Error::PackageImage(Box::new(reason))),
-            ImportOutcome::Unsupported => {
-                Err(Error::PackageImage(Box::new(crate::CommandError::new(
-                    crate::command_error::ErrorKind::PackageImageUnsupported,
-                    "不是支持的图片格式",
-                ))))
-            }
-            other => Ok(other.image_id().expect("进库的结果都有参考图").to_owned()),
-        }
+        imported_image_id(outcome, Error::PackageImage)
     }
 
     /// 订阅收进来的一页作品（#368）：走普通导入的写入顺序，来源层按 `<订阅来源>:<作品 id>` 写入
@@ -318,20 +270,26 @@ impl Library {
                 library_id: self.inner.info.id.clone(),
             });
         }
-        match outcome {
-            ImportOutcome::ReadFailed { reason } => Err(Error::SubscriptionImage(Box::new(reason))),
-            ImportOutcome::Unsupported => Err(Error::SubscriptionImage(Box::new(
-                crate::CommandError::new(
-                    crate::command_error::ErrorKind::PackageImageUnsupported,
-                    "不是支持的图片格式",
-                ),
-            ))),
-            other => Ok(other.image_id().expect("进库的结果都有参考图").to_owned()),
-        }
+        imported_image_id(outcome, Error::SubscriptionImage)
     }
 
     /// 打标子接口：待打标的图的原文件位置，不受安全模式影响（被封印的图也要重新打标）。
     pub fn original_to_tag(&self, image_id: &str) -> Result<PathBuf, Error> {
         self.inner.original_path(image_id)
+    }
+}
+
+/// 解释一次包或订阅导入的单项结果：只有真正把字节放进资料库的结果才有参考图。
+fn imported_image_id(
+    outcome: ImportOutcome,
+    error: fn(Box<crate::CommandError>) -> Error,
+) -> Result<String, Error> {
+    match outcome {
+        ImportOutcome::ReadFailed { reason } => Err(error(Box::new(reason))),
+        ImportOutcome::Unsupported => Err(error(Box::new(crate::CommandError::new(
+            crate::command_error::ErrorKind::PackageImageUnsupported,
+            "不是支持的图片格式",
+        )))),
+        other => Ok(other.image_id().expect("进库的结果都有参考图").to_owned()),
     }
 }
