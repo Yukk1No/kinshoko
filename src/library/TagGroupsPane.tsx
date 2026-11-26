@@ -58,7 +58,7 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label: labe
   currentKey.current = key;
   // Preserve editor identity during refresh, but never display stale server labels or members.
   const groups = mirror.value ?? [];
-  const fresh = mirror.value !== null && !mirror.refreshing;
+  const fresh = mirror.value !== null && !mirror.refreshing && !mirror.error;
   const busy = pending || mirror.refreshing;
   const lens: Lens = { libraryId: "workspace", safe, generation, workspace: true };
   const invalidateCurrent = useCallback(() => sharedTagGroupsMirror.invalidate(currentKey.current), []);
