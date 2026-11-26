@@ -1,4 +1,106 @@
+use std::collections::BTreeMap;
+use std::fs;
+use std::path::Path;
+
+#[macro_use]
+#[path = "src/command_registry.rs"]
+mod command_registry;
+
+macro_rules! command_name {
+    ($name:ident) => { stringify!($name) };
+    ($module:ident :: $($rest:ident)::+) => { command_name!($($rest)::+) };
+}
+
+macro_rules! command_names {
+    ($($(#[$attr:meta])* $($path:ident)::+),* $(,)?) => {
+        &[$(command_name!($($path)::+)),*]
+    };
+}
+
+const APP_COMMANDS: &[&str] = command_registry!(app, command_names);
+const LIBRARY_COMMANDS: &[&str] = command_registry!(library, command_names);
+const DESKTOP_COMMANDS: &[&str] = command_registry!(desktop, command_names);
+
+// A command omitted from the registry would otherwise be absent from both generated lists.
+fn check_command_definitions(dir: &Path, remaining: &mut BTreeMap<&str, usize>) {
+    for entry in fs::read_dir(dir).expect("read Rust source directory") {
+        let path = entry.expect("read Rust source entry").path();
+        if path.is_dir() {
+            check_command_definitions(&path, remaining);
+        } else if path.extension().is_some_and(|ext| ext == "rs") {
+            let source = fs::read_to_string(&path).expect("read Rust source");
+            let file = syn::parse_file(&source)
+                .unwrap_or_else(|error| panic!("{}: {error}", path.display()));
+            check_command_items(&path, &file.items, remaining);
+        }
+    }
+}
+
+fn check_command_items(path: &Path, items: &[syn::Item], remaining: &mut BTreeMap<&str, usize>) {
+    for item in items {
+        match item {
+            syn::Item::Mod(module) => {
+                if let Some((_, items)) = &module.content {
+                    check_command_items(path, items, remaining);
+                }
+            }
+            syn::Item::Fn(function) => {
+                let command = function.attrs.iter().find(|attr| {
+                    attr.path().segments.len() == 2
+                        && attr.path().segments[0].ident == "tauri"
+                        && attr.path().segments[1].ident == "command"
+                });
+                if let Some(command) = command {
+                    let name = function.sig.ident.to_string();
+                    if let syn::Meta::List(_) = &command.meta {
+                        command
+                            .parse_nested_meta(|option| {
+                                if option.path.is_ident("rename") {
+                                    return Err(
+                                        option.error("use the function name as the IPC name")
+                                    );
+                                }
+                                if option.input.peek(syn::Token![=]) {
+                                    option.value()?.parse::<syn::Expr>()?;
+                                }
+                                Ok(())
+                            })
+                            .unwrap_or_else(|error| {
+                                panic!("{}: `{name}`: {error}", path.display())
+                            });
+                    }
+                    let count = remaining.get_mut(name.as_str()).filter(|count| **count > 0);
+                    let count = count.unwrap_or_else(|| {
+                        panic!(
+                            "{}: `{name}` is missing from command_registry.rs",
+                            path.display()
+                        )
+                    });
+                    *count -= 1;
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
 fn main() {
+    println!("cargo:rerun-if-changed=src");
+    let mut remaining = BTreeMap::new();
+    for &name in [APP_COMMANDS, LIBRARY_COMMANDS, DESKTOP_COMMANDS]
+        .into_iter()
+        .flatten()
+    {
+        *remaining.entry(name).or_default() += 1;
+    }
+    check_command_definitions(Path::new("src"), &mut remaining);
+    for (name, count) in remaining {
+        assert_eq!(
+            count, 0,
+            "`{name}` has no matching #[tauri::command] definition"
+        );
+    }
+
     // 不用 tauri-build 的应用清单：它只嵌进可执行文件，而测试二进制用到 Tauri 的托盘与对话框代码，
     // 没有 Common Controls 6 就加载不了（STATUS_ENTRYPOINT_NOT_FOUND）。改由链接器给每个产物嵌同样的清单。
     if std::env::var("CARGO_CFG_TARGET_ENV").as_deref() == Ok("msvc") {
@@ -14,152 +116,14 @@ fn main() {
                 // 资料库命令放在应用内联插件里，权限由这里生成（capabilities 中的 `library:default`）。
                 "library",
                 tauri_build::InlinedPlugin::new()
-                    .commands(&[
-                        "pick_application_settings",
-                        "export_application_settings",
-                        "preview_application_settings",
-                        "restore_application_settings",
-                        "workspace_source_group",
-                        "workspace_edit_sources",
-                        "workspace_status",
-                        "workspace_browse",
-                        "workspace_resolve",
-                        "workspace_candidates",
-                        "workspace_library_candidates",
-                        "workspace_card",
-                        "workspace_sidebar",
-                        "workspace_directories",
-                        "workspace_tag_groups",
-                        "current_library",
-                        "create_library",
-                        "create_library_unopened",
-                        "save_memory",
-                        "remember_import_destination",
-                        "remember_pixiv_destination",
-                        "remember_subscription_destination",
-                        "remember_new_library_parent",
-                        "pictures_folder",
-                        "registered_libraries",
-                        "register_library",
-                        "switch_library",
-                        "unregister_library",
-                        "image",
-                        "edit",
-                        "preview_permanent_delete",
-                        "permanent_delete",
-                        "preview_empty_trash",
-                        "preview_permanent_delete_batch",
-                        "permanent_delete_batch",
-                        "create_folder",
-                        "rename_folder",
-                        "delete_folder",
-                        "restore_folder",
-                        "move_folder",
-                        "recovery",
-                        "start_import",
-                        "import_tasks",
-                        "open_import_preview",
-                        "read_import_preview",
-                        "close_import_preview",
-                        "dismiss_import",
-                        "import_contains_eagle",
-                        "import_backups",
-                        "cancel_import",
-                        "pick_folder",
-                        "pick_files",
-                        "discover_eagle_libraries",
-                        "confirm_eagle_location",
-                        "catalog_image_tags",
-                        "inspect_tag_catalog",
-                        "correct_tag_mapping",
-                        "publish_tag_definitions",
-                        "edit_tag_name",
-                        "tag_name_conflict_tags",
-                        "shared_tag_groups",
-                        "shared_personal_approx",
-                        "edit_shared_approx",
-                        "create_shared_tag_group",
-                        "edit_shared_tag_group",
-                        "delete_shared_tag_group",
-                        "restore_shared_tag_group",
-                        "plan_legacy_names",
-                        "preview_legacy_names",
-                        "confirm_legacy_names",
-                        "edit_tags",
-                        "vocabulary",
-                        "tag_groups",
-                        "add_tag_alias",
-                        "remove_tag_alias",
-                        "search_candidates",
-                        "rating_candidates",
-                        "set_tag_approx",
-                        "eagle_tag_mapping",
-                        "map_tag_external",
-                        "set_source_name_lang",
-                        "external_suggestions",
-                        "safe_mode",
-                        "set_safe_mode",
-                        "set_safe_mode_scope",
-                    ])
+                    .commands(LIBRARY_COMMANDS)
                     .default_permission(tauri_build::DefaultPermissionRule::AllowAllCommands),
             )
             .plugin(
                 // 截图与钉图（#62）：主窗口、框选窗口与钉图菜单窗口都用 `desktop:default`。
                 "desktop",
                 tauri_build::InlinedPlugin::new()
-                    .commands(&[
-                        "start_capture",
-                        "report_capture_references",
-                        "frozen_screen",
-                        "capture_readout",
-                        "capture_ready",
-                        "finish_capture",
-                        "cancel_capture",
-                        "pin_clipboard",
-                        "pin_capture",
-                        "pin_menu_action",
-                        "show_pin_notice",
-                        "desktop_menu",
-                        "desktop_menu_shown",
-                        "close_desktop_menu",
-                        "take_open_request",
-                        "copy_capture",
-                        "pin_reference",
-                        "copy_reference_image",
-                        "reveal_reference_image",
-                        "reveal_library",
-                        "clipboard_has_image",
-                        "stage_clipboard_import",
-                        "stage_dropped_image",
-                        "reference_groups",
-                        "reference_group",
-                        "rename_reference_group",
-                        "delete_reference_group",
-                        "restore_reference_group",
-                        "purge_deleted_reference_group",
-                        "remove_group_member",
-                        "desk_reference_groups",
-                        "switch_reference_group",
-                        "new_reference_desk",
-                        "repin_group_member",
-                        "repin_all_group_members",
-                        "show_group_member",
-                        "prune_unpinned_members",
-                        "undo_prune_unpinned",
-                        "remove_desk_group_member",
-                        "set_reference_group_favorite",
-                        "duplicate_reference_group",
-                        "fold_into_previous",
-                        "split_off_reference_group",
-                        "undo_split_off",
-                        "export_reference_group_package",
-                        "import_reference_group_package",
-                        "edge_hide",
-                        "capture_history",
-                        "collect_capture",
-                        "take_collection_request",
-                        "delete_capture",
-                    ])
+                    .commands(DESKTOP_COMMANDS)
                     .default_permission(tauri_build::DefaultPermissionRule::AllowAllCommands),
             ),
     )

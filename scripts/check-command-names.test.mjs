@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { findProblems, frontendCalls, registeredCommands, pluginCommands } from "./check-command-names.mjs";
+import { findProblems, frontendCalls, registeredCommands } from "./check-command-names.mjs";
 
 const registered = { app: ["app_info"], library: ["list_images"], desktop: ["start_capture"] };
 const noExceptions = { app: {}, library: {}, desktop: {} };
@@ -11,30 +11,21 @@ const allUsed = [
 ];
 
 describe("Rust 一侧", () => {
-  it("checks inline plugin permissions as well as handler registration", () => {
-    const permissions = pluginCommands(`.plugin(
-      // Generated permissions
-      "library", tauri_build::InlinedPlugin::new().commands(&["list_images"])
-    ).plugin("desktop", tauri_build::InlinedPlugin::new().commands(&["start_capture"]))`);
-    expect(problems(allUsed)).toEqual([]);
-    expect(findProblems({ registered, calls: allUsed, exceptions: noExceptions, permissions })).toEqual([]);
-    expect(
-      findProblems({
-        registered,
-        calls: allUsed,
-        exceptions: noExceptions,
-        permissions: { ...permissions, library: [] },
-      }),
-    ).toEqual(["src-tauri/build.rs: library:list_images is registered without plugin permission"]);
-  });
-  it("去掉模块路径和注释", () => {
-    const source = "x.invoke_handler(tauri::generate_handler![\n  commands::app_info, // 说明\n  a::b::c,\n]);";
-    expect(registeredCommands(source)).toEqual(["app_info", "c"]);
+  it("按组取出命令，去掉模块路径和注释", () => {
+    const source = `
+      (app, $emit:ident) => { $emit![commands::app_info] };
+      (library, $emit:ident) => { $emit![
+        a::b::list_images, // 注释里的 ] 不结束清单
+        status,
+      ] };
+    `;
+    expect(registeredCommands(source, "library")).toEqual(["list_images", "status"]);
+    expect(registeredCommands(source, "app")).toEqual(["app_info"]);
   });
 
   it("平台属性里的方括号不是命令列表的结尾", () => {
-    const source = "tauri::generate_handler![#[cfg(windows)] file_drop::file_drop_ack, commands::app_info]";
-    expect(registeredCommands(source)).toEqual(["file_drop_ack", "app_info"]);
+    const source = "(app, $emit:ident) => { $emit![#[cfg(windows)] file_drop::file_drop_ack, commands::app_info] };";
+    expect(registeredCommands(source, "app")).toEqual(["file_drop_ack", "app_info"]);
   });
 });
 

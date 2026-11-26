@@ -30,14 +30,24 @@ pub(super) fn with_lens<R: Runtime, T>(
     hold: Hold,
     f: impl FnOnce(&mut Workspace, &mut DeviceLibraries, &mut TagCatalog) -> Result<T, CatalogError>,
 ) -> Result<T, CommandError> {
+    with_lens_at(app, safe, hold, Location::caller(), f)
+}
+
+pub(super) fn with_lens_at<R: Runtime, T>(
+    app: &AppHandle<R>,
+    safe: bool,
+    hold: Hold,
+    site: &'static Location<'static>,
+    f: impl FnOnce(&mut Workspace, &mut DeviceLibraries, &mut TagCatalog) -> Result<T, CatalogError>,
+) -> Result<T, CommandError> {
     let state = app.state::<LibraryState>();
     match hold {
         Hold::Read => {
             state.safe_mode.lens_expecting(safe)?;
-            workspace::with_resources(&state, f)
+            workspace::with_resources_at(&state, site, f)
         }
-        Hold::Confirmed => confirmed(&state, safe, f),
-        Hold::Stable => confirmed(&state, safe, |workspace, device, catalog| {
+        Hold::Confirmed => confirmed(&state, safe, site, f),
+        Hold::Stable => confirmed(&state, safe, site, |workspace, device, catalog| {
             let before = workspace.status(device, catalog, safe)?;
             let value = f(workspace, device, catalog)?;
             let after = workspace.status(device, catalog, safe)?;
@@ -50,19 +60,19 @@ pub(super) fn with_lens<R: Runtime, T>(
             let _transition = lock(&state.transition);
             // 包括来源编辑器的分级与永久删除来源。
             let _visibility = lock(&state.visibility_commit);
-            confirmed(&state, safe, f)
+            confirmed(&state, safe, site, f)
         }
     }
 }
 
-#[track_caller]
 fn confirmed<T>(
     state: &LibraryState,
     safe: bool,
+    site: &'static Location<'static>,
     f: impl FnOnce(&mut Workspace, &mut DeviceLibraries, &mut TagCatalog) -> Result<T, CatalogError>,
 ) -> Result<T, CommandError> {
     let lens = state.safe_mode.lens_expecting(safe)?;
-    let value = workspace::with_resources(state, f)?;
+    let value = workspace::with_resources_at(state, site, f)?;
     lens.confirm(&state.safe_mode)?;
     Ok(value)
 }

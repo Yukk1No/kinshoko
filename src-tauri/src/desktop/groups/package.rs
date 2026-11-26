@@ -1,5 +1,6 @@
 //! 参考组包（#68）的导出与导入。
 
+use crate::blocking::blocking;
 use crate::ui_text::{Text, text};
 use kinshoko_core::CommandError;
 use kinshoko_core::command_error::ErrorKind;
@@ -9,7 +10,7 @@ use tauri::AppHandle;
 use tauri_plugin_dialog::DialogExt as _;
 
 use super::super::{lock, state};
-use super::{blocking, changed};
+use super::changed;
 
 /// 把参考组导出成参考组包（#68）：带上所用原图与标签、备注、来源、分级的快照。`path` 为空时弹出
 /// 保存对话框；取消时返回 `null`，成功时返回包的位置。有成员取不到原图时不导出并说明。

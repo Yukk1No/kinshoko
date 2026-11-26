@@ -2696,6 +2696,7 @@ dependencies = [
  "pin-shell",
  "serde",
  "serde_json",
+ "syn 2.0.119",
  "sys-locale",
  "tauri",
  "tauri-build",

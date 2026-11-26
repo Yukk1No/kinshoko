@@ -137,8 +137,15 @@ pub(super) fn with_resources<T>(
     state: &LibraryState,
     f: impl FnOnce(&mut Workspace, &mut DeviceLibraries, &mut TagCatalog) -> Result<T, CatalogError>,
 ) -> Result<T, CommandError> {
+    with_resources_at(state, Location::caller(), f)
+}
+
+pub(super) fn with_resources_at<T>(
+    state: &LibraryState,
+    site: &'static Location<'static>,
+    f: impl FnOnce(&mut Workspace, &mut DeviceLibraries, &mut TagCatalog) -> Result<T, CatalogError>,
+) -> Result<T, CommandError> {
     // 三把锁都记在调用方的位置上（#337）：日志里看得出是哪个命令占着它们。
-    let site = std::panic::Location::caller();
     with_libraries_at(state, site, |device| {
         Ok(state
             .search
@@ -198,11 +205,12 @@ pub(super) async fn workspace_status<R: Runtime>(
     app: AppHandle<R>,
     safe_mode: bool,
 ) -> Result<WorkspaceStatus, CommandError> {
-    blocking(move || {
-        with_lens(&app, safe_mode, Hold::Stable, |w, d, c| {
-            w.status(d, c, safe_mode)
-        })
-    })
+    verbs::lens(
+        app,
+        safe_mode,
+        Hold::Stable,
+        move |workspace, device, catalog| workspace.status(device, catalog, safe_mode),
+    )
     .await
 }
 #[tauri::command]
@@ -415,11 +423,14 @@ pub(super) async fn workspace_card<R: Runtime>(
     image_id: String,
     safe_mode: bool,
 ) -> Result<WorkspaceCard, CommandError> {
-    blocking(move || {
-        with_lens(&app, safe_mode, Hold::Stable, |w, d, c| {
-            w.card(d, c, &library_id, &image_id, safe_mode)
-        })
-    })
+    verbs::lens(
+        app,
+        safe_mode,
+        Hold::Stable,
+        move |workspace, device, catalog| {
+            workspace.card(device, catalog, &library_id, &image_id, safe_mode)
+        },
+    )
     .await
 }
 
@@ -430,11 +441,14 @@ pub(super) async fn workspace_tag_groups<R: Runtime>(
     lang: String,
     safe_mode: bool,
 ) -> Result<Vec<TagGroupView>, CommandError> {
-    blocking(move || {
-        with_lens(&app, safe_mode, Hold::Stable, |w, d, c| {
-            w.tag_groups(d, c, &library_id, &lang, safe_mode)
-        })
-    })
+    verbs::lens(
+        app,
+        safe_mode,
+        Hold::Stable,
+        move |workspace, device, catalog| {
+            workspace.tag_groups(device, catalog, &library_id, &lang, safe_mode)
+        },
+    )
     .await
 }
 #[tauri::command]
@@ -443,11 +457,14 @@ pub(super) async fn workspace_sidebar<R: Runtime>(
     library_id: String,
     safe_mode: bool,
 ) -> Result<Sidebar, CommandError> {
-    blocking(move || {
-        with_lens(&app, safe_mode, Hold::Stable, |w, d, c| {
-            w.sidebar(d, c, &library_id, safe_mode)
-        })
-    })
+    verbs::lens(
+        app,
+        safe_mode,
+        Hold::Stable,
+        move |workspace, device, catalog| {
+            workspace.sidebar(device, catalog, &library_id, safe_mode)
+        },
+    )
     .await
 }
 #[tauri::command]
@@ -455,11 +472,12 @@ pub(super) async fn workspace_directories<R: Runtime>(
     app: AppHandle<R>,
     safe_mode: bool,
 ) -> Result<WorkspaceDirectories, CommandError> {
-    blocking(move || {
-        with_lens(&app, safe_mode, Hold::Stable, |w, d, c| {
-            w.directories(d, c, safe_mode)
-        })
-    })
+    verbs::lens(
+        app,
+        safe_mode,
+        Hold::Stable,
+        move |workspace, device, catalog| workspace.directories(device, catalog, safe_mode),
+    )
     .await
 }
 

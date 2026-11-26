@@ -13,6 +13,7 @@
 //!
 //! 参考组变化后向所有窗口推送 `reference-groups`（无载荷），主窗口据此重新读取列表。
 
+use crate::blocking::blocking;
 use kinshoko_core::CommandError;
 use kinshoko_core::desktop::CollectedCapture;
 
@@ -26,14 +27,6 @@ pub use package::*;
 
 pub(super) fn changed(app: &AppHandle) {
     publish(app, AppNotice::ReferenceGroupsChanged);
-}
-
-pub(super) async fn blocking<T: Send + 'static>(
-    f: impl FnOnce() -> Result<T, CommandError> + Send + 'static,
-) -> Result<T, CommandError> {
-    tauri::async_runtime::spawn_blocking(f)
-        .await
-        .map_err(CommandError::system)?
 }
 
 /// 截图收藏进了资料库（钉图菜单或截图历史的“收藏”）：截图历史记得由它而来的组内截图成员，

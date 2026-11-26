@@ -9,6 +9,7 @@
 //! - 状态变化推送 `backup-status`（[`BackupStatus`]）。
 
 use crate::app_notice::{AppNotice, publish as publish_notice};
+use crate::blocking::blocking;
 use crate::sync::lock;
 use crate::ui_text::{Text, text};
 use kinshoko_core::CommandError;
@@ -238,14 +239,6 @@ fn run(app: &AppHandle) {
 
 fn no_target() -> CommandError {
     CommandError::new(ErrorKind::NoBackupTarget, "还没有选择备份目标")
-}
-
-async fn blocking<T: Send + 'static>(
-    f: impl FnOnce() -> Result<T, CommandError> + Send + 'static,
-) -> Result<T, CommandError> {
-    tauri::async_runtime::spawn_blocking(f)
-        .await
-        .map_err(CommandError::system)?
 }
 
 #[tauri::command]
