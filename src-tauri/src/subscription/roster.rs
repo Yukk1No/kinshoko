@@ -2,6 +2,7 @@
 
 use std::sync::atomic::Ordering;
 
+use crate::blocking::blocking;
 use kinshoko_core::command_error::{CommandError, ErrorKind};
 use kinshoko_core::subscription::pixiv::{Artist, LoginState, PixivSource, artist_id};
 use kinshoko_core::subscription::{
@@ -47,9 +48,7 @@ pub(super) async fn ask_pixiv<T: Send + 'static>(
         state.foreground_cancel.clone(),
     );
     let store = state.store.clone();
-    let result = tauri::async_runtime::spawn_blocking(move || ask(&mut source))
-        .await
-        .map_err(CommandError::system)?;
+    let result = blocking(move || Ok(ask(&mut source))).await?;
     match result {
         Ok(value) => Ok(value),
         Err(SourceError::RateLimited) => {

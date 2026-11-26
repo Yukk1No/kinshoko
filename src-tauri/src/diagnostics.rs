@@ -3,6 +3,7 @@
 //! 规则与脱敏在 `kinshoko_core::diagnostics`；这里只向 Windows 查询系统信息、接保存对话框。
 //! 诊断信息连同最近几天的运行日志（`crate::run_log`）一起存成 zip（#219）。
 
+use crate::blocking::blocking;
 use crate::ui_text::{self, Text};
 use kinshoko_core::CommandError;
 use kinshoko_core::command_error::ErrorKind;
@@ -111,11 +112,15 @@ pub async fn diagnostics_report(
     runtime: Option<RuntimeCapabilities>,
 ) -> Result<String, CommandError> {
     let app = app_facts(&app, &state)?;
-    tauri::async_runtime::spawn_blocking(move || {
-        report_with_runtime(&app, &system_facts(), now(), runtime.as_ref())
+    blocking(move || {
+        Ok(report_with_runtime(
+            &app,
+            &system_facts(),
+            now(),
+            runtime.as_ref(),
+        ))
     })
     .await
-    .map_err(CommandError::system)
 }
 
 /// 把诊断信息连同最近几天的运行日志存成 zip；画师取消时返回 false。
@@ -126,7 +131,7 @@ pub async fn export_diagnostics(
     runtime: Option<RuntimeCapabilities>,
 ) -> Result<bool, CommandError> {
     let facts = app_facts(&app, &state)?;
-    tauri::async_runtime::spawn_blocking(move || {
+    blocking(move || {
         let text = report_with_runtime(&facts, &system_facts(), now(), runtime.as_ref());
         let name = format!(
             "{}-{}.zip",
@@ -152,7 +157,6 @@ pub async fn export_diagnostics(
         })
     })
     .await
-    .map_err(CommandError::system)?
 }
 
 /// 只解释当前窗口实测状态。版本查询失败不能替代能力检查，也不能用版本豁免质量失败。
