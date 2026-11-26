@@ -1,16 +1,11 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FolderInput, RefreshCw, Rss, TriangleAlert, Trophy, User } from "lucide-react";
 import type { Subscription } from "../bindings/Subscription";
 import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
 import { errorText } from "../ipc/commandError";
-import {
-  setSubscriptionsEnabled,
-  subscriptionAdd,
-  subscriptionCheckNow,
-  subscriptionRemove,
-  subscriptions as listSubscriptions,
-} from "../ipc/subscriptions";
+import { setSubscriptionsEnabled, subscriptionCheckNow } from "../ipc/subscriptions";
+import { removeLocalSubscription, restoreLocalSubscriptions, useLocalSubscriptions } from "./subscriptionListMirror";
 import { useOptionalToast } from "../ui/Toast";
 import { displayName } from "./rankingNames";
 import { useSaveDestination } from "../library/SaveDestination";
@@ -48,7 +43,7 @@ export function SubscriptionSettings({
   const on = status.enabled;
   const account = status.login.state === "loggedOut" ? null : status.login.account;
   const actions = accountActions(onError, onStatus);
-  const [list, setList] = useSubscriptionList(on && status.login.state === "loggedIn", status.checking);
+  const list = useSubscriptionList(on && status.login.state === "loggedIn");
   const toggle = (next: boolean) => {
     onError(null);
     setSubscriptionsEnabled(next).then(onStatus, (e) => onError(t("settings.switchFailed", { error: errorText(e) })));
@@ -97,15 +92,7 @@ export function SubscriptionSettings({
           !safe &&
           list
             .filter(isExplicitRanking)
-            .map((sub) => (
-              <ExplicitRankingRow
-                key={sub.id}
-                subscription={sub}
-                onError={onError}
-                onRemoved={() => setList((l) => l.filter((x) => x.id !== sub.id))}
-                onRestored={(back) => setList((l) => [...l, ...back])}
-              />
-            ))}
+            .map((sub) => <ExplicitRankingRow key={sub.id} subscription={sub} onError={onError} />)}
         {on && (
           <SettingsRow icon={<TriangleAlert size={16} />} title={t("settings.risks")} hint={t("settings.risksHint")}>
             <button type="button" className="k-btn is-sm" onClick={() => setRisks(true)}>
@@ -127,25 +114,9 @@ export function SubscriptionSettings({
   );
 }
 
-/** 订阅名单：登录着时读，检查开始、结束时重读（拿到每条订阅最近一次检查的时间）。 */
-export function useSubscriptionList(signedIn: boolean, checking: boolean) {
-  const [list, setList] = useState<Subscription[]>([]);
-  // biome-ignore lint/correctness/useExhaustiveDependencies(checking): 检查开始、结束是重读信号，effect 里不读它
-  useEffect(() => {
-    if (!signedIn) {
-      setList([]);
-      return;
-    }
-    let alive = true;
-    listSubscriptions().then(
-      (next) => alive && setList(next),
-      () => alive && setList([]),
-    );
-    return () => {
-      alive = false;
-    };
-  }, [signedIn, checking]);
-  return [list, setList] as const;
+/** 订阅名单：登录着时从共享镜像读；镜像自己跟着订阅状态推送重读。 */
+export function useSubscriptionList(signedIn: boolean) {
+  return useLocalSubscriptions(signedIn).value ?? [];
 }
 
 const isExplicitRanking = (sub: Subscription) => sub.target.kind === "pixivRanking" && sub.target.explicit;
@@ -157,13 +128,9 @@ const isExplicitRanking = (sub: Subscription) => sub.target.kind === "pixivRanki
 function ExplicitRankingRow({
   subscription,
   onError,
-  onRemoved,
-  onRestored,
 }: {
   subscription: Subscription;
   onError: (message: string | null) => void;
-  onRemoved: () => void;
-  onRestored: (back: Subscription[]) => void;
 }) {
   const { t } = useTranslation("subscriptions");
   const toast = useOptionalToast();
@@ -172,22 +139,15 @@ function ExplicitRankingRow({
   const name = displayName(t, subscription);
   const library = options.find((o) => o.value === subscription.libraryId)?.label;
   const restore = () =>
-    subscriptionAdd([
-      {
-        target: subscription.target,
-        name: subscription.name,
-        libraryId: subscription.libraryId,
-        includeExplicit: subscription.includeExplicit,
-        includeManga: subscription.includeManga,
-        backlog: { kind: "newOnly" },
-      },
-    ]).then(onRestored, (e) => onError(t("browse.subscribeFailed", { error: errorText(e) })));
+    restoreLocalSubscriptions([subscription]).then(
+      () => {},
+      (e) => onError(t("browse.subscribeFailed", { error: errorText(e) })),
+    );
   const remove = () => {
     onError(null);
     setBusy(true);
-    subscriptionRemove(subscription.id).then(
+    removeLocalSubscription(subscription).then(
       () => {
-        onRemoved();
         toast?.show({
           title: t("browse.unsubscribed", { name }),
           action: { label: t("browse.undo"), onClick: () => void restore() },

@@ -10,17 +10,23 @@ import type { Subscription } from "../bindings/Subscription";
 import type { SubscriptionPreview } from "../bindings/SubscriptionPreview";
 import { errorText } from "../ipc";
 import {
-  subscriptionAdd,
   subscriptionMoveOld,
   subscriptionOldImages,
   subscriptionPreviews,
-  subscriptionRemove,
   subscriptionSetLibrary,
   subscriptionUndoMove,
-  subscriptions as listSubscriptions,
 } from "../ipc/subscriptions";
 import { useSaveDestination } from "../library/SaveDestination";
 import { useLibraryOptions } from "../subscriptions/artistOptions";
+import {
+  acceptAddedLocalSubscriptions,
+  acceptSavedLocalSubscriptions,
+  addLocalSubscriptions,
+  invalidateLocalSubscriptions,
+  removeLocalSubscription,
+  restoreLocalSubscriptions,
+  useLocalSubscriptions,
+} from "../subscriptions/subscriptionListMirror";
 import { useOptionalToast } from "../ui/Toast";
 import { displayName, rankingName } from "../subscriptions/rankingNames";
 
@@ -57,9 +63,9 @@ export function useSubscriptions(safe = false, received: unknown = null) {
   const { memory } = useSaveDestination();
   const toast = useOptionalToast();
   const libraries = useLibraryOptions();
-  const [list, setList] = useState<Subscription[] | null>(null);
-  const [failed, setFailed] = useState<unknown>(null);
-  const [attempt, setAttempt] = useState(0);
+  const { value: list, error } = useLocalSubscriptions();
+  // 有旧名单时后台重读失败不打断浏览；只有第一份就读不到时才把整页换成失败状态（与迁移前一致）。
+  const failed = list ? null : error;
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, setPending] = useState<ReadonlySet<string>>(new Set());
   const [gone, setGone] = useState<Subscription[]>([]);
@@ -74,39 +80,7 @@ export function useSubscriptions(safe = false, received: unknown = null) {
   const latest = useRef(list);
   latest.current = list;
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies(attempt): attempt 是重读信号，effect 里不读它
-  useEffect(() => {
-    let alive = true;
-    setFailed(null);
-    listSubscriptions().then(
-      (next) => alive && setList(next),
-      (e) => alive && setFailed(e ?? "error"),
-    );
-    return () => {
-      alive = false;
-    };
-  }, [attempt]);
-  const retry = useCallback(() => setAttempt((n) => n + 1), []);
-
-  // 后台检查开始、结束（`received` 变了）时重读名单：每条订阅上次检查的结果（`lastError`）跟着更新。
-  // 正在写的时候不换掉名单，免得盖掉还没写完的改动；下次检查再读。
-  const seenReceived = useRef(received);
-  useEffect(() => {
-    const before = seenReceived.current;
-    seenReceived.current = received;
-    // 第一次读到订阅状态不算：名单刚在上面读过。
-    if (before === received || before === null) return;
-    if (writing.current.size) return;
-    let alive = true;
-    listSubscriptions().then(
-      (next) => alive && !writing.current.size && setList(next),
-      // 忽略失败：名单还是上次读到的，下次检查再读。
-      () => {},
-    );
-    return () => {
-      alive = false;
-    };
-  }, [received]);
+  const retry = useCallback(() => invalidateLocalSubscriptions(), []);
 
   // 名单里的订阅变了（多了、少了）、后台又收了图（`received` 变了）时再读一次概况；只是改了设置不用重读。
   const ids = list?.map((s) => s.id).join(",") ?? null;
@@ -147,14 +121,20 @@ export function useSubscriptions(safe = false, received: unknown = null) {
     };
   }, [targets, received, moves]);
 
-  /** 加进名单；又订回来的不再算“已取消订阅的”（不管是撤销、开关还是关注订回来的）。 */
-  const added = useCallback((subs: Subscription[]) => {
-    setList((l) => [...(l ?? []), ...subs]);
+  /** 又订回来的不再算“已取消订阅的”（不管是撤销、开关还是关注订回来的）。 */
+  const forgetGone = useCallback((subs: Subscription[]) => {
     const keys = new Set(subs.map((sub) => keyOf(sub.target)));
     setGone((g) => g.filter((x) => !keys.has(keyOf(x.target))));
   }, []);
-  const saved = useCallback((sub: Subscription) => setList((l) => l?.map((s) => (s.id === sub.id ? sub : s)) ?? l), []);
-  const removed = useCallback((id: string) => setList((l) => l?.filter((s) => s.id !== id) ?? l), []);
+  /** 对话框自己调过后端添加命令时，把结果交进共享镜像。 */
+  const added = useCallback(
+    (subs: Subscription[]) => {
+      acceptAddedLocalSubscriptions(subs);
+      forgetGone(subs);
+    },
+    [forgetGone],
+  );
+  const saved = useCallback((sub: Subscription) => acceptSavedLocalSubscriptions([sub]), []);
 
   const artist = useCallback(
     (userId: string) => list?.find((s) => s.target.kind === "pixivArtist" && s.target.userId === userId),
@@ -218,9 +198,9 @@ export function useSubscriptions(safe = false, received: unknown = null) {
         setNotice(t("browse.noLibrary"));
         return false;
       }
-      return write(key, async () => added(await subscriptionAdd([make(library)])), "browse.subscribeFailed");
+      return write(key, async () => forgetGone(await addLocalSubscriptions([make(library)])), "browse.subscribeFailed");
     },
-    [libraryFor, write, added, t],
+    [libraryFor, write, forgetGone, t],
   );
 
   /**
@@ -233,24 +213,11 @@ export function useSubscriptions(safe = false, received: unknown = null) {
         subs.length === 1 ? keyOf(subs[0].target) : "again",
         async () => {
           const back = subs.filter((sub) => !latest.current?.some((s) => keyOf(s.target) === keyOf(sub.target)));
-          if (back.length)
-            added(
-              await subscriptionAdd(
-                back.map((sub) => ({
-                  target: sub.target,
-                  name: sub.name,
-                  libraryId: sub.libraryId,
-                  includeExplicit: sub.includeExplicit,
-                  includeManga: sub.includeManga,
-                  backlog: { kind: "newOnly" },
-                  ...(sub.target.kind === "pixivBookmarks" && { privateBacklog: { kind: "newOnly" } }),
-                })),
-              ),
-            );
+          if (back.length) forgetGone(await restoreLocalSubscriptions(back));
         },
         "browse.subscribeFailed",
       ),
-    [write, added],
+    [write, forgetGone],
   );
 
   /** 删掉一条订阅并记进 `gone`；不给提示。 */
@@ -259,13 +226,12 @@ export function useSubscriptions(safe = false, received: unknown = null) {
       write(
         sub.id,
         async () => {
-          await subscriptionRemove(sub.id);
-          removed(sub.id);
+          await removeLocalSubscription(sub);
           setGone((g) => [sub, ...g.filter((x) => keyOf(x.target) !== keyOf(sub.target))]);
         },
         "browse.unsubscribeFailed",
       ),
-    [write, removed],
+    [write],
   );
 
   /**
@@ -353,7 +319,7 @@ export function useSubscriptions(safe = false, received: unknown = null) {
       const moving = subs.filter((s) => s.libraryId !== libraryId);
       if (!moving.length) return true;
       const apply = async (ids: string[], to: string) => {
-        for (const sub of await subscriptionSetLibrary(ids, to)) saved(sub);
+        acceptSavedLocalSubscriptions(await subscriptionSetLibrary(ids, to));
       };
       let report: MoveReport | null = null;
       const done = await write(
@@ -408,7 +374,7 @@ export function useSubscriptions(safe = false, received: unknown = null) {
       });
       return true;
     },
-    [write, saved, libraryName, undoMove, toast, t],
+    [write, libraryName, undoMove, toast, t],
   );
 
   /**
@@ -429,12 +395,12 @@ export function useSubscriptions(safe = false, received: unknown = null) {
       if (like)
         return write(
           `artist:${who.userId}`,
-          async () => added(await subscriptionAdd([make(like.libraryId)])),
+          async () => forgetGone(await addLocalSubscriptions([make(like.libraryId)])),
           "browse.subscribeFailed",
         );
       return subscribe(`artist:${who.userId}`, make);
     },
-    [subscribe, write, added],
+    [subscribe, write, forgetGone],
   );
 
   /** 退订一位画师；按最新一份名单找（关注的写入发出时名单可能还没读到或已经变了）。 */
@@ -499,7 +465,6 @@ export function useSubscriptions(safe = false, received: unknown = null) {
     bookmarks,
     added,
     saved,
-    removed,
     unsubscribe,
     unsubscribeMany,
     again,
