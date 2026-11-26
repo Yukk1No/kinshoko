@@ -1,4 +1,5 @@
 //! T13: public configuration actions with real Library/SQLite/files.
+//! Legacy Library group rows are seeded directly because Library no longer writes them.
 use image::{Rgba, RgbaImage};
 use kinshoko_core::library::{
     FactSource, ImportSource, LocalizedName, SourceTag, TagNamespace, TagRef,
@@ -9,8 +10,11 @@ use kinshoko_core::{
 };
 use std::path::Path;
 
+#[path = "support/legacy_tag_groups.rs"]
+mod legacy_tag_groups;
 #[path = "application_settings_backup_packages.rs"]
 mod packages;
+use legacy_tag_groups::insert_tag_group;
 
 fn tagged(dir: &Path) -> (Library, String) {
     let library = Library::create(&dir.join("library"), "资料库").unwrap();
@@ -112,8 +116,7 @@ fn replacement_keeps_deleted_aliases_and_migrated_rules_deleted_after_reconnect(
         .into_iter()
         .map(|t| t.id)
         .collect::<Vec<_>>();
-    let old = library.create_tag_group("旧分组", None).unwrap();
-    library.set_tag_group_tags(&old, &locals).unwrap();
+    let old = insert_tag_group(&library, "旧分组", None, &locals);
     library
         .set_tag_approx(&locals[0], &locals[1], ApproxRelation::Similar)
         .unwrap();

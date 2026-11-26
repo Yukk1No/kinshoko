@@ -95,6 +95,8 @@ mod import_preview;
 mod import_recovery;
 #[path = "inspector_reads.rs"]
 mod inspector_reads;
+#[path = "support/legacy_tag_groups.rs"]
+mod legacy_tag_groups;
 #[path = "library.rs"]
 mod library;
 #[path = "library_batch.rs"]

@@ -15,6 +15,8 @@ use kinshoko_core::search::{ConditionInput, Search, SearchInput, TermInput};
 mod support_library;
 use support_library::import_seeded;
 
+use crate::legacy_tag_groups::insert_tag_group;
+
 const ZH: &str = "zh-CN";
 
 /// 测试库里的图，按内容分级区分。
@@ -197,9 +199,7 @@ fn tag_counts_candidates_and_groups_do_not_reveal_sealed_images() {
     let search = Search::new(&vocabulary, &BuiltinApproxTable::bundled());
     assert!(search.candidates("只在", ZH, 10).is_empty());
 
-    f.library
-        .create_tag_group("一般", Some(TagNamespace::General))
-        .unwrap();
+    insert_tag_group(&f.library, "一般", Some(TagNamespace::General), &[]);
     let groups = f.library.tag_groups(ZH).unwrap();
     let names: Vec<(&str, u32)> = groups[0]
         .tags
@@ -526,7 +526,7 @@ fn tag_id_unsealed(library: &Library, name: &str) -> String {
 }
 
 #[test]
-fn tags_only_on_sealed_images_cannot_be_given_aliases_or_put_into_groups() {
+fn tags_only_on_sealed_images_cannot_be_given_aliases_and_are_filtered_from_groups() {
     let f = Fixture::new();
     let hidden = tag_id_unsealed(&f.library, "只在成人图上");
     let alias = TagAlias {
@@ -541,12 +541,9 @@ fn tags_only_on_sealed_images_cannot_be_given_aliases_or_put_into_groups() {
         f.library.remove_tag_alias(&hidden, "成人"),
         Err(Error::UnknownTag)
     ));
-    let group = f.library.create_tag_group("杂项", None).unwrap();
-    assert!(matches!(
-        f.library
-            .add_to_tag_group(&group, std::slice::from_ref(&hidden)),
-        Err(Error::UnknownTag)
-    ));
+    insert_tag_group(&f.library, "杂项", None, std::slice::from_ref(&hidden));
+    assert!(f.library.tag_groups(ZH).unwrap()[0].tags.is_empty());
+
     f.library.set_safe_mode(false);
     assert!(
         f.library
@@ -556,39 +553,10 @@ fn tags_only_on_sealed_images_cannot_be_given_aliases_or_put_into_groups() {
             .iter()
             .all(|t| t.aliases.is_empty())
     );
-    assert!(f.library.tag_groups(ZH).unwrap()[0].tags.is_empty());
-}
-
-#[test]
-fn editing_a_tag_group_in_safe_mode_keeps_its_members_only_on_sealed_images() {
-    let f = Fixture::new();
-    let shared = tag_id_unsealed(&f.library, "共有");
-    let hidden = tag_id_unsealed(&f.library, "只在成人图上");
-    f.library.set_safe_mode(false);
-    let group = f.library.create_tag_group("杂项", None).unwrap();
-    f.library
-        .add_to_tag_group(&group, &[hidden.clone(), shared.clone()])
-        .unwrap();
-    f.library.set_safe_mode(true);
-    tag(&f.library, &[&f.general], "新标签");
-    let fresh = tag_id_unsealed(&f.library, "新标签");
-
-    // 浏览视角下画师只看得见“共有”：去掉它、加上新标签，看不见的成员不受影响。
-    f.library
-        .remove_from_tag_group(&group, std::slice::from_ref(&shared))
-        .unwrap();
-    f.library
-        .add_to_tag_group(&group, std::slice::from_ref(&fresh))
-        .unwrap();
-    let names = |library: &Library| -> Vec<String> {
-        library.tag_groups(ZH).unwrap()[0]
-            .tags
-            .iter()
-            .map(|t| t.tag.name.clone())
-            .collect()
-    };
-    assert_eq!(names(&f.library), ["新标签"]);
-
-    f.library.set_safe_mode(false);
-    assert_eq!(names(&f.library), ["只在成人图上", "新标签"]);
+    let names: Vec<String> = f.library.tag_groups(ZH).unwrap()[0]
+        .tags
+        .iter()
+        .map(|t| t.tag.name.clone())
+        .collect();
+    assert_eq!(names, ["只在成人图上"]);
 }

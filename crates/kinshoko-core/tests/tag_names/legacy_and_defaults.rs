@@ -266,9 +266,7 @@ fn group_labels_refresh_from_shared_names_without_changing_local_membership_or_c
             .unwrap()
             .local_tag_id
             .clone();
-        let group = lib.create_tag_group("发型", None).unwrap();
-        lib.add_to_tag_group(&group, &[local]).unwrap();
-        group
+        crate::legacy_tag_groups::insert_tag_group(lib, "发型", None, &[local])
     });
     catalog
         .set_name_preference(

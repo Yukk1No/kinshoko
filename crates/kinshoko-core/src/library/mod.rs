@@ -3,6 +3,8 @@
 //! 对外接口按界面动作划分、强类型（#42“模块与接口”）：
 //! - [`Library::browse`]：浏览，keyset 分页，返回已解析缩略图地址的卡片；
 //! - [`Library::import`]：立即返回导入任务，带进度、取消与逐项结果；
+//!   [`Library::import_from_package`] / [`Library::import_from_subscription`] 复用同一写入顺序，
+//!   把参考组包与订阅来源的单项结果解释为参考图或来源错误；
 //! - [`Library::events`]：提交后才推送的变更事件；
 //! - [`Library::thumbnail`]：缩略图（可重建缓存）的本地文件；
 //! - [`Library::edit`]：一次批量整理若干张图，返回重新计算后的详情；[`Library::image`]：单张详情；
@@ -11,7 +13,8 @@
 //!   [`Library::permanent_delete`] 核对令牌后执行；
 //! - 文件夹编辑：[`Library::create_folder`]、[`Library::rename_folder`]、[`Library::move_folder`]。
 //! - [`Library::edit_tags`] / [`Library::image_tags`]：人工标签决定与一张图的标签；
-//! - [`Library::vocabulary`]：标签词表快照；[`Library::tag_groups`]：侧栏的标签分组；
+//! - [`Library::vocabulary`]：标签词表快照；[`Library::tag_groups`] /
+//!   [`Library::tag_group_definitions`]：库内遗留标签分组的读取（改写由应用统一标签目录负责）；
 //! - [`Library::replace_source_tags`]：按来源分层写入（打标、Eagle 导入等来源用）；
 //! - 打标子接口：[`Library::images_to_tag`] 取待打标的图，[`Library::replace_source_rating`]
 //!   按来源写入分级建议，[`Library::finish_tagging`] 记下打标结果；[`Library::image_rating`] 读分级。
@@ -61,6 +64,7 @@ mod tagging_state;
 mod tags;
 mod thumbnail;
 mod types;
+mod write;
 
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
@@ -439,39 +443,6 @@ impl Library {
         self.inner
             .require_visible(&self.inner.readers.get(), image_id)?;
         colour::get(&self.inner, image_id).map(|(d, ..)| d)
-    }
-}
-
-impl Inner {
-    /// 在写线程上跑一个短事务；提交后才推送“列表过期”。
-    pub(crate) fn write<T: Send + 'static>(
-        &self,
-        f: impl FnOnce(&rusqlite::Transaction) -> Result<T, Error> + Send + 'static,
-    ) -> Result<T, Error> {
-        self.write_holding(Arc::new(Mutex::new(())), move |tx, _| f(tx))
-    }
-
-    /// 与 [`Inner::write`] 相同，但从核对到提交一直持有 `lock`：拿这把锁核对后再登记的一方
-    /// （例如导入登记保存文件夹）要么在这次写入之前，要么只看得到已提交的结果，不会夹在中间。
-    pub(crate) fn write_holding<T: Send + 'static, G: Send + 'static>(
-        &self,
-        lock: Arc<Mutex<G>>,
-        f: impl FnOnce(&rusqlite::Transaction, &mut G) -> Result<T, Error> + Send + 'static,
-    ) -> Result<T, Error> {
-        let result = self.writer.run(move |conn| {
-            let tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
-            let mut held = lock.lock().unwrap_or_else(|e| e.into_inner());
-            let value = f(&tx, &mut held)?;
-            tx.commit()?;
-            drop(held);
-            Ok(value)
-        });
-        if result.is_ok() {
-            self.hub.publish(LibraryEvent::ListStale {
-                library_id: self.info.id.clone(),
-            });
-        }
-        result
     }
 }
 
