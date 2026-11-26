@@ -12,6 +12,8 @@
 @import "./library/tag-panel.css" layer(ui);
 @import "./shell/sidebar-base.css" layer(ui);
 @import "./ui/ui.css" layer(ui);
+@import "./ui/page-frame.css" layer(ui);
+@import "./ui/media-card.css" layer(ui);
 @import "./ui/empty-state.css" layer(ui);
 @import "./ui/token.css" layer(ui);
 @import "./ui/spinner.css" layer(ui);

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { Artist } from "../bindings/Artist";
 import type { Subscription } from "../bindings/Subscription";
 import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
+import { PageSubbar } from "../ui/PageFrame";
 import { Segmented } from "../ui/Segmented";
 import { ArtistIndex } from "./ArtistIndex";
 import { FeedView } from "./FeedView";
@@ -66,7 +67,7 @@ function ArtistWorks({
   const subscription = useSubscriptionsContext()?.artist(artist.userId);
   return (
     <>
-      <div className="pw-subbar">
+      <PageSubbar className="pw-subbar">
         <button type="button" className="k-btn" onClick={onBack}>
           {t("browse.allArtists")}
         </button>
@@ -97,7 +98,7 @@ function ArtistWorks({
         >
           {t("browse.openOnPixiv")}
         </a>
-      </div>
+      </PageSubbar>
       <FeedView
         feed={{ kind: "artist", userId: artist.userId, manga: kind === "manga" }}
         safe={safe}

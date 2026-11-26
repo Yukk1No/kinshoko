@@ -4,6 +4,7 @@ import type { PixivWork } from "../bindings/PixivWork";
 import { pixivImageSrc } from "../ipc/pixivBrowse";
 import type { CollectOptions } from "./useCollect";
 import { useFeedbackContext } from "./useFeedback";
+import { MediaCardFrame } from "../ui/MediaCardFrame";
 
 export const PixivWallCard = memo(function PixivWallCard({
   sectionKey,
@@ -39,43 +40,47 @@ export const PixivWallCard = memo(function PixivWallCard({
   // 动图不收，不给收图按钮。
   const collectable = !!onCollect && work.kind !== "animation";
   return (
-    <div
+    <MediaCardFrame
       className="pw-card"
+      selected={on}
       data-work={work.id}
-      data-on={on || undefined}
       style={{ left, top, width, height }}
       onContextMenu={(e) => {
         e.preventDefault();
         onMenu(work, e.clientX, e.clientY);
       }}
+      corners={{
+        topStart: work.pages.length > 1 && (
+          <span className="pw-pages">{t("browse.pages", { count: work.pages.length })}</span>
+        ),
+        bottomEnd: collected ? (
+          <span className="pw-collected">{t("browse.collected")}</span>
+        ) : busy ? (
+          <span className="pw-collected">{t("browse.collecting")}</span>
+        ) : (
+          collectable && (
+            <button
+              type="button"
+              className="pw-collect k-btn"
+              aria-label={t("browse.favoriteWork", { title: work.title })}
+              disabled={feedback?.bookmarkPending(work.id) ?? false}
+              onClick={(e) => onCollect?.(work, { bookmark: true, from: e.currentTarget.closest(".pw-card") })}
+            >
+              {t("browse.favorite")}
+            </button>
+          )
+        ),
+      }}
     >
       <button
         type="button"
-        className="pw-card-open"
+        className="k-media-card-open pw-card-open"
         aria-pressed={on}
         aria-label={t("browse.work", { title: work.title, artist: work.artist.name })}
         onClick={() => onSelect(sectionKey, work.id)}
       >
         {src && <img src={src} alt="" loading="lazy" decoding="async" draggable={false} />}
       </button>
-      {work.pages.length > 1 && <span className="pw-pages">{t("browse.pages", { count: work.pages.length })}</span>}
-      {collected ? (
-        <span className="pw-collected">{t("browse.collected")}</span>
-      ) : busy ? (
-        <span className="pw-collected">{t("browse.collecting")}</span>
-      ) : (
-        collectable && (
-          <button
-            type="button"
-            className="pw-collect k-btn"
-            aria-label={t("browse.favoriteWork", { title: work.title })}
-            disabled={feedback?.bookmarkPending(work.id) ?? false}
-            onClick={(e) => onCollect?.(work, { bookmark: true, from: e.currentTarget.closest(".pw-card") })}
-          >
-            {t("browse.favorite")}
-          </button>
-        )
-      )}
-    </div>
+    </MediaCardFrame>
   );
 });

@@ -9,6 +9,7 @@ import type { Subscription } from "../bindings/Subscription";
 import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
 import { ArtistSettingsDialog } from "../subscriptions/ArtistDialog";
 import { useSubscriptionStatus } from "../subscriptions/useSubscriptionStatus";
+import { PageFrame, PageSubbar, PageSurface, PageTopbar } from "../ui/PageFrame";
 import { Segmented } from "../ui/Segmented";
 import { Switch } from "../ui/Switch";
 import { Tip } from "../ui/Tip";
@@ -139,9 +140,9 @@ function PixivHomeView({ safe, status, subs }: SharedHome) {
   return (
     <SubscriptionsContext value={subs}>
       <FeedbackContext value={feedback}>
-        <div className="pw-page">
+        <PageFrame className="pw-page">
           {/* 标题行就是主窗口顶栏：空白处拖动窗口，右端是窗口按钮。 */}
-          <div className="pw-tabs" data-tauri-drag-region>
+          <PageTopbar className="pw-tabs">
             <SearchBox
               open={searching}
               text={text}
@@ -176,18 +177,23 @@ function PixivHomeView({ safe, status, subs }: SharedHome) {
             <div className="pw-tabs-end" data-tauri-drag-region>
               <WinCtrls />
             </div>
-          </div>
+          </PageTopbar>
           {finding != null && (
             <div className="pw-status" role="alert">
               <span className="k-error-text">{t("browse.failed", { error: errorText(finding) })}</span>
             </div>
           )}
           {/* 新作与推荐一直挂着，换到别的去处时只是藏起来（不用 display: none，那样滚动位置会丢），回来时停在原处。 */}
-          <div className="pw-view" data-away={home ? undefined : ""} aria-hidden={!home || undefined} inert={!home}>
+          <PageSurface
+            className="pw-view"
+            data-away={home ? undefined : ""}
+            aria-hidden={!home || undefined}
+            inert={!home}
+          >
             <HomeWall safe={safe} collecting={collecting} onSection={onSection} onArtist={viewArtist} handle={wall} />
-          </div>
+          </PageSurface>
           {results && (
-            <div className="pw-view">
+            <PageSurface className="pw-view">
               {results.kind === "works" ? (
                 <FeedView
                   feed={{ kind: "search", word: results.word }}
@@ -198,11 +204,11 @@ function PixivHomeView({ safe, status, subs }: SharedHome) {
               ) : (
                 <ArtistResults key={results.word} word={results.word} onArtist={viewArtist} />
               )}
-            </div>
+            </PageSurface>
           )}
           {!results && place === "ranking" && (
-            <div className="pw-view">
-              <div className="pw-subbar">
+            <PageSurface className="pw-view">
+              <PageSubbar className="pw-subbar">
                 <Segmented<RankingPeriod>
                   label={t("browse.rankingPeriod")}
                   value={period}
@@ -214,7 +220,7 @@ function PixivHomeView({ safe, status, subs }: SharedHome) {
                   ]}
                 />
                 <RankingSwitch subs={subs} period={period} />
-              </div>
+              </PageSubbar>
               {/* 只读全年龄榜：R-18 榜不在这里（安全模式也不必再藏一次）。 */}
               <FeedView
                 feed={{ kind: "ranking", period, explicit: false }}
@@ -222,11 +228,11 @@ function PixivHomeView({ safe, status, subs }: SharedHome) {
                 collecting={collecting}
                 onArtist={viewArtist}
               />
-            </div>
+            </PageSurface>
           )}
           {!results && place === "bookmarks" && (
-            <div className="pw-view">
-              <div className="pw-subbar">
+            <PageSurface className="pw-view">
+              <PageSubbar className="pw-subbar">
                 <Segmented<Visibility>
                   label={t("browse.bookmarksVisibility")}
                   value={visibility}
@@ -244,17 +250,17 @@ function PixivHomeView({ safe, status, subs }: SharedHome) {
                   onChange={(on) => void subs.setBookmarks(on)}
                   subscription={subs.bookmarks()}
                 />
-              </div>
+              </PageSubbar>
               <FeedView
                 feed={{ kind: "bookmarks", private: visibility === "private" }}
                 safe={safe}
                 collecting={collecting}
                 onArtist={viewArtist}
               />
-            </div>
+            </PageSurface>
           )}
           {!results && place === "artists" && (
-            <div className="pw-view">
+            <PageSurface className="pw-view">
               <ArtistsView
                 safe={safe}
                 collecting={collecting}
@@ -264,7 +270,7 @@ function PixivHomeView({ safe, status, subs }: SharedHome) {
                 onArtist={setArtist}
                 onSettings={setSettings}
               />
-            </div>
+            </PageSurface>
           )}
           <CollectPrompts collecting={collecting} />
           {subs.notice && (
@@ -280,7 +286,7 @@ function PixivHomeView({ safe, status, subs }: SharedHome) {
               onSaved={subs.saved}
             />
           )}
-        </div>
+        </PageFrame>
       </FeedbackContext>
     </SubscriptionsContext>
   );

@@ -36,7 +36,10 @@
 | 图片右键菜单 | `ContextMenu` / `Menu` |
 | 查看器、侧栏文件夹与回收站的右键菜单 | `ContextMenu` / `Menu` |
 | 来源按钮 | 按钮，打开详情面板 |
-| 设置 | `Dialog` + `Tabs`（竖排） |
+| 页面骨架 | `PageFrame`、`PageTopbar`、`PageSubbar`、`PageSurface`（`src/ui/PageFrame.tsx`） |
+| 设置 | `DialogShell` + `Tabs`（竖排） |
+| 一般对话框 | `DialogShell`（`src/ui/DialogShell.tsx`） |
+| 危险确认 | `AlertDialog`（`src/ui/DialogShell.tsx`） |
 | 对话框里会变高的内容 | `DialogHeight`、`DialogSwap`（`src/ui/DialogHeight.tsx`） |
 | 开关项 | `Switch` |
 | 范围、来源切换 | `ToggleGroup`（`src/ui/Segmented.tsx`） |
@@ -51,7 +54,39 @@
 | 图片大小 | 原生 `range` 加自绘样式 |
 | 导入 | `Menu` |
 | 截图、查看器、框选的工具 | 自建 Dock |
-| 确认删除 | `AlertDialog` |
+| 媒体卡片骨架 | `MediaCardFrame`（`src/ui/MediaCardFrame.tsx`） |
+
+
+## L1 骨架原语
+
+`PageFrame`、`DialogShell` / `AlertDialog`、`MediaCardFrame` 是界面骨架的第一层：业务页面只填内容与区域差异，不重新拼底层弹窗、不重写骨架高度与卡片描边。静态护栏在 `src/ui/l1-primitives.styles.test.ts`。
+
+### 页面骨架
+
+- `PageFrame` 管侧栏插槽、主列与右端插槽；`PageTopbar` 是 56 px 顶栏，`PageSubbar` 是可选的 48 px 次栏，`PageSurface` 是工作面。
+- 顶栏与次栏高度只取 `--page-topbar-h`、`--page-subbar-h`。没有次栏的页面不渲染 `PageSubbar`，不占 48 px。
+- `PageSurface` 的默认底材是中性灰 `--wall` 的图片工作面；以后出现别的工作面材质时，在原语里加材质档位，不在功能样式里另抄一套骨架。
+- 骨架不管页面语义与滚动容器；它们仍归功能组件。
+
+### 对话框外壳
+
+#739 拍板：对话框只分两类外壳，不再各写各的骨架。
+
+- `AlertDialog` 只用于危险或不可撤销的确认（含 `RemoveDialog`）：没有右上角 `×`，点遮罩不关闭，Esc 仍可取消；不包 `DialogHeight`。初始焦点必须落在“取消”按钮，绝不能落在红色危险按钮。组件用 `cancelRef` 强制调用方给出这个落点。
+- `DialogShell` 用 `purpose` 区分剩下的模态框：
+  - `info`：看一看就能走开的信息。Esc 与点遮罩都关闭，默认显示右上角 `×`。
+  - `form`：里面已有输入或选择，点遮罩不能丢掉未提交的内容；Esc 仍可取消，默认没有右上角 `×`。
+  - `required`：必须明确响应。Esc 与点遮罩都不关闭。
+- `DialogShell` 的初始焦点落在对话框容器本身；容器获得焦点不画环，按 Tab 后进入内部正常的焦点顺序。特定表单如需首字段聚焦，可显式覆盖。
+- `DialogHeight` 默认关闭；只有设置、向导、步骤会动态变化的表单按需用 `autoHeight` 打开。
+- 底部操作区由 `footer` 交给外壳，不手写 `.k-dialog-foot`。
+
+### 媒体卡片骨架
+
+- `MediaCardFrame` 管卡片底材（`--card`、`--r-s`）、悬停细描边、选中描边、叠纸层与四角槽位；不管墙内定位、媒体加载与业务菜单。
+- 悬停是 1 px `--line-2` 内描边。选中是 2 px 墙色外圈加 2 px `--accent`（日樱夜金），让描边从墙底上分开。
+- 主媒体操作放在内容层，并用 `.k-media-card-open`；键盘焦点环画在整张卡片外。
+- 角标与角部操作放进 `corners` 的四个槽位，不再各自写绝对定位。叠纸卡片用 `stacked` 与 `layers`；悬停时封面上移 3 px，减弱动效时不位移。
 
 ## 菜单
 

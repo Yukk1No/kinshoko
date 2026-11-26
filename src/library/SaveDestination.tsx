@@ -1,5 +1,4 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Dialog } from "@base-ui/react/dialog";
 import { Folder, Library } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { i18n } from "../i18n/instance";
@@ -19,6 +18,7 @@ import {
   workspaceDirectories,
 } from "../ipc";
 import { libraryPathHint } from "./library-path";
+import { DialogShell } from "../ui/DialogShell";
 import { Select } from "../ui/Select";
 import { errorText } from "../ipc/commandError";
 import { Tip } from "../ui/Tip";
@@ -318,57 +318,56 @@ export function SaveDestinationDialog({
     };
   }, []);
   return (
-    <Dialog.Root
+    <DialogShell
       open
+      purpose="form"
+      title={title}
       onOpenChange={(open) => {
         if (!open && !busy) onClose();
       }}
+      className="k-save-dialog save-destination-dialog"
+      footer={
+        <>
+          <span className="k-grow" />
+          <button type="button" className="k-btn" disabled={busy} onClick={onClose}>
+            <span className="k-label">{t("cancel")}</span>
+          </button>
+          <button
+            type="button"
+            className="k-btn is-primary"
+            disabled={busy || !context.ready || !destinationAvailable(value, context.providers)}
+            onClick={() => {
+              if (!value || busy) return;
+              const fixed = { ...value };
+              context.setDestination(fixed);
+              setBusy(true);
+              setError(null);
+              void onConfirm(fixed)
+                .then(
+                  () => {
+                    if (alive.current) onClose();
+                  },
+                  (error) => {
+                    if (alive.current) setError(errorText(error));
+                  },
+                )
+                .finally(() => {
+                  if (alive.current) setBusy(false);
+                });
+            }}
+          >
+            <span className="k-label">{busy ? t("saving") : (confirmLabel ?? t("save"))}</span>
+          </button>
+        </>
+      }
     >
-      <Dialog.Portal>
-        <Dialog.Backdrop className="k-backdrop" />
-        <Dialog.Popup className="k-dialog k-save-dialog save-destination-dialog">
-          <Dialog.Title className="k-title">{title}</Dialog.Title>
-          {summary && <div className="k-import-summary">{summary}</div>}
-          <SaveDestinationPicker value={value} onChange={setValue} disabled={busy} />
-          {error && (
-            <p className="k-error-text is-boxed" role="alert">
-              {error}
-            </p>
-          )}
-          <div className="k-dialog-foot">
-            <span className="k-grow" />
-            <button type="button" className="k-btn" disabled={busy} onClick={onClose}>
-              <span className="k-label">{t("cancel")}</span>
-            </button>
-            <button
-              type="button"
-              className="k-btn is-primary"
-              disabled={busy || !context.ready || !destinationAvailable(value, context.providers)}
-              onClick={() => {
-                if (!value || busy) return;
-                const fixed = { ...value };
-                context.setDestination(fixed);
-                setBusy(true);
-                setError(null);
-                void onConfirm(fixed)
-                  .then(
-                    () => {
-                      if (alive.current) onClose();
-                    },
-                    (error) => {
-                      if (alive.current) setError(errorText(error));
-                    },
-                  )
-                  .finally(() => {
-                    if (alive.current) setBusy(false);
-                  });
-              }}
-            >
-              <span className="k-label">{busy ? t("saving") : (confirmLabel ?? t("save"))}</span>
-            </button>
-          </div>
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
+      {summary && <div className="k-import-summary">{summary}</div>}
+      <SaveDestinationPicker value={value} onChange={setValue} disabled={busy} />
+      {error && (
+        <p className="k-error-text is-boxed" role="alert">
+          {error}
+        </p>
+      )}
+    </DialogShell>
   );
 }

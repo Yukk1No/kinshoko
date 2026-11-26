@@ -40,6 +40,15 @@
 
 按钮、图标按钮、输入框、下拉、分段项、dock 项、图标轨按钮的高度只取这三档。胶囊（22）、标签（26 / 28）、侧栏行（30）、角标不是控件，不在此列。
 
+## 页面骨架高度
+
+| 令牌 | 值 | 用在哪里 |
+| --- | --- | --- |
+| `--page-topbar-h` | 56 | 页面顶栏；侧栏、详情栏与启动画面的同高头部也对齐它 |
+| `--page-subbar-h` | 48 | 顶栏下面可选的次栏；没有次栏的页面不占这一行 |
+
+这两个值只写在 `PageFrame` 与需要对齐顶栏的窗口框架里，功能样式不再写 56 / 48 px。
+
 ## 层级
 
 10 以上的 `z-index` 只用下表的令牌，数值从下往上排。组件内部 1–9 的叠放不用令牌，留在组件自己的样式表里。
@@ -182,5 +191,6 @@
 - `src/ui/low-emphasis-buttons.styles.test.ts`：扫描全部 CSS、TS、TSX，挡住低强调按钮旧类名的用处和样式定义
 - `src/ui/empty-state.styles.test.ts`：扫描生产 CSS、TS、TSX，挡住空状态旧类名；锁住两档共用样式与可搜索下拉的行布局
 - `src/ui/token.styles.test.ts`：挡住标签块旧类名与区域字形、颜色、尺寸覆盖；锁住共用档位、一级标签 28 px 与可信度三档
+- `src/ui/l1-primitives.styles.test.ts`：业务模块直接拼底层对话框、手写底部操作区、重写顶栏 / 次栏高度数字、复制卡片选中描边
 - `src/styles/layers.styles.test.ts`：层声明顺序、每份样式表的归层，以及生产 TS 绕过入口直接导入部件样式
 - `src/styles/single-base-rule.styles.test.ts`：一个类的基础规则写在两份样式表里；`src/styles.css` 不先导入 `tokens.css`

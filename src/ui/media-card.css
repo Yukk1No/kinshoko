@@ -1,0 +1,138 @@
+/* 媒体卡片骨架原语（#743）：底材、描边、叠纸层与四角槽位。卡片的墙内定位由页面样式决定。 */
+
+.k-media-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--r-s);
+  background: var(--card);
+}
+
+.k-media-card:hover {
+  outline: 1px solid var(--line-2);
+  outline-offset: -1px;
+}
+
+.k-media-card[data-selected="true"] {
+  outline: 0;
+  box-shadow:
+    0 0 0 2px var(--wall),
+    0 0 0 4px var(--accent);
+}
+
+.k-media-card:has(.k-media-card-open:focus-visible) {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+.k-media-card-content {
+  position: absolute;
+  border-radius: inherit;
+  overflow: hidden;
+  inset: 0;
+}
+
+.k-media-card-open {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: zoom-in;
+}
+
+.k-media-card-open:focus-visible {
+  outline: 0;
+}
+
+.k-media-corner {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.k-media-corner.is-topStart {
+  top: 8px;
+  left: 8px;
+}
+
+.k-media-corner.is-topEnd {
+  top: 8px;
+  right: 8px;
+}
+
+.k-media-corner.is-bottomStart {
+  bottom: 8px;
+  left: 8px;
+}
+
+.k-media-corner.is-bottomEnd {
+  right: 8px;
+  bottom: 8px;
+}
+
+/* 叠纸层：底层卡片本身退成纸摞，内容层是封面；悬停时封面微抬。 */
+.k-media-card.is-stack {
+  overflow: visible;
+  background: transparent;
+}
+
+.k-media-card.is-stack .k-media-card-content {
+  background: var(--card);
+  box-shadow:
+    0 0 0 0.5px var(--sheet-edge),
+    0 1px 2px var(--sheet-drop),
+    0 4px 8px -2px var(--sheet-drop),
+    inset 0 1px 0 var(--sheet-light);
+  transition:
+    transform var(--t) var(--ease),
+    box-shadow var(--t) var(--ease);
+}
+
+.k-media-card.is-stack:hover {
+  outline: 0;
+  z-index: 2;
+}
+
+.k-media-card.is-stack:hover .k-media-card-content {
+  transform: translateY(-3px);
+  transition:
+    transform var(--t-slow) var(--spring) var(--t-fast),
+    box-shadow var(--t) var(--ease) var(--t-fast);
+  box-shadow:
+    0 0 0 0.5px var(--sheet-edge),
+    0 3px 6px var(--sheet-drop),
+    0 16px 30px -6px color-mix(in srgb, var(--contact) 40%, transparent),
+    inset 0 1px 0 var(--sheet-light);
+}
+
+.k-media-card.is-stack[data-selected="true"] {
+  box-shadow: none;
+}
+
+.k-media-card.is-stack[data-selected="true"] .k-media-card-content {
+  box-shadow:
+    0 0 0 2px var(--wall),
+    0 0 0 4px var(--accent);
+}
+
+.k-media-card.is-stack:has(.k-media-card-open:focus-visible) {
+  outline: 0;
+}
+
+.k-media-card.is-stack:has(.k-media-card-open:focus-visible) .k-media-card-content {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .k-media-card.is-stack .k-media-card-content {
+    transition: none;
+  }
+
+  .k-media-card.is-stack:hover .k-media-card-content {
+    transform: none;
+  }
+}
