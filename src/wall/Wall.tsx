@@ -23,9 +23,10 @@ import {
   type BrowserCard,
   type BrowsePager,
   type WallProps,
+  createLocalBrowsePager,
 } from "./wallShared";
 import { type CardHandlers } from "./WallCard";
-import { layoutItems, TRAY_PAD, useCloseTrayOnTopbar, useOpenTray } from "./imageSets";
+import { expandTray, layoutItems, TRAY_PAD, useCloseTrayOnTopbar, useOpenTray } from "./imageSets";
 import { useWallScroll } from "./useWallScroll";
 import { mountedCardNode, type RenderedCards } from "./mountedCardNode";
 import { useTrayMotion } from "./useTrayMotion";
@@ -44,20 +45,6 @@ import { usePasteShortcut, wallInteractions } from "./wallInteractions";
 
 export { DRAG_IMAGE_SOURCES, DRAG_IMAGES, scopeKey } from "./wallShared";
 export type { BrowserCard, CardCommand, WallHandle } from "./wallShared";
-
-/** standalone 图片墙的本地浏览令牌 adapter；工作区挂载时由浏览结果模块替换它。 */
-function createLocalBrowsePager(): BrowsePager {
-  let generation = 0;
-  return {
-    begin: () => ++generation,
-    token: () => generation,
-    current: (token) => token === generation,
-    invalidate: () => {
-      generation += 1;
-    },
-    deliver: (page) => page.token === generation,
-  };
-}
 
 /**
  * 图片墙：按资料库记录的尺寸用纯函数排出瀑布流，只挂载视口附近的卡片。
@@ -118,6 +105,11 @@ export function Wall({
   shownCards.current = cards;
   /** 墙上实际排的格子（#418）：打开托盘的那一摞换成它的各页。 */
   const { openSet, setOpenSet, shown, tray, trayIds } = useOpenTray(cards, stackSets);
+  /** 一页刚被接受时，按当前托盘状态预先算出它实际会显示的格子；查看器关闭同一帧里的选择 remap 用这份新卡片。 */
+  const publishCards = useRef<(next: BrowserCard[]) => void>(() => {});
+  publishCards.current = (next) => {
+    onCardsChange?.(expandTray(next, stackSets ? openSet : null).shown);
+  };
   const [cursor, setCursor] = useState<string | null>(null);
   const [total, setTotal] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -278,6 +270,7 @@ export function Wall({
     restoring,
     anchor,
     shownCards,
+    publishCards,
     visibleCardId,
     preservedIds: selectedForReload,
     measureBeforeReflow,

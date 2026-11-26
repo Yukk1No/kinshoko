@@ -30,6 +30,7 @@ export function useWallPages({
   restoring,
   anchor,
   shownCards,
+  publishCards,
   visibleCardId,
   preservedIds,
   measureBeforeReflow,
@@ -53,6 +54,8 @@ export function useWallPages({
   restoring: MutableRefObject<boolean>;
   anchor: MutableRefObject<Anchor | null>;
   shownCards: MutableRefObject<BrowserCard[]>;
+  /** 原子交付被接受后，在同一批状态更新里把这一页实际会显示的格子交给调用方。 */
+  publishCards: MutableRefObject<(cards: BrowserCard[]) => void>;
   /** 此刻视口顶部附近的卡片；锚点图刚被移走时用它代表邻近可见位置。 */
   visibleCardId: () => string | null;
   /** 重新浏览后仍要留在已读前缀里的图（选中项；查看器当前图按 #179 同步进选中）。 */
@@ -189,6 +192,7 @@ export function useWallPages({
           if (!acceptedStatus) return;
           // 原子交付（#742）：修订、卡片与总数一起给浏览结果模块；迟到响应在这里整页丢弃。
           if (!pager.deliver({ token: gen, status: acceptedStatus, cards: next, total: count + stacked })) return;
+          publishCards.current(next);
           if (!safeMode) {
             safeTiming.mark("cards-returned");
             releasePage.current = true;
@@ -215,6 +219,7 @@ export function useWallPages({
       inflight,
       view,
       shownCards,
+      publishCards,
       restoring,
       anchor,
       pendingRemoval,
@@ -242,6 +247,7 @@ export function useWallPages({
       const next = [...shownCards.current, ...page.cards];
       const stacked = (page.images ?? page.total) - page.total;
       if (!pager.deliver({ token: gen, status: page.status, cards: next, total: page.total + stacked })) return;
+      publishCards.current(next);
       // 瀑布流追加时已有卡片的位置不变，不必量旧位置、起重排动画（#109）。
       setCards(next);
       setCursor(page.nextCursor);
@@ -259,6 +265,7 @@ export function useWallPages({
     if (expired) void reload(reloadTarget());
   }, [
     shownCards,
+    publishCards,
     reloadTarget,
     cursor,
     reload,

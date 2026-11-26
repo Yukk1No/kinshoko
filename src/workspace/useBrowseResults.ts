@@ -11,7 +11,7 @@ import {
   type BrowseInvalidationEvent,
   type BrowseResultsTransition,
 } from "./browseResults";
-import { workspaceStatusKey, workspaceStatusMirror } from "./workspaceStatusMirror";
+import { onWorkspaceStatusNotice, workspaceStatusKey, workspaceStatusMirror } from "./workspaceStatusMirror";
 
 export type Invalidate = (event: BrowseInvalidationEvent) => void;
 
@@ -66,6 +66,8 @@ export function useBrowseResults({
   };
   const keyRef = useRef(workspaceStatusKey(safe));
   keyRef.current = workspaceStatusKey(safe);
+  /** 已交给失效 transition 的镜像对象。读取进度变化的重复发布不是新快照，不能消掉在路上的“重新连接”。 */
+  const mirrorValue = useRef<WorkspaceStatus | null>(null);
 
   const view = useCallback(() => ({ selected: model.current.selected, viewerOpen: model.current.viewerOpen }), []);
 
@@ -82,7 +84,7 @@ export function useBrowseResults({
   }, []);
 
   const observe = useCallback(
-    (next: WorkspaceStatus, origin: "mirror" | "recheck", startedAt?: number) => {
+    (next: WorkspaceStatus, origin: "mirror" | "notification" | "recheck", startedAt?: number) => {
       apply(applyBrowseEvent(model.current, { kind: "statusObserved", status: next, origin, startedAt }, view()));
     },
     [apply, view],
@@ -102,6 +104,7 @@ export function useBrowseResults({
     const key = workspaceStatusKey(safe);
     keyRef.current = key;
     apply(applyBrowseEvent(model.current, { kind: "statusRead" }, view()));
+    mirrorValue.current = null;
     let lastError: unknown = null;
     const hearMirror = () => {
       const snapshot = workspaceStatusMirror.snapshot(key);
@@ -109,11 +112,20 @@ export function useBrowseResults({
         lastError = snapshot.error;
         if (snapshot.error && !isLensChanged(snapshot.error)) io.current.onError(snapshot.error);
       }
-      if (snapshot.value) observe(snapshot.value, "mirror");
+      if (snapshot.value && snapshot.value !== mirrorValue.current) {
+        mirrorValue.current = snapshot.value;
+        observe(snapshot.value, "mirror");
+      }
     };
+    const stopNotice = onWorkspaceStatusNotice((noticeKey, next) => {
+      if (noticeKey !== key) return;
+      mirrorValue.current = next;
+      observe(next, "notification");
+    });
     hearMirror();
     const stopMirror = workspaceStatusMirror.subscribe(key, hearMirror);
     return () => {
+      stopNotice();
       stopMirror();
     };
   }, [safe, apply, observe, view]);
@@ -136,6 +148,7 @@ export function useBrowseResults({
     if (outcome.acceptedPage) {
       // 这页带回的状态本身就是一份完整后端快照：写进状态镜像，出发更早、回来更晚的旧状态读取
       // 不能把它回滚（旧读取回滚后，同修订通知会被误判成又一次新修订）。
+      mirrorValue.current = page.status;
       workspaceStatusMirror.accept(keyRef.current, page.status);
       io.current.setResultCount(page.total);
     }

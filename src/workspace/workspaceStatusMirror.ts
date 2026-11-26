@@ -12,6 +12,15 @@ export const workspaceStatusKey = (safe: boolean): WorkspaceStatusKey =>
 
 const counts = new Map<WorkspaceStatusKey, number>();
 const activeKeys = () => [...counts].filter(([, count]) => count > 0).map(([key]) => key);
+const noticeListeners = new Set<(key: WorkspaceStatusKey, status: WorkspaceStatus) => void>();
+
+/** 后端通知先于镜像接受同步交给浏览结果模块：通知本身就说明内容变了，哪怕它是这个视角的第一份快照。 */
+export function onWorkspaceStatusNotice(listener: (key: WorkspaceStatusKey, status: WorkspaceStatus) => void) {
+  noticeListeners.add(listener);
+  return () => {
+    noticeListeners.delete(listener);
+  };
+}
 
 const inner = createBackendMirror<WorkspaceStatusKey, WorkspaceStatus>({
   read: (key) => workspaceStatus(key === "workspace-status:safe"),
@@ -21,8 +30,10 @@ const inner = createBackendMirror<WorkspaceStatusKey, WorkspaceStatus>({
       const keys = activeKeys();
       // 工作区同一时刻只订阅一个安全模式视角。视角确认切换的短暂重叠里不能判断事件属于哪边，
       // 退回去重读；平时事件本身就是完整真相，同步接受才能立刻作废旧浏览响应。
-      if (keys.length === 1) accept(keys[0], status);
-      else invalidate();
+      if (keys.length === 1) {
+        for (const listener of [...noticeListeners]) listener(keys[0], status);
+        accept(keys[0], status);
+      } else invalidate();
     }),
 });
 

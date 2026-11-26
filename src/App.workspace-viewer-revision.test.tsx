@@ -32,7 +32,7 @@ afterEach(() => {
 
 let fake: FakeBackend;
 
-function workspace(initialReply?: Promise<WorkspaceStatus>) {
+function workspace(initialReply?: Promise<WorkspaceStatus>, statusReply?: () => Promise<WorkspaceStatus>) {
   const state = {
     initialRevision: "r1",
     wallRevision: "r2",
@@ -44,17 +44,23 @@ function workspace(initialReply?: Promise<WorkspaceStatus>) {
     inTwoLibraries: false,
     nextBrowse: null as (() => Promise<WorkspacePage>) | null,
     browseReply: null as Promise<WorkspacePage> | null,
+    unavailable: null as { code: "system"; detail: string } | null,
   };
   fake = fakeBackend({
     safe_mode: () => state.safe,
     current_library: libraries[0].library,
     registered_libraries: libraries,
-    workspace_status: () => initialReply ?? status(state.initialRevision),
+    workspace_status: () => statusReply?.() ?? initialReply ?? status(state.initialRevision),
     workspace_directories: () => ({
       status: status(state.wallRevision),
       registrationOrder: [],
       providers: [
-        { registration: libraries[0], sidebar: { all: 1, trash: 0, folders: [] }, unassigned: 1, descendants: {} },
+        {
+          registration: { library: libraries[0].library, unavailable: state.unavailable },
+          sidebar: { all: 1, trash: 0, folders: [] },
+          unassigned: 1,
+          descendants: {},
+        },
       ],
     }),
     workspace_tag_groups: [],
@@ -301,6 +307,35 @@ it("首个修订通知先于初始状态和浏览响应到达时，图片墙重�
   const viewer = await screen.findByRole("region", { name: "原图查看器" });
   await act(() => emit("workspace-changed", status("r3")));
   expect(screen.getByRole("region", { name: "原图查看器" })).toBe(viewer);
+});
+
+it("旧状态读取只剩进度变化时，不消掉在路上的“重新连接”", async () => {
+  let resolveInitial!: (value: WorkspaceStatus) => void;
+  let resolveRecheck!: (value: WorkspaceStatus) => void;
+  const initialReply = new Promise<WorkspaceStatus>((resolve) => {
+    resolveInitial = resolve;
+  });
+  const recheckReply = new Promise<WorkspaceStatus>((resolve) => {
+    resolveRecheck = resolve;
+  });
+  let reads = 0;
+  const state = workspace(undefined, () => (++reads === 1 ? initialReply : recheckReply));
+  state.unavailable = { code: "system", detail: "离线" };
+  state.safe = true;
+  render(<App />);
+  await screen.findByRole("img", { name: "参考图" });
+  const browses = fake.calls("workspace_browse").length;
+  const before = reads;
+  fireEvent.click(await screen.findByRole("button", { name: "重新连接" }));
+  await waitFor(() => expect(reads).toBe(before + 1));
+
+  await act(async () => {
+    resolveInitial(status("r1"));
+  });
+  await act(async () => {
+    resolveRecheck(status("r2"));
+  });
+  await waitFor(() => expect(fake.calls("workspace_browse").length).toBeGreaterThan(browses));
 });
 
 it.each(["explicit", "selected"])("列表失效时 %s 详情面板保留，重读等待或失败时面板里也没有图片像素", async (entry) => {

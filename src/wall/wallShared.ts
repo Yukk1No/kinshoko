@@ -146,6 +146,20 @@ export type WallProps = {
   emptyAction?: (searching: boolean) => ReactNode;
 };
 
+/** standalone 图片墙的本地浏览令牌 adapter；工作区挂载时由浏览结果模块替换它。 */
+export function createLocalBrowsePager(): BrowsePager {
+  let generation = 0;
+  return {
+    begin: () => ++generation,
+    token: () => generation,
+    current: (token) => token === generation,
+    invalidate: () => {
+      generation += 1;
+    },
+    deliver: (page) => page.token === generation,
+  };
+}
+
 /** 每个范围各自记住位置。“全部”沿用 #44 的键。 */
 export const scopeKey = (scope: BrowseScope) =>
   scope.kind === "folder" || scope.kind === "folderTree" ? `${scope.kind}.${scope.id}` : scope.kind;
