@@ -42,13 +42,19 @@ export function SharedPersonalApproxSettings({ onError }: { onError: (error: unk
   const { t } = useTranslation("tagSettings", { keyPrefix: "approx" });
   const workspace = useBackendMirror(workspaceStatusMirror, workspaceStatusKey(safe ?? true), safe !== null);
   const revision = workspace.value?.revision ?? null;
+  const workspaceSettled = workspace.value !== null || workspace.error !== null;
+  const [baselineReady, setBaselineReady] = useState(false);
   const key = approxKey(lang, safe ?? true, safeGeneration, revision);
-  const found = useBackendMirror(sharedPersonalApproxMirror, key, safe !== null && revision !== null);
-  const view = safe === null || revision === null ? null : found.value;
+  const found = useBackendMirror(sharedPersonalApproxMirror, key, safe !== null && baselineReady);
+  const view = safe === null || !baselineReady ? null : found.value;
   const onErrorRef = useRef(onError);
   useEffect(() => {
     onErrorRef.current = onError;
   });
+
+  useEffect(() => {
+    if (workspaceSettled) setBaselineReady(true);
+  }, [workspaceSettled]);
 
   useEffect(() => {
     if (safeMode.error !== null) onErrorRef.current(safeMode.error);

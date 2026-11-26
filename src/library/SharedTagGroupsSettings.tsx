@@ -14,13 +14,14 @@ export function SharedTagGroupsSettings({ onError }: { onError: (error: unknown)
   const safeGeneration = safeMode.value?.generation ?? 0;
   const workspace = useBackendMirror(workspaceStatusMirror, workspaceStatusKey(safe ?? true), safe !== null);
   const revision = workspace.value?.revision ?? null;
+  const workspaceSettled = workspace.value !== null || workspace.error !== null;
+  const [baselineReady, setBaselineReady] = useState(false);
   const [monitor, setMonitor] = useState<{
     safe: boolean | null;
     safeGeneration: number;
     revision: string | null;
     generation: number;
-    ready: boolean;
-  }>({ safe: null, safeGeneration: 0, revision: null, generation: 0, ready: false });
+  }>({ safe: null, safeGeneration: 0, revision: null, generation: 0 });
   const onErrorRef = useRef(onError);
   useEffect(() => {
     onErrorRef.current = onError;
@@ -31,15 +32,18 @@ export function SharedTagGroupsSettings({ onError }: { onError: (error: unknown)
   if (safe !== monitor.safe || safeGeneration !== monitor.safeGeneration || revision !== monitor.revision) {
     const lensChangedHere =
       monitor.safe !== null && (safe !== monitor.safe || safeGeneration !== monitor.safeGeneration);
-    const contentChanged = monitor.revision !== null && revision !== null && revision !== monitor.revision;
+    const contentChanged = revision !== null && revision !== monitor.revision;
     setMonitor({
       safe,
       safeGeneration,
       revision,
       generation: monitor.generation + (lensChangedHere || contentChanged ? 1 : 0),
-      ready: monitor.ready || revision !== null,
     });
   }
+
+  useEffect(() => {
+    if (workspaceSettled) setBaselineReady(true);
+  }, [workspaceSettled]);
 
   useEffect(() => {
     if (safeMode.error !== null) onErrorRef.current(safeMode.error);
@@ -50,7 +54,7 @@ export function SharedTagGroupsSettings({ onError }: { onError: (error: unknown)
 
   return (
     <>
-      {safe === null || !monitor.ready ? (
+      {safe === null || !baselineReady ? (
         <p role="status">{t("settingsLoading")}</p>
       ) : (
         <TagGroupsPane label={t("settingsLabel")} safe={safe} generation={monitor.generation} onError={onError} />

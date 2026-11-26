@@ -149,6 +149,20 @@ describe("设置：近似查找", () => {
       safeMode: true,
     });
   });
+
+  it("首次工作区监视读取失败时仍列出个人近似对应表", async () => {
+    backend({
+      workspace_status: () => {
+        throw { code: "io" };
+      },
+      shared_personal_approx: () => ({ revision: 1, entries, conflicts: [] }),
+    });
+    render(<SettingsPanel hasLibrary initialTab="tags" />);
+    fireEvent.click(await screen.findByRole("button", { name: "相近" }));
+
+    const table = await screen.findByRole("table", { name: "相近标签表" });
+    expect(await within(table).findByText(/天空色/)).toBeTruthy();
+  });
 });
 
 it("refreshes personal approximate labels when shared display names change", async () => {
