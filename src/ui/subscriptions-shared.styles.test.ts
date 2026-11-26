@@ -41,7 +41,7 @@ describe("订阅页共用部件", () => {
         .join("\n")
         .match(/@keyframes k-spin\b/g),
     ).toHaveLength(1);
-    expect(sources["../main.tsx"]).toContain('import "./ui/spinner.css"');
+    expect(sources["../main.tsx"]).toContain('import "./styles.css"');
     expect(sources["../subscriptions/ArtistDialog.tsx"]).toContain('className="k-spinner" size={14}');
     expect(sources["../subscriptions/FollowingDialog.tsx"]).toContain('className="k-spinner" size={14}');
     expect(sources["../subscriptions/SubscriptionsEmpty.tsx"]).toContain(
@@ -50,9 +50,10 @@ describe("订阅页共用部件", () => {
     expect(cssRule(sheets["./fields.css"], ".k-input > .lucide").color).toBe("var(--ink-3)");
   });
 
-  it("全局减弱动效规则不截断共用转圈", () => {
+  it("全局减弱动效规则不截断共用转圈与打标动画", () => {
     const tokens = sheets["../styles/tokens.css"];
-    for (const suffix of ["", "::before", "::after"]) expect(tokens).toContain(`*:where(:not(.k-spinner))${suffix}`);
+    const excluded = ":not(.k-spinner, .k-tagging-track, .k-tagging-arc, .k-twinkle-a, .k-twinkle-b)";
+    for (const suffix of ["", "::before", "::after"]) expect(tokens).toContain(`*:where(${excluded})${suffix}`);
   });
 
   it("订阅样式不再覆盖报错文字", () => {

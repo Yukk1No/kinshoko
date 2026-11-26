@@ -158,13 +158,15 @@
 - **样式表跟着部件走。** 一个部件的规则写在一份样式表里，和它的组件放在同一个文件夹（如 `src/wall/wall.css`、`src/shell/sidebar.css`、`src/settings/settings.css`），只管那一块。`src/styles/` 只放 `tokens.css` 与 `base.css`。
 - 一个类的基础规则只写在一份样式表里，不在另一份里写同名规则去覆盖它。`src/styles/single-base-rule.styles.test.ts` 会挡住。
 - 一份样式表保持在 20 KB 以内；超了按职责拆，文件名说明它管什么。
-- `src/styles.css` 导入 `tokens.css` 与 `base.css`，`tokens.css` 最先。其余样式表在 `src/main.tsx` 里按次序导入；后导入的同特异性规则会盖过先导入的，挪动次序或把规则搬到别的文件前，先确认没有靠次序取胜的规则。
+- `src/styles.css` 是唯一样式入口，先声明 `@layer tokens, base, ui, layout, feature;`，再用带 `layer(...)` 的 `@import` 导入全部样式表。生产 TS 只导入 `src/styles.css`，不绕过入口导入部件样式。
+- 层优先级高于选择器特异性：普通规则按 `tokens` < `base` < `ui` < `layout` < `feature` 取胜，同一层内仍按导入次序。挪动层、次序或把规则搬到别的文件前，先确认没有靠层或次序取胜的规则。
+- 归层口径：`tokens` 放令牌，`base` 放元素基础样式，`ui` 放共用件、共用类与必须留在共用件之下的低层旧规则，`layout` 放窗口框架、顶栏与侧栏骨架，`feature` 放功能界面和它对共用件的定制。`feature` 里的共用件定制必须像类名一样标明区域，不回收成共用类。现在的低层旧规则是 `src/search/search.css`（顶栏查找框底子）、`src/library/tag-panel.css`（标签行与别名编辑器的底子）和 `src/shell/sidebar-base.css`（`.k-row` 之下的侧栏行底子）。
 - 已知要保住的次序：
   - `src/settings/settings.css` 早于 `src/ui/dialogs.css`：后者减弱动效的规则要盖过设置页签的过渡。
   - 叠成一摞的图集（`src/wall/wall.css` 后半）排在卡片规则与 `src/wall/wall-floats.css` 之后。
   - `src/shell/sidebar-base.css` 早于 `src/ui/row.css`，`src/shell/sidebar.css` 排在 `src/shell/frame.css`、`topbar.css` 之后：侧栏的行也带 `.k-row`，前者要让 `.k-row` 盖过，后者要盖过共用类。
-  - `:focus-visible`（`src/ui/ui.css` 开头）排在 `src/viewer/viewer.css` 与 `src/desktop/capture.css` 之后，那里同特异性的 `outline` 不能盖过焦点环。
-- 新规则写进组件旁边的样式表，不往 `src/styles/` 里加。
+- `:focus-visible` 的全局默认在 `ui` 层；`feature` 层的局部焦点例外能按层覆盖它，例外仍只准写令牌、`0` 或 `none`，`src/styles/focus.styles.test.ts` 会挡住。
+- 新规则写进组件旁边的样式表，不往 `src/styles/` 里加；新样式表同时写进 `src/styles.css` 与 `src/styles/layers.styles.test.ts` 的归层表。
 
 ### 挡住回退的测试
 
@@ -180,4 +182,5 @@
 - `src/ui/low-emphasis-buttons.styles.test.ts`：扫描全部 CSS、TS、TSX，挡住低强调按钮旧类名的用处和样式定义
 - `src/ui/empty-state.styles.test.ts`：扫描生产 CSS、TS、TSX，挡住空状态旧类名；锁住两档共用样式与可搜索下拉的行布局
 - `src/ui/token.styles.test.ts`：挡住标签块旧类名与区域字形、颜色、尺寸覆盖；锁住共用档位、一级标签 28 px 与可信度三档
+- `src/styles/layers.styles.test.ts`：层声明顺序、每份样式表的归层，以及生产 TS 绕过入口直接导入部件样式
 - `src/styles/single-base-rule.styles.test.ts`：一个类的基础规则写在两份样式表里；`src/styles.css` 不先导入 `tokens.css`

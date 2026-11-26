@@ -299,11 +299,13 @@
   }
 }
 /* The one global switch for reduced motion, for rules that hardcode a duration: animations jump to their end state in one frame and
-   transitions apply at once. `.k-spinner` is the exception: a spinner is the only sign of progress, so it keeps its own slower rotation. */
+   transitions apply at once. `.k-spinner` is the exception: a spinner is the only sign of progress, so it keeps its own slower rotation.
+   The tagging pieces are exceptions too: their own reduced-motion rule removes the animation outright, and `!important` rules in
+   the tokens layer would otherwise beat that feature-layer rule. */
 @media (prefers-reduced-motion: reduce) {
-  *:where(:not(.k-spinner)),
-  *:where(:not(.k-spinner))::before,
-  *:where(:not(.k-spinner))::after {
+  *:where(:not(.k-spinner, .k-tagging-track, .k-tagging-arc, .k-twinkle-a, .k-twinkle-b)),
+  *:where(:not(.k-spinner, .k-tagging-track, .k-tagging-arc, .k-twinkle-a, .k-twinkle-b))::before,
+  *:where(:not(.k-spinner, .k-tagging-track, .k-tagging-arc, .k-twinkle-a, .k-twinkle-b))::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     animation-delay: 0ms !important;

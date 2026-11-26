@@ -4,6 +4,8 @@
 !.env.example
 private/
 work/
+# Accidental nested checkout of this repository
+/kinshoko/
 
 # Validation sample images (not redistributable)
 /samples/

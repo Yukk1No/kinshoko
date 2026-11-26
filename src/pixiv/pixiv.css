@@ -812,6 +812,11 @@ button.pw-account-item:disabled {
   box-shadow: none;
   color: var(--ink);
 }
+/* 迁移前共用 .k-select 的悬停槽影靠更高的特异性盖过上一条；feature 层移到共用件之后，显式留住这个结果。 */
+.pw-account-item.is-control
+  .k-select:hover:not(:disabled):not([data-disabled]):not([data-popup-open]):not(:focus-visible) {
+  box-shadow: var(--well-inset-hover);
+}
 .pw-account-item > .pw-account-meta {
   margin-left: auto;
 }

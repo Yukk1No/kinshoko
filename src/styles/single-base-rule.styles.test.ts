@@ -77,6 +77,8 @@ describe("样式表的基础规则", () => {
   });
 
   it("令牌最先导入", () => {
-    expect([...index.matchAll(/@import "([^"]+)";/g)].map(([, path]) => path)[0]).toBe("./styles/tokens.css");
+    expect([...index.matchAll(/@import "([^"]+)"(?:\s+layer\([^)]+\))?;/g)].map(([, path]) => path)[0]).toBe(
+      "./styles/tokens.css",
+    );
   });
 });
