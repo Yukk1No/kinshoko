@@ -9,6 +9,7 @@ import { ContextMenu } from "@base-ui/react/context-menu";
 import { useTranslation } from "react-i18next";
 import { useToast } from "../ui/Toast";
 import { isMenuKey, openMenuAt } from "../ui/menuKey";
+import { type KeymapAction, keymapRegistry } from "../keymap/registry";
 import { Dock } from "../ui/Dock";
 import { type Background, useViewerBackground, viewerDockItems, ViewerImages, ViewerMenu } from "./ViewerParts";
 import { ViewerBar } from "./ViewerBar";
@@ -315,7 +316,9 @@ export function Viewer({
       if (stage.current) openMenuAt(stage.current);
       return;
     }
-    if (e.key === "Escape") {
+    const key = e.nativeEvent;
+    const action = keymapRegistry.match(key, "viewer")?.action;
+    if (action === "viewer.back") {
       e.preventDefault();
       e.stopPropagation();
       // 先取消框选，再回到图片墙。
@@ -323,50 +326,37 @@ export function Viewer({
       else onBack();
       return;
     }
-    if (
-      (e.ctrlKey || e.metaKey) &&
-      !e.altKey &&
-      !e.shiftKey &&
-      e.key.toLowerCase() === "c" &&
-      !(e.target instanceof Element && e.target.closest("input, textarea, [contenteditable]")) &&
-      !window.getSelection()?.toString()
-    ) {
+    if (action === "viewer.copy" && !window.getSelection()?.toString()) {
       e.preventDefault();
       copy();
       return;
     }
     // dock 的快捷键与点按 dock 走同一处理；方向键在 dock 内只移动焦点。
-    if (!e.ctrlKey && !e.altKey && !e.metaKey) {
-      const inDock = e.target instanceof Element && !!e.target.closest(".k-dock");
-      const shortcut: Record<string, () => void> = {
-        "0": () => reset("fit"),
-        "1": () => reset("pixels"),
-        h: toggleFlip,
-        H: toggleFlip,
-        "=": () => zoomAt(1.25),
-        "+": () => zoomAt(1.25),
-        "-": () => zoomAt(0.8),
-        _: () => zoomAt(0.8),
-        F1: toggleSelecting,
-        p: () => pin(null),
-        P: () => pin(null),
-        i: () => onToggleInspector?.(),
-        I: () => onToggleInspector?.(),
-      };
-      if (shortcut[e.key]) {
-        e.preventDefault();
-        shortcut[e.key]();
-        return;
-      }
-      if (!inDock && position && onStep && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
-        e.preventDefault();
-        const delta = e.key === "ArrowLeft" ? -1 : 1;
-        const next = position.index + delta;
-        if (next >= 0 && next < position.total) onStep(delta);
-        return;
-      }
+    const inDock = e.target instanceof Element && !!e.target.closest(".k-dock");
+    const shortcut: Partial<Record<KeymapAction, () => void>> = {
+      "viewer.fit": () => reset("fit"),
+      "viewer.actual": () => reset("pixels"),
+      "viewer.flip": toggleFlip,
+      "viewer.zoomIn": () => zoomAt(1.25),
+      "viewer.zoomOut": () => zoomAt(0.8),
+      "viewer.cropMode": toggleSelecting,
+      "viewer.pin": () => pin(null),
+      "viewer.details": () => onToggleInspector?.(),
+    };
+    const run = action ? shortcut[action] : undefined;
+    if (run) {
+      e.preventDefault();
+      run();
+      return;
     }
-    if (e.key === "Enter" && crop && !(e.target instanceof Element && e.target.closest("button, select"))) {
+    if ((action === "viewer.previous" || action === "viewer.next") && !inDock && position && onStep) {
+      e.preventDefault();
+      const delta = action === "viewer.previous" ? -1 : 1;
+      const next = position.index + delta;
+      if (next >= 0 && next < position.total) onStep(delta);
+      return;
+    }
+    if (action === "viewer.pinCrop" && crop && !(e.target instanceof Element && e.target.closest("button, select"))) {
       e.preventDefault();
       pin(crop);
       return;
