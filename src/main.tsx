@@ -12,46 +12,6 @@ import { blockBrowserMenu } from "./ui/browserMenu";
 import { installDialogOrigin } from "./ui/dialogOrigin";
 import { TipProvider } from "./ui/Tip";
 import "./styles.css";
-import "./library/selection.css";
-import "./viewer/viewer.css";
-import "./search/search.css";
-import "./desktop/capture-history.css";
-import "./desktop/capture.css";
-import "./fidelity/fidelity-gate.css";
-import "./library/tag-panel.css";
-import "./shell/sidebar-base.css";
-import "./shell/rail.css";
-import "./shell/page-swap.css";
-import "./shell/seal-fx.css";
-import "./search/tag-groups.css";
-import "./library/import.css";
-import "./library/legacy-name-migration.css";
-import "./ui/ui.css";
-import "./ui/empty-state.css";
-import "./ui/token.css";
-import "./ui/spinner.css";
-import "./ui/ui-dock.css";
-import "./ui/menu.css";
-import "./ui/toast.css";
-import "./ui/fields.css";
-import "./ui/row.css";
-import "./shell/frame.css";
-import "./shell/topbar.css";
-import "./shell/sidebar.css";
-import "./wall/wall-floats.css";
-import "./shell/inspector.css";
-import "./shell/welcome.css";
-import "./shell/inspector-tags.css";
-import "./wall/wall.css";
-import "./shell/startup-splash.css";
-import "./desktop/desk-groups.css";
-// 设置早于 dialogs.css：后者减弱动效的规则要盖过设置页签的过渡。
-import "./settings/settings.css";
-import "./ui/dialogs.css";
-import "./ui/dialogs-tasks.css";
-import "./search/search-bar.css";
-import "./ui/text-select.css";
-import "./subscriptions/subscriptions.css";
 
 // 同一个页面承载四种窗口：主窗口、截图框选窗口（?view=capture）、钉图的菜单窗口（?view=desktop-menu，
 // #106）与还原度门槛实验窗口（?view=fidelity-gate）。钉图是原生窗口，不用这个页面（ADR 0013）。

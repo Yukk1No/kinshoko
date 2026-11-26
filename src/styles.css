@@ -1,3 +1,55 @@
-/* 全局样式：令牌与基础样式，令牌最先导入。各部件的样式表放在部件旁边，由 src/main.tsx 按次序导入（design/ui-system/scales.md“样式写在哪里”）。 */
-@import "./styles/tokens.css";
-@import "./styles/base.css";
+/* 全局样式入口：先声明层叠骨架，再把每份样式表导入对应层。层的优先级高于选择器特异性；
+   同一层内仍按这里的导入次序决定先后（design/ui-system/scales.md“样式写在哪里”）。 */
+@layer tokens, base, ui, layout, feature;
+
+/* tokens：视觉令牌与全局令牌开关；base：文档底子。 */
+@import "./styles/tokens.css" layer(tokens);
+@import "./styles/base.css" layer(base);
+
+/* ui：共用控件与必须留在共用控件之下的低层部件规则。search.css 是查找框底子，tag-panel.css
+   还带着已排除标签的旧划线规则，sidebar-base.css 是 .k-row 之下的侧栏行底子。 */
+@import "./search/search.css" layer(ui);
+@import "./library/tag-panel.css" layer(ui);
+@import "./shell/sidebar-base.css" layer(ui);
+@import "./ui/ui.css" layer(ui);
+@import "./ui/empty-state.css" layer(ui);
+@import "./ui/token.css" layer(ui);
+@import "./ui/spinner.css" layer(ui);
+@import "./ui/ui-dock.css" layer(ui);
+@import "./ui/menu.css" layer(ui);
+@import "./ui/toast.css" layer(ui);
+@import "./ui/fields.css" layer(ui);
+@import "./ui/row.css" layer(ui);
+@import "./ui/text-select.css" layer(ui);
+
+/* layout：主窗口框架、顶栏、侧栏与覆盖整窗的启动画面。 */
+@import "./shell/rail.css" layer(layout);
+@import "./shell/page-swap.css" layer(layout);
+@import "./shell/seal-fx.css" layer(layout);
+@import "./shell/frame.css" layer(layout);
+@import "./shell/topbar.css" layer(layout);
+@import "./shell/sidebar.css" layer(layout);
+@import "./shell/startup-splash.css" layer(layout);
+
+/* feature：各功能区域与其对共用件、窗口框架的定制；同层次序沿用迁移前。pixiv.css 原来经组件依赖
+   最先进入产物，所以在本层也最前。 */
+@import "./pixiv/pixiv.css" layer(feature);
+@import "./library/selection.css" layer(feature);
+@import "./viewer/viewer.css" layer(feature);
+@import "./desktop/capture-history.css" layer(feature);
+@import "./desktop/capture.css" layer(feature);
+@import "./fidelity/fidelity-gate.css" layer(feature);
+@import "./search/tag-groups.css" layer(feature);
+@import "./library/import.css" layer(feature);
+@import "./library/legacy-name-migration.css" layer(feature);
+@import "./wall/wall-floats.css" layer(feature);
+@import "./shell/inspector.css" layer(feature);
+@import "./shell/welcome.css" layer(feature);
+@import "./shell/inspector-tags.css" layer(feature);
+@import "./wall/wall.css" layer(feature);
+@import "./desktop/desk-groups.css" layer(feature);
+@import "./settings/settings.css" layer(feature);
+@import "./ui/dialogs.css" layer(feature);
+@import "./ui/dialogs-tasks.css" layer(feature);
+@import "./search/search-bar.css" layer(feature);
+@import "./subscriptions/subscriptions.css" layer(feature);

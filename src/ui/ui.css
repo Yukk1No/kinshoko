@@ -1,7 +1,7 @@
 /* 共用组件（design/ui-system/README.md）：按钮、菜单行、开关、分段、滑块式悬停等。令牌在 src/styles/tokens.css。
    类名都带 `k-` 前缀。 */
 
-/* 焦点环（design/ui-system/tokens.md）。排在 viewer.css、desktop/capture.css 之后：那里同特异性的 outline 不能盖过它。 */
+/* 焦点环（design/ui-system/tokens.md）的全局默认。功能界面的局部例外只写令牌、0 或 none，由 focus.styles.test.ts 挡住别的方法。 */
 :focus-visible {
   outline: var(--focus-ring);
   outline-offset: var(--focus-offset);

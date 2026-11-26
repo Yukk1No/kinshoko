@@ -23,7 +23,6 @@ import { FeedbackContext, useFeedback } from "./useFeedback";
 import { RANKING_TOP, SubscriptionsContext, type Subscriptions, useSubscriptions } from "./useSubscriptions";
 import { ArtistResults, SearchBox, type SearchKind } from "./Search";
 import { CollectPrompts, WallView } from "./WallView";
-import "./pixiv.css";
 
 const FOLLOWING: Feed = { kind: "following" };
 const RECOMMENDED: Feed = { kind: "recommended" };

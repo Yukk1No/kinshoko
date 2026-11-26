@@ -1,4 +1,4 @@
-/* 侧栏行的底子：这几条按钮同时带 .k-row，要让 ui/row.css 的 .k-row 盖过它们，所以在 src/main.tsx 里排在 ui/ 之前。
+/* 侧栏行的底子：这几条按钮同时带 .k-row，要让 ui/row.css 的 .k-row 盖过它们，所以在 ui 层排在 row.css 之前。
    侧栏其余的规则在 sidebar.css。 */
 
 .sidebar-item {
