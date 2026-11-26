@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronRight, FolderInput, Layers, MoreHorizontal, Plus } from "lucide-react";
 import type { DeskLists } from "../bindings/DeskLists";
@@ -28,6 +28,8 @@ import {
   undoSplitOff,
 } from "../ipc";
 import { describeCommandError, errorText } from "../ipc/commandError";
+import { createBackendMirror } from "../ipc/backendMirror";
+import { useBackendMirror } from "../ipc/useBackendMirror";
 import { SaveDestinationDialog } from "../library/SaveDestination";
 import { useIndicatorSlide } from "../library/useIndicatorSlide";
 import { ContextMenu } from "@base-ui/react/context-menu";
@@ -42,91 +44,39 @@ import { DeskGroupMenuItems } from "./DeskGroupMenu";
 import { GroupNameForm } from "./GroupNameForm";
 import { groupLabel } from "./groupLabel";
 
-type Desk = { state: "loading" } | { state: "ready"; lists: DeskLists };
-type DeskSnapshot = { desk: Desk; failed: unknown };
-
-const INITIAL_DESK: DeskSnapshot = { desk: { state: "loading" }, failed: null };
-let deskSnapshot: DeskSnapshot = INITIAL_DESK;
-let deskSession = 0;
-let deskSequence = 0;
-let deskStop: (() => void) | null = null;
-const deskListeners = new Set<() => void>();
-
-function notifyDesk() {
-  for (const listener of [...deskListeners]) listener();
-}
-
-function loadDesk(session: number) {
-  const request = ++deskSequence;
-  void deskReferenceGroups().then(
-    (lists) => {
-      if (session !== deskSession || request !== deskSequence) return;
-      deskSnapshot = { desk: { state: "ready", lists }, failed: null };
-      notifyDesk();
-    },
-    (failed) => {
-      if (session !== deskSession || request !== deskSequence) return;
-      deskSnapshot = { ...deskSnapshot, failed };
-      notifyDesk();
-    },
-  );
-}
-
-function subscribeDesk(listener: () => void) {
-  if (deskListeners.size === 0) {
-    const session = ++deskSession;
-    loadDesk(session);
-    void onReferenceGroupsChanged(() => {
-      if (session === deskSession) loadDesk(session);
-    }).then(
-      (stop) => {
-        if (session === deskSession) deskStop = stop;
-        else stop();
-      },
-      () => {
-        // 忽略失败：监听建立失败时界面仍保留当前已知快照。
-      },
-    );
-  }
-  deskListeners.add(listener);
-  return () => {
-    deskListeners.delete(listener);
-    if (deskListeners.size === 0) {
-      deskSession += 1;
-      deskSequence += 1;
-      deskStop?.();
-      deskStop = null;
-      deskSnapshot = INITIAL_DESK;
-    }
-  };
-}
+const DESK_KEY = "desk-reference-groups";
 
 /**
- * 参考组改成桌面（#588）的开关（设置里界面上没有的 `deskReferenceGroups`）开着没有，开着时还有
- * 常用、最近、更早三段。多个挂载点（列表与新建按钮）共享同一份订阅与快照，参考组变了时重读。
+ * 桌面参考组名单的后端镜像（#761）。多个挂载点（列表与新建按钮）共享同一份读取与事件订阅；
+ * 参考组变化事件不携带名单，失效后由镜像重读，代次防乱序交给 #741 的原语。
  */
-function useDesk(): DeskSnapshot {
-  return useSyncExternalStore(subscribeDesk, () => deskSnapshot);
+const deskMirror = createBackendMirror<typeof DESK_KEY, DeskLists>({
+  read: () => deskReferenceGroups(),
+  listen: (invalidate) => onReferenceGroupsChanged(() => invalidate(DESK_KEY)),
+});
+
+function useDesk() {
+  return useBackendMirror(deskMirror, DESK_KEY);
 }
 
 /** 侧栏“参考组”（图标轨 Ctrl+2）：常用、最近、更早三段（{@link DeskGroupsPanel}，#592）。 */
 export function ReferenceGroups() {
-  const { desk, failed } = useDesk();
+  const { value: lists, error } = useDesk();
   const toast = useToast();
   useEffect(() => {
-    if (failed) toast.error(errorText(failed));
-  }, [failed, toast]);
-  if (desk.state === "loading") return <section className="reference-groups" aria-busy="true" />;
-  return <DeskGroupsPanel lists={desk.lists} />;
+    if (error) toast.error(errorText(error));
+  }, [error, toast]);
+  if (lists === null) return <section className="reference-groups" aria-busy="true" />;
+  return <DeskGroupsPanel lists={lists} />;
 }
 
 /** 侧栏标题行右侧的“新参考组”（#592）：清空桌面。桌面已经空着时变灰。 */
 export function DeskNewGroupButton() {
-  const { desk } = useDesk();
+  const { value: lists } = useDesk();
   const toast = useToast();
   const { t } = useTranslation("desktop", { keyPrefix: "deskPanel" });
-  if (desk.state !== "ready") return null;
-  const empty = desk.lists.onDesk === null;
+  if (lists === null) return null;
+  const empty = lists.onDesk === null;
   return (
     <Tip label={t("newGroup")}>
       <button

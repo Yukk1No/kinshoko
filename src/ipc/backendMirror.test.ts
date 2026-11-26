@@ -100,6 +100,23 @@ describe("createBackendMirror", () => {
     expect(mirror.snapshot("lens").value).toBe("new");
   });
 
+  it("异步 listen 还没 resolve 时最后一个订阅者退订，resolve 后立刻退订不泄漏", async () => {
+    let resolveListen!: (stop: () => void) => void;
+    const stop = vi.fn();
+    const mirror = createBackendMirror({
+      read: () => Promise.resolve("value"),
+      listen: () =>
+        new Promise<() => void>((resolve) => {
+          resolveListen = resolve;
+        }),
+    });
+    const unsubscribe = mirror.subscribe("lens", () => {});
+    unsubscribe();
+    resolveListen(stop);
+    await flush();
+    expect(stop).toHaveBeenCalledTimes(1);
+  });
+
   it("最后一个订阅者退订后，等待重试的令牌作废，不再发新的读取", async () => {
     let calls = 0;
     let releaseWait: (() => void) | null = null;

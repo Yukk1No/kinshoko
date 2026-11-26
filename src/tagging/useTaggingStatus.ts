@@ -1,84 +1,74 @@
-import { useSyncExternalStore } from "react";
 import type { TaggingStatus } from "../bindings/TaggingStatus";
 import { onTaggingStatus, taggingStatus } from "../ipc";
+import { createBackendMirror, type BackendMirror } from "../ipc/backendMirror";
+import { useBackendMirror } from "../ipc/useBackendMirror";
 
 type KnownDevice = Pick<Extract<TaggingStatus, { state: "running" }>, "device" | "gpu">;
-const emptyMemory = {
-  device: null as KnownDevice | null,
-  model: null as string | null,
-  remaining: null as number | null,
+type TaggingMemory = {
+  device: KnownDevice | null;
+  model: string | null;
+  remaining: number | null;
 };
-let memory = emptyMemory;
-let status: TaggingStatus | null = null;
-const listeners = new Set<() => void>();
-let stop: (() => void) | null = null;
-const notify = () => {
-  for (const listener of listeners) listener();
+type TaggingMirrorValue = { status: TaggingStatus; memory: TaggingMemory };
+
+const KEY = "tagging-status";
+const emptyMemory: TaggingMemory = {
+  device: null,
+  model: null,
+  remaining: null,
 };
 
-export function forgetTaggingDevice() {
-  memory = { ...memory, device: null };
-  notify();
-}
-
-function update(next: TaggingStatus) {
-  status = next;
+/** 状态里没有打标进度时，仍记住最近一次知道的设备、模型与剩余张数；状态明确作废时清空。 */
+function rememberedMemory(memory: TaggingMemory, next: TaggingStatus): TaggingMemory {
   if (next.state === "running" || next.state === "idle") {
-    memory = {
+    return {
       device: { device: next.device, gpu: next.gpu },
       model: next.model,
       remaining: next.state === "running" ? next.remaining : null,
     };
-  } else if (next.state === "starting" && next.device) {
-    memory = {
+  }
+  if (next.state === "starting" && next.device) {
+    return {
       ...memory,
       device: {
         device: next.device,
         gpu: next.device === "directMl" && memory.device?.device === "directMl" ? memory.device.gpu : null,
       },
     };
-  } else if (next.state === "preparing" && next.model !== memory.model) {
-    memory = { ...memory, device: null };
-  } else if (!["paused", "yieldedToFullScreen", "starting", "preparing"].includes(next.state)) {
-    memory = emptyMemory;
   }
-  notify();
+  if (next.state === "preparing" && next.model !== memory.model) return { ...memory, device: null };
+  if (!["paused", "yieldedToFullScreen", "starting", "preparing"].includes(next.state)) return emptyMemory;
+  return memory;
 }
 
-function subscribe(listener: () => void) {
-  listeners.add(listener);
-  if (!stop) {
-    let alive = true;
-    let pushed = false;
-    const unlisten = onTaggingStatus((next) => {
-      if (!alive) return;
-      pushed = true;
-      update(next);
-    });
-    taggingStatus().then(
-      (next) => {
-        if (alive && !pushed) update(next);
-      },
-      () => {},
-    );
-    stop = () => {
-      alive = false;
-      void unlisten.then((unlisten) => unlisten());
-    };
-  }
-  return () => {
-    listeners.delete(listener);
-    if (listeners.size === 0) {
-      stop?.();
-      stop = null;
-      status = null;
-      memory = emptyMemory;
-    }
-  };
+/**
+ * 打标状态的后端镜像（#761）。事件携带完整状态；镜像值同时带着由它推导出的记忆，
+ * 因此先发出的旧读取回来后不能盖掉推送，也不能把记忆倒回上一次状态之前。
+ */
+const statusMirror = (() => {
+  let self: BackendMirror<typeof KEY, TaggingMirrorValue>;
+  const valueFor = (next: TaggingStatus): TaggingMirrorValue => ({
+    status: next,
+    memory: rememberedMemory(self.snapshot(KEY).value?.memory ?? emptyMemory, next),
+  });
+  self = createBackendMirror<typeof KEY, TaggingMirrorValue>({
+    read: async () => valueFor(await taggingStatus()),
+    listen: (_invalidate, accept) => onTaggingStatus((status) => accept(KEY, valueFor(status))),
+  });
+  return self;
+})();
+
+export function forgetTaggingDevice() {
+  const current = statusMirror.snapshot(KEY).value;
+  if (!current) return;
+  statusMirror.accept(KEY, {
+    ...current,
+    memory: { ...current.memory, device: null },
+  });
 }
 
 export function useTaggingMemory() {
-  return useSyncExternalStore(subscribe, () => memory);
+  return useBackendMirror(statusMirror, KEY).value?.memory ?? emptyMemory;
 }
 
 /**
@@ -86,5 +76,5 @@ export function useTaggingMemory() {
  * 不跟着哪个资料库走。还没读到时为 null。
  */
 export function useTaggingStatus(): TaggingStatus | null {
-  return useSyncExternalStore(subscribe, () => status);
+  return useBackendMirror(statusMirror, KEY).value?.status ?? null;
 }
