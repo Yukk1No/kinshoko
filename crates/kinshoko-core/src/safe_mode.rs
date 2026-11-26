@@ -1,6 +1,7 @@
 //! 本设备安全模式的权威状态（#272）：开关、安全模式范围与代次。
 //!
-//! 应用启动时按设置初始化，之后每次开关或调整范围都经 [`SafeModeState::commit`] 提交。两条
+//! 应用启动时按设置初始化，之后每次开关或调整范围都经工作区会话的可见性许可提交
+//! （[`crate::session::VisibilityPermit`]）；本模块之外不能直接改动。两条
 //! 规则只在这里实现：
 //! - **取并集**（[`SafeModeState::effective`]）：界面当前的视角与设置里的开关取“或”，切换的
 //!   这一刻不会按关着的视角露出范围内的内容；范围总按设置。
@@ -8,7 +9,7 @@
 //!   做完复核。其间发生过任何一次提交（包括重复设成同一值、设置没保存成）即失效，调用方丢弃
 //!   结果。只要代次时用 [`SafeModeState::snapshot`] / [`SafeModeState::still`]。
 //!
-//! 提交与外壳的可见性锁、通知资料库和桌面的顺序由应用壳负责；这里保证换值与代次前进是一步，
+//! 提交与可见性许可的顺序由 [`crate::session`] 负责；这里保证换值与代次前进是一步，
 //! 带保存的提交（[`SafeModeState::try_commit`]）保存成功才换值。
 
 use std::sync::{Mutex, MutexGuard};
@@ -121,7 +122,7 @@ impl SafeModeState {
 
     /// 换上 `change` 改过的设置，代次加一；没改动也加一，进行中的工作都要重新核对。
     /// 返回提交后的设置。
-    pub fn commit(&self, change: impl FnOnce(&mut SafeMode)) -> SafeMode {
+    pub(crate) fn commit(&self, change: impl FnOnce(&mut SafeMode)) -> SafeMode {
         let mut state = self.lock();
         change(&mut state.mode);
         state.generation += 1;
@@ -129,14 +130,14 @@ impl SafeModeState {
     }
 
     /// 只让代次加一，设置不变：取过的快照都失效（例如整份设置即将被替换时）。
-    pub fn revoke(&self) {
+    pub(crate) fn revoke(&self) {
         self.commit(|_| {});
     }
 
     /// 带保存的提交：先 [`Self::revoke`]，再用 `change` 改过的设置调用 `save`；保存成功才换上
     /// 新设置（代次再加一），保存不成时设置不变、取过的快照仍失效。保存期间读到的仍是原值。
-    /// `save` 不持本状态的锁，调用方负责让提交串行（应用壳的可见性锁）。
-    pub fn try_commit<T, E>(
+    /// `save` 不持本状态的锁，调用方负责让提交串行（可见性许可）。
+    pub(crate) fn try_commit<T, E>(
         &self,
         change: impl FnOnce(&mut SafeMode),
         save: impl FnOnce(SafeMode) -> Result<T, E>,

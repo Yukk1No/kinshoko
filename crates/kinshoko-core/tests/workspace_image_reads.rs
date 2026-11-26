@@ -226,12 +226,25 @@ fn a_safe_mode_commit_during_the_read_discards_the_result() {
     let image = f.import(&a, 10);
     let id = a.info().id.clone();
 
-    // 重复设成同一值也算一次提交，同 `SafeModeState::still`。
-    let safe = safe_mode(true);
+    // 重复设成同一值也算一次提交，同 `SafeModeState::still`。安全模式只能经工作区会话的
+    // 可见性许可提交；这里只借它的安全模式，读取仍用夹具自己的工作区。
+    let session = kinshoko_core::WorkspaceSession::new(
+        f.dir.path().join("session"),
+        SafeMode::new(true, Default::default()),
+        kinshoko_core::search::CatalogSearch::new(
+            f.dir.path().join("session"),
+            Default::default(),
+            kinshoko_core::approx::BuiltinApproxTable::bundled(),
+        ),
+    );
+    let safe = session.safe_mode();
     let (w, d, c) = (&mut f.workspace, &f.device, &mut f.catalog);
-    let result = w.read_visible_image(d, c, &safe, &id, &image, |_, _, library| {
+    let result = w.read_visible_image(d, c, safe, &id, &image, |_, _, library| {
         let value = library.image(&image)?;
-        safe.commit(|mode| mode.on = true);
+        session
+            .visibility()
+            .try_commit_safe_mode(|mode| mode.on = true, |_| Ok::<_, ()>(()))
+            .unwrap();
         Ok(value)
     });
     assert!(matches!(

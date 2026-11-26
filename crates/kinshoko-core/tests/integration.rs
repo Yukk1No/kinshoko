@@ -218,6 +218,8 @@ mod workspace_image_sets;
 mod workspace_image_writes;
 #[path = "workspace_paging.rs"]
 mod workspace_paging;
+#[path = "workspace_session.rs"]
+mod workspace_session;
 #[path = "workspace_thumbnails.rs"]
 mod workspace_thumbnails;
 #[path = "writer_switch.rs"]

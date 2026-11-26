@@ -21,6 +21,7 @@ pub mod portable_tags;
 pub mod reference_groups;
 pub mod safe_mode;
 pub mod search;
+pub mod session;
 mod settings;
 mod shortcuts;
 pub mod subscription;
@@ -40,6 +41,7 @@ pub use device_libraries::{
     OrganizeWaiting, WriterAccess, WriterWaitError, wait_for_writer,
 };
 pub use library::Library;
+pub use session::{VisibilityPermit, WorkspaceSession};
 pub use settings::{
     AppSettings, SettingChange, SettingsError, SettingsSnapshot, ShortcutAction, TagDisplay,
     TagStyle, ViewerBackground,
