@@ -104,7 +104,7 @@ pub(super) fn restore<R: Runtime>(
     Ok(opened)
 }
 
-/// 当前资料库，还没打开时打开本设备上次打开的资料库。供其他模块（例如收藏截图）使用；
+/// 活动资料库，还没打开时打开本设备上次打开的资料库。供其他模块（例如收藏截图）使用；
 /// 会读文件，不要在主线程上调用。
 pub fn current_or_last<R: Runtime>(app: &AppHandle<R>) -> Result<Arc<Library>, CommandError> {
     restore(app)?.ok_or_else(|| CommandError::new(ErrorKind::NoLibrary, "还没有资料库"))
