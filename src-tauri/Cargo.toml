@@ -12,6 +12,7 @@ name = "kinshoko_app"
 crate-type = ["rlib"]
 
 [build-dependencies]
+syn = { version = "2", features = ["full"] }
 tauri-build = { version = "2", features = [] }
 
 [dependencies]

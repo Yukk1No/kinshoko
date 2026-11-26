@@ -176,10 +176,8 @@ pub(super) async fn create_folder<R: Runtime>(
     name: String,
     parent: Option<String>,
 ) -> Result<String, CommandError> {
-    blocking(move || {
-        writable(&app, &library_id)?
-            .create_folder(&name, parent.as_deref())
-            .map_err(CommandError::from)
+    verbs::organize(app, library_id, move |library| {
+        library.create_folder(&name, parent.as_deref())
     })
     .await
 }
@@ -191,10 +189,8 @@ pub(super) async fn rename_folder<R: Runtime>(
     folder_id: String,
     name: String,
 ) -> Result<(), CommandError> {
-    blocking(move || {
-        writable(&app, &library_id)?
-            .rename_folder(&folder_id, &name)
-            .map_err(CommandError::from)
+    verbs::organize(app, library_id, move |library| {
+        library.rename_folder(&folder_id, &name)
     })
     .await
 }
@@ -207,10 +203,8 @@ pub(super) async fn delete_folder<R: Runtime>(
     library_id: String,
     folder_id: String,
 ) -> Result<kinshoko_core::library::DeletedFolders, CommandError> {
-    blocking(move || {
-        writable(&app, &library_id)?
-            .delete_folder(&folder_id)
-            .map_err(CommandError::from)
+    verbs::organize(app, library_id, move |library| {
+        library.delete_folder(&folder_id)
     })
     .await
 }
@@ -222,10 +216,8 @@ pub(super) async fn restore_folder<R: Runtime>(
     library_id: String,
     deleted: kinshoko_core::library::DeletedFolders,
 ) -> Result<(), CommandError> {
-    blocking(move || {
-        writable(&app, &library_id)?
-            .restore_folder(deleted)
-            .map_err(CommandError::from)
+    verbs::organize(app, library_id, move |library| {
+        library.restore_folder(deleted)
     })
     .await
 }
@@ -238,10 +230,8 @@ pub(super) async fn move_folder<R: Runtime>(
     parent: Option<String>,
     position: u32,
 ) -> Result<(), CommandError> {
-    blocking(move || {
-        writable(&app, &library_id)?
-            .move_folder(&folder_id, parent.as_deref(), position)
-            .map_err(CommandError::from)
+    verbs::organize(app, library_id, move |library| {
+        library.move_folder(&folder_id, parent.as_deref(), position)
     })
     .await
 }

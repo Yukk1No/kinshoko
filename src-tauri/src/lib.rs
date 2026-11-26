@@ -3,8 +3,16 @@
 //! 进程常驻托盘（ADR-0004）：关闭主窗口只销毁它的 WebView，进程、托盘与全局快捷键
 //! 继续运行；从托盘重新打开时按配置重建主窗口。只有托盘菜单的“退出”结束进程。
 
+#[macro_use]
+mod command_registry;
+
+macro_rules! command_handler {
+    ($($commands:tt)*) => { tauri::generate_handler![$($commands)*] };
+}
+
 mod app_notice;
 mod backup;
+mod blocking;
 mod commands;
 mod data_dirs;
 mod desktop;
@@ -13,8 +21,6 @@ mod fidelity_gate;
 #[cfg(windows)]
 mod file_drop;
 mod library;
-#[cfg(test)]
-mod plugin_acl_tests;
 mod run_log;
 mod shell;
 mod subscription;
@@ -95,79 +101,7 @@ pub fn run() {
                 responder.respond(subscription::browse::image_response(&app, &path));
             });
         })
-        .invoke_handler(tauri::generate_handler![
-            #[cfg(windows)]
-            file_drop::file_drop_ack,
-            commands::app_info,
-            commands::shell_settings,
-            commands::change_setting,
-            commands::rebind_shortcut,
-            commands::set_shortcuts_paused,
-            run_log::set_run_log,
-            run_log::clear_run_log,
-            run_log::log_frontend,
-            run_log::log_timing,
-            commands::interface_language,
-            commands::set_interface_language,
-            commands::interface_language_choice,
-            commands::ui_scale,
-            commands::set_ui_scale,
-            commands::double_click,
-            diagnostics::diagnostics_report,
-            diagnostics::runtime_status,
-            diagnostics::open_runtime_update,
-            diagnostics::export_diagnostics,
-            updater::update_status,
-            updater::check_update,
-            updater::install_update,
-            updater::set_update_channel,
-            backup::backup_status,
-            backup::set_backup_target,
-            backup::set_backup_selection,
-            backup::backup_preview,
-            backup::start_backup,
-            backup::backup_snapshots,
-            backup::restore_backup,
-            backup::restore_backup_folder,
-            tagging::tagging_status,
-            tagging::tagging_download,
-            tagging::tagging_cancel_download,
-            tagging::tagging_pause,
-            tagging::tagging_resume,
-            tagging::tagging_retry_failed,
-            tagging::tagging_models,
-            tagging::tagging_set_device,
-            tagging::tagging_pick_package,
-            tagging::tagging_import_package,
-            subscription::subscription_status,
-            subscription::set_subscriptions_enabled,
-            subscription::subscription_check_now,
-            subscription::subscriptions,
-            subscription::subscription_previews,
-            subscription::subscription_mark_seen,
-            subscription::roster::subscription_find_artist,
-            subscription::roster::subscription_following,
-            subscription::roster::subscription_add,
-            subscription::roster::subscription_set_options,
-            subscription::roster::subscription_set_library,
-            subscription::roster::subscription_remove,
-            subscription::relocate::subscription_old_images,
-            subscription::relocate::subscription_move_old,
-            subscription::relocate::subscription_undo_move,
-            subscription::browse::subscription_browse,
-            subscription::browse::subscription_search_artists,
-            subscription::browse::subscription_collect,
-            subscription::browse::subscription_collected,
-            subscription::browse::subscription_set_bookmark,
-            subscription::browse::subscription_set_follow,
-            subscription::login::subscription_login,
-            subscription::login::subscription_logout,
-            subscription::login::subscription_cancel_login,
-            fidelity_gate::gate_plan,
-            fidelity_gate::gate_pins,
-            fidelity_gate::gate_image,
-            fidelity_gate::gate_save,
-        ])
+        .invoke_handler(command_registry!(app, command_handler))
         .build(tauri::generate_context!())
         .expect("启动 Kinshoko 失败");
 

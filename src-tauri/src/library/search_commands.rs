@@ -28,12 +28,10 @@ pub(super) async fn search_candidates<R: Runtime>(
     safe_mode: bool,
 ) -> Result<Vec<Candidate>, CommandError> {
     let catalog = state.search.clone();
-    blocking(move || {
-        let library = readable(&app, &library_id)?;
-        let search = catalog
-            .search(&library, safe_mode)
-            .map_err(CommandError::from)?;
-        Ok(search.candidates(&text, &lang, limit as usize))
+    verbs::browse(app, library_id, move |library| {
+        catalog
+            .search(library, safe_mode)
+            .map(|search| search.candidates(&text, &lang, limit as usize))
     })
     .await
 }

@@ -17,7 +17,9 @@ use kinshoko_core::desktop::SavedPin;
 use kinshoko_core::reference_groups::{Desk, DeskLists, GroupError, Pruned, Split, Switched};
 use tauri::AppHandle;
 
-use super::groups::{blocking, changed};
+use crate::blocking::blocking;
+
+use super::groups::changed;
 use super::{AppNotice, history_changed, lock, menu, pins, publish, state};
 
 /// 最近一次“移出没钉着的”，撤销用（[`undo_prune_unpinned`]）。里面有自带截图的字节，不发给界面。
