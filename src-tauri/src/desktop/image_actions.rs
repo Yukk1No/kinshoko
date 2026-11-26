@@ -20,19 +20,20 @@ pub async fn copy_reference_image(
     library_id: String,
     image_id: String,
 ) -> Result<(), CommandError> {
-    tauri::async_runtime::spawn_blocking(move || {
-        let pixels = library::visible_source(&app, &library_id, &image_id)?
-            .clipboard_pixels(&image_id)
-            .map_err(CommandError::from)?;
-        let prepared = super::clipboard::PreparedImage::prepare(&pixels)?;
-        // 解码期间安全模式或分级可能变了：在可见性提交里重新核对后才写剪贴板。
-        library::with_visibility_commit(&app, |_| {
-            library::visible_source(&app, &library_id, &image_id)?;
-            prepared.commit(&app)
-        })
-    })
+    // 锁外解码；进门后许可复核安全模式与这张图仍可见，才写剪贴板。
+    library::commit_image(
+        app,
+        library_id,
+        image_id,
+        |source, image_id| {
+            let pixels = source
+                .clipboard_pixels(image_id)
+                .map_err(CommandError::from)?;
+            super::clipboard::PreparedImage::prepare(&pixels)
+        },
+        |app, prepared| prepared.commit(app),
+    )
     .await
-    .map_err(CommandError::system)?
 }
 
 /// 在资源管理器中显示：打开原文件所在的文件夹并选中它。文件不在时报错（界面提示），不打开窗口。

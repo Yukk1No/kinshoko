@@ -6,9 +6,10 @@ use std::sync::Arc;
 
 use kinshoko_core::tag_catalog::{CatalogError, TagCatalog};
 use kinshoko_core::workspace::Workspace;
-use kinshoko_core::{CommandError, DeviceLibraries, Library};
-use tauri::{AppHandle, Runtime};
+use kinshoko_core::{CommandError, DeviceLibraries, Library, VisibilityPermit};
+use tauri::{AppHandle, Manager, Runtime};
 
+use super::LibraryState;
 use super::access::{readable, writable};
 use super::lens::{Hold, with_lens_at};
 use crate::blocking::blocking;
@@ -55,4 +56,26 @@ pub(super) fn lens<R: Runtime, T: Send + 'static>(
 ) -> impl Future<Output = Result<T, CommandError>> {
     let site = Location::caller();
     blocking(move || with_lens_at(&app, safe_mode, hold, site, action))
+}
+
+/// Act on one visible image: `prepare` (decode, crop…) runs outside the visibility permit; `apply`
+/// (the clipboard write, the send) runs inside it only after the session re-confirmed safe mode
+/// and that the image is still visible ([`VisibilityPermit::commit_image`]).
+pub(crate) async fn commit_image<R: Runtime, P, T: Send + 'static>(
+    app: AppHandle<R>,
+    library_id: String,
+    image_id: String,
+    prepare: impl FnOnce(&Arc<Library>, &str) -> Result<P, CommandError> + Send + 'static,
+    apply: impl FnOnce(&AppHandle<R>, P) -> Result<T, CommandError> + Send + 'static,
+) -> Result<T, CommandError> {
+    blocking(move || {
+        VisibilityPermit::commit_image(
+            &app.state::<LibraryState>().session,
+            &library_id,
+            &image_id,
+            |library| prepare(library, &image_id),
+            |_, prepared| apply(&app, prepared),
+        )
+    })
+    .await
 }

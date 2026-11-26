@@ -171,8 +171,8 @@ fn finish_blocking(
     crate::desktop::timing("finish.prepared");
     // Mode/settings, source edits, providers and automatic ratings share this commit gate.
     // Only history persistence and the actual OS/pin side effect occur within it.
-    let committed = crate::library::with_visibility_commit(app, |generation| {
-        if generation != pending.safe_generation {
+    let committed = crate::library::with_visibility_commit(app, |permit| {
+        if permit.generation() != pending.safe_generation {
             return Err(super::safe_mode_changed());
         }
         validate_source(app, &pending, at)?;

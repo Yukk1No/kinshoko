@@ -5,11 +5,11 @@
 //! - 本设备可登记多个资料库，同一时间一个活动资料库（#49）。保存命令固定库和目录；来源整理命令带明确来源。浏览命令带界面正在操作的
 //!   资料库 id，切换后旧请求得到错误，不会落到新库上；
 //! - 界面上没有“当前资料库”（ADR-0008，#112）：整理命令（文件夹、放入、回收站、标签）带资料库身份，
-//!   由 [`writable`] 把唯一的可写句柄按需切过去；该库或当前持有者有导入在收尾时等它结束再执行，
-//!   并推送 `organize-waiting` 作为轻提示；
+//!   由 [`writable`] 把活动资料库按需切过去（同一个资料库始终只有一个可写句柄，ADR-0008 修订）；
+//!   该库或当前持有者有导入在收尾时等它结束再执行，并推送 `organize-waiting` 作为轻提示；
 //! - 资料库事件转发为窗口事件 `library-event`，按来源身份转发；导入回执独立保留任务所属库和目录；
 //! - 缩略图走自定义协议 `thumb`：`<资料库 id>/<参考图 id>/<像素档位>`，缓存缺失时现场生成；
-//! - 安全模式（#60）：开关保存在应用壳设置里，打开资料库与切换时设给当前资料库。这里的命令都是
+//! - 安全模式（#60）：开关保存在应用壳设置里，打开资料库与切换时设给活动资料库。这里的命令都是
 //!   浏览视角；参考视角的句柄在装配（打开资料库）时取走，只交给参考组与桌面钉图，不经命令给前端。
 
 use kinshoko_core::CommandError;
@@ -49,9 +49,9 @@ pub use thumbnails::*;
 mod forward;
 mod verbs;
 use forward::forward_events;
+pub(crate) use verbs::commit_image;
 
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, Weak};
 
 use kinshoko_core::approx::{ApproxRelation, BuiltinApproxTable};
@@ -90,7 +90,8 @@ use crate::shell::ShellState;
 use crate::sync::lock;
 use std::panic::Location;
 
-use kinshoko_core::diagnostics::HeldLock;
+use kinshoko_core::WorkspaceSession;
+use kinshoko_core::session::LibrariesGuard;
 
 /// 连续的列表、图片与词表变化合并推送的窗口（#142）。
 const EVENT_COALESCE: std::time::Duration = std::time::Duration::from_millis(500);
@@ -99,28 +100,14 @@ const ORGANIZE_RECHECK: std::time::Duration = std::time::Duration::from_millis(5
 /// 等导入收尾的总上限：收尾一直不结束时，整理报错给界面，不让请求永远挂着。
 const ORGANIZE_LIMIT: std::time::Duration = std::time::Duration::from_secs(120);
 
+/// 资料库插件的状态。锁、安全模式与取锁顺序都在 [`WorkspaceSession`] 里；这里只放命令壳
+/// 自己的事：事件转发、参考视角、翻译表与迁入向导的缓存。
 struct LibraryState {
-    device_dir: PathBuf,
-    /// 本设备登记表与活动资料库；第一次用到时读取登记表。
-    libraries: Arc<Mutex<Option<DeviceLibraries>>>,
+    session: WorkspaceSession,
     /// 已在转发事件的活动资料库句柄；同一句柄只装配一次。
     forwarded: Mutex<Option<Weak<Library>>>,
     forwarded_handles: Mutex<Vec<Weak<Library>>>,
-    /// 切换、恢复和取消登记串行完成，包括旧库打标退出。
-    transition: Mutex<()>,
-    /// 本设备安全模式的权威状态（#272）：启动时按设置初始化，设置命令经它提交。
-    safe_mode: SafeModeState,
-    /// 统一标签目录与其上的查找（#76、#272）：词表或图片变化、安全模式切换、切换资料库时
-    /// 清掉查找缓存，下次查找时重建。
-    search: Arc<CatalogSearch>,
-    import_preview_generation: AtomicU64,
-    /// Serialize visibility revocation with the final externally visible side effect.
-    visibility_commit: Arc<Mutex<()>>,
-    workspace: Mutex<Option<kinshoko_core::workspace::Workspace>>,
     workspace_wake: workspace::MonitorWake,
-    /// 缩略图请求的放行（#313）：工作区每次取快照发布到这里，各登记的资料库在这里长期只读打开。
-    /// 缩略图请求先问它，不拿上面三把锁；与 [`Self::detached`] 同时清掉，释放数据库文件。
-    gate: Arc<kinshoko_core::workspace::ImageGate>,
     // Only one thumbnail should contend for workspace locks when the fast path expires.
     image_gate_refresh: Mutex<()>,
     /// 活动资料库参考视角的句柄，装配时取走（每个打开的资料库一次）。只交给参考组（#66）
@@ -138,23 +125,16 @@ struct LibraryState {
 impl LibraryState {
     fn new(device_dir: PathBuf, safe_mode: SafeMode) -> LibraryState {
         let translations = bundled_translations();
+        let search = CatalogSearch::new(
+            device_dir.clone(),
+            translations.clone(),
+            BuiltinApproxTable::bundled(),
+        );
         LibraryState {
-            search: Arc::new(CatalogSearch::new(
-                device_dir.clone(),
-                translations.clone(),
-                BuiltinApproxTable::bundled(),
-            )),
-            device_dir,
-            libraries: Arc::default(),
+            session: WorkspaceSession::new(device_dir, safe_mode, search),
             forwarded: Mutex::new(None),
             forwarded_handles: Mutex::new(Vec::new()),
-            transition: Mutex::new(()),
-            safe_mode: SafeModeState::new(safe_mode),
-            import_preview_generation: AtomicU64::new(0),
-            visibility_commit: Arc::new(Mutex::new(())),
-            workspace: Mutex::default(),
             workspace_wake: workspace::MonitorWake::default(),
-            gate: Arc::default(),
             image_gate_refresh: Mutex::default(),
             reference: Mutex::new(None),
             detached: DetachedLenses::default(),
@@ -163,17 +143,32 @@ impl LibraryState {
         }
     }
 
+    /// 本设备安全模式的权威状态（#272），只读：改动经可见性许可（[`lens::commit_safe_mode`]）。
+    fn safe_mode(&self) -> &SafeModeState {
+        self.session.safe_mode()
+    }
+
+    /// 统一标签目录与其上的查找（#76、#272）：词表或图片变化、安全模式切换、切换资料库时
+    /// 清掉查找缓存，下次查找时重建。
+    fn search(&self) -> &Arc<CatalogSearch> {
+        self.session.search()
+    }
+
+    fn device_dir(&self) -> &Path {
+        self.session.device_dir()
+    }
+
     /// Configure shared writer policy before application actions: initial names and the
     /// same final visibility gate used by package/copy rating publication.
     fn configure_library(&self, library: &Library) {
         library.use_translations_for_new_tags((*self.translations).clone());
-        library.use_package_publication_gate(self.visibility_commit.clone());
+        self.session.configure_library(library);
     }
 
     /// 放掉只读打开的资料库（参考视角与缩略图放行的句柄）：切换、登记变化、设置整份替换时。
     fn release_readers(&self) {
         self.detached.clear();
-        self.gate.clear();
+        self.session.release_readers();
     }
 
     /// 活动资料库，不核对身份。只给不经界面请求的入口用（缩略图协议、安全模式开关）。
@@ -200,29 +195,12 @@ pub(crate) fn groups_not_ready() -> CommandError {
     CommandError::new(ErrorKind::ReferenceGroupsNotReady, "参考组还没有准备好")
 }
 
+#[track_caller]
 fn with_libraries<T>(
     state: &LibraryState,
     action: impl FnOnce(&mut DeviceLibraries) -> Result<T, DeviceLibraryError>,
 ) -> Result<T, CommandError> {
-    with_libraries_at(state, Location::caller(), action)
-}
-
-/// 同 [`with_libraries`]；`site` 是记进运行日志的取锁处（#337）。
-fn with_libraries_at<T>(
-    state: &LibraryState,
-    site: &'static Location<'static>,
-    action: impl FnOnce(&mut DeviceLibraries) -> Result<T, DeviceLibraryError>,
-) -> Result<T, CommandError> {
-    let mut libraries = lock_libraries_at(state, site);
-    if libraries.is_none() {
-        let mut opened = DeviceLibraries::open(&state.device_dir).map_err(CommandError::from)?;
-        // 刚打开，还没有句柄：只记下范围，不会失败。
-        opened
-            .set_safe_mode_scope(state.safe_mode.current().scope)
-            .map_err(CommandError::from)?;
-        *libraries = Some(opened);
-    }
-    action(libraries.as_mut().expect("登记表已打开")).map_err(CommandError::from)
+    state.session.with_libraries_at(Location::caller(), action)
 }
 
 #[track_caller]
@@ -236,39 +214,9 @@ fn with_catalog<T>(
 }
 
 /// 登记表的锁，等锁、持锁久了记进运行日志（#337）。
-struct LibrariesGuard<'a> {
-    guard: std::sync::MutexGuard<'a, Option<DeviceLibraries>>,
-    _held: HeldLock,
-}
-
-impl std::ops::Deref for LibrariesGuard<'_> {
-    type Target = Option<DeviceLibraries>;
-    fn deref(&self) -> &Self::Target {
-        &self.guard
-    }
-}
-
-impl std::ops::DerefMut for LibrariesGuard<'_> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.guard
-    }
-}
-
 #[track_caller]
 fn lock_libraries(state: &LibraryState) -> LibrariesGuard<'_> {
-    lock_libraries_at(state, Location::caller())
-}
-
-fn lock_libraries_at<'a>(
-    state: &'a LibraryState,
-    site: &'static Location<'static>,
-) -> LibrariesGuard<'a> {
-    let waiting = std::time::Instant::now();
-    let guard = lock(&state.libraries);
-    LibrariesGuard {
-        guard,
-        _held: HeldLock::acquired("登记表", site, waiting),
-    }
+    state.session.lock_libraries_at(Location::caller())
 }
 
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
@@ -322,7 +270,7 @@ pub(crate) use workspace::wake_on_notice;
 fn saved_mode<R: Runtime>(app: &AppHandle<R>) -> SafeMode {
     app.try_state::<LibraryState>().map_or_else(
         || SafeModeState::default().current(),
-        |state| state.safe_mode.current(),
+        |state| state.safe_mode().current(),
     )
 }
 

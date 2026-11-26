@@ -12,12 +12,12 @@ pub(super) fn write_visible<R: Runtime, T>(
 ) -> Result<T, CommandError> {
     let writer = writable(app, library_id)?;
     let state = app.state::<LibraryState>();
-    let _transition = lock(&state.transition);
+    let _transition = state.session.transition();
     with_visibility_commit(app, |_| {
         let value = workspace::with_resources(&state, |w, d, c| {
-            w.write_visible_images(d, c, &state.safe_mode, &writer, image_ids, action)
+            w.write_visible_images(d, c, state.safe_mode(), &writer, image_ids, action)
         })?;
-        state.search.invalidate();
+        state.search().invalidate();
         publish(app, AppNotice::LibraryWriteCommitted);
         Ok(value)
     })

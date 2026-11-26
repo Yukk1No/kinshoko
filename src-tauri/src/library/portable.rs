@@ -10,7 +10,7 @@ pub fn content_definitions<R: Runtime>(
     app: &AppHandle<R>,
 ) -> Result<CatalogInspection, CommandError> {
     let state = app.state::<LibraryState>();
-    with_catalog(&state.search, |catalog| catalog.inspect())
+    with_catalog(state.search(), |catalog| catalog.inspect())
 }
 
 /// Reuse T09's registered, identity-checked writable pool without activating the provider.
@@ -20,11 +20,11 @@ pub fn publish_definition_dependencies<R: Runtime>(
     library_id: &str,
 ) -> Result<(), CommandError> {
     let state = app.state::<LibraryState>();
-    let _transition = lock(&state.transition);
+    let _transition = state.session.transition();
     let library = with_libraries(&state, |libraries| libraries.write(library_id))?;
     state.configure_library(&library);
     library.set_safe_mode(saved_safe_mode(app));
-    with_catalog(&state.search, |catalog| {
+    with_catalog(state.search(), |catalog| {
         catalog.publish_library_definitions(&library)
     })
 }
@@ -35,7 +35,7 @@ pub(super) async fn publish_tag_definitions<R: Runtime>(
     state: State<'_, LibraryState>,
     library_id: String,
 ) -> Result<TagCatalogWorkspace, CommandError> {
-    let lens = state.safe_mode.lens();
+    let lens = state.safe_mode().lens();
     let worker = app.clone();
     let result = blocking(move || {
         publish_definition_dependencies(&worker, &library_id).map_err(|error| {
@@ -51,7 +51,7 @@ pub(super) async fn publish_tag_definitions<R: Runtime>(
             workspace.inspect_catalog(libraries, catalog, lens.on())
         })
     }).await?;
-    lens.confirm(&state.safe_mode)
+    lens.confirm(state.safe_mode())
         .map_err(|_| mapping_safe_mode_changed())?;
     Ok(result)
 }
@@ -67,7 +67,7 @@ pub fn export_package<R: Runtime>(
     // Take the reference registry snapshot before the catalog lock. Workspace readers take
     // libraries then catalog; holding catalog while reading libraries would invert that order.
     with_references(app, |references| {
-        with_catalog(&state.search, |catalog| {
+        with_catalog(state.search(), |catalog| {
             Ok(groups.export_package_with_catalog(group_id, references, path, catalog))
         })?
         .map_err(CommandError::from)
@@ -89,7 +89,7 @@ pub fn import_package<R: Runtime>(
     // Per-image rating publication already uses this gate. No package IO or decoding is
     // performed while holding either lock; always take the final gate before the catalog.
     with_visibility_commit(app, |_| {
-        with_catalog(&state.search, |catalog| {
+        with_catalog(state.search(), |catalog| {
             catalog.publish_library_definitions(library)
         })
     })

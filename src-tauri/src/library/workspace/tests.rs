@@ -59,7 +59,7 @@ fn tag_group_and_personal_approx_writes_wake_the_same_revision_publisher() {
 
     let mut previous = None;
     assert!(poll(app, &mut previous));
-    let (a, b) = with_catalog(&state.search, |catalog| {
+    let (a, b) = with_catalog(state.search(), |catalog| {
         let tags = catalog.inspect()?.tags;
         let id = |name| {
             tags.iter()

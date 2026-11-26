@@ -34,8 +34,8 @@ pub(super) async fn export_application_settings<R: Runtime>(
 ) -> Result<(), CommandError> {
     blocking(move || {
         let state = app.state::<LibraryState>();
-        let _transition = lock(&state.transition);
-        with_catalog(&state.search, |catalog| {
+        let _transition = state.session.transition();
+        with_catalog(state.search(), |catalog| {
             let shell_state = app.state::<ShellState>();
             let shell = lock(&shell_state.0);
             Ok(ApplicationSettingsBackup::export(
@@ -61,13 +61,12 @@ pub(super) async fn restore_application_settings<R: Runtime>(
 ) -> Result<ApplicationSettingsRestored, CommandError> {
     blocking(move || {
         let state = app.state::<LibraryState>();
-        let _transition = lock(&state.transition);
-        with_visibility_commit(&app, |_| {
+        let _transition = state.session.transition();
+        with_visibility_commit(&app, |permit| {
             // Invalidate before waiting for catalog readers; keep final sends/copies excluded
             // through the replacement and desktop reset, even when the mode stays the same.
-            state.safe_mode.revoke();
-            import_preview::revoke(&app);
-            let (view, safe, device, mut problems) = with_catalog(&state.search, |catalog| {
+            permit.revoke();
+            let (view, safe, device, mut problems) = with_catalog(state.search(), |catalog| {
                 let shell_state = app.state::<ShellState>();
                 let mut shell = lock(&shell_state.0);
                 let previous = shell.settings.clone();
@@ -80,10 +79,10 @@ pub(super) async fn restore_application_settings<R: Runtime>(
                 if let Err(error) = result {
                     return Ok(Err(error));
                 }
-                state.safe_mode.commit(|mode| {
-                    *mode =
-                        SafeMode::new(shell.settings.safe_mode(), shell.settings.safe_mode_scope())
-                });
+                permit.replace_safe_mode(SafeMode::new(
+                    shell.settings.safe_mode(),
+                    shell.settings.safe_mode_scope(),
+                ));
                 let crate::shell::Shell {
                     settings,
                     shortcuts,
@@ -105,8 +104,8 @@ pub(super) async fn restore_application_settings<R: Runtime>(
                     problems,
                 )))
             })??;
-            state.search.invalidate();
-            *lock(&state.workspace) = None;
+            state.search().invalidate();
+            state.session.reset_workspace();
             *lock(&state.external_vocabulary) = None;
             state.release_readers();
             let scope = view.safe_mode_scope;
