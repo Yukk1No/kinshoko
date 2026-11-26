@@ -3,6 +3,7 @@
 
 use std::sync::atomic::Ordering;
 
+use crate::blocking::blocking;
 use kinshoko_core::command_error::CommandError;
 use kinshoko_core::library::{ImageEdit, SaveDestination, SubscriptionPage};
 use kinshoko_core::subscription::pixiv::{ArtistsPage, Feed, IMAGE_HOST, PixivWork, WorksPage};
@@ -110,10 +111,12 @@ pub async fn subscription_collected(
     work_ids: Vec<String>,
 ) -> Result<Vec<CollectedWork>, CommandError> {
     let store = require(&app)?.store.clone();
-    tauri::async_runtime::spawn_blocking(move || store.collected(SourceId::Pixiv, &work_ids))
-        .await
-        .map_err(CommandError::system)?
-        .map_err(CommandError::from)
+    blocking(move || {
+        store
+            .collected(SourceId::Pixiv, &work_ids)
+            .map_err(CommandError::from)
+    })
+    .await
 }
 
 /// 收进画师选的资料库与文件夹。

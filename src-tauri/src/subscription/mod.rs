@@ -24,6 +24,7 @@ use kinshoko_core::subscription::{
 use tauri::{AppHandle, Manager, State};
 
 use crate::app_notice::{AppNotice, publish as publish_notice};
+use crate::blocking::blocking;
 use crate::shell::ShellState;
 use crate::sync::lock;
 
@@ -409,16 +410,15 @@ pub async fn subscription_previews(
         return Ok(previews);
     }
     let app = app.clone();
-    tauri::async_runtime::spawn_blocking(move || {
+    blocking(move || {
         for preview in &mut previews {
             preview.images.retain(|i: &PreviewImage| {
                 !i.explicit && crate::library::image_shown(&app, &i.library_id, &i.image_id)
             });
         }
-        previews
+        Ok(previews)
     })
     .await
-    .map_err(CommandError::system)
 }
 
 /// 画师打开了订阅页：新图标为已看，入口与托盘上的数量清零。

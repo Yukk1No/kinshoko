@@ -16,30 +16,12 @@ export function DialogFooter({ children }: { children: ReactNode }) {
 
 export type DialogPurpose = "info" | "form" | "required";
 
-/**
- * 通用模态框外壳（#739/#743）：`purpose` 决定关闭语义。
- * info 允许 Esc 与点遮罩、默认带右上角关闭；form 不让自己点遮罩丢输入、默认不带关闭叉；required 必须明确响应。
- * 初始焦点落在对话框容器本身（不画焦点环），按 Tab 再进入内部焦点顺序；特定表单可显式覆盖。
- */
-export function DialogShell({
-  open,
-  onOpenChange,
-  purpose,
-  title,
-  titleClassName = "k-title",
-  description,
-  children,
-  footer,
-  className,
-  closeLabel,
-  showClose = purpose === "info",
-  autoHeight = false,
-  initialFocus,
-}: {
+type DialogLabelProps = { title: ReactNode; "aria-label"?: string } | { title?: undefined; "aria-label": string };
+
+type DialogShellProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   purpose: DialogPurpose;
-  title: ReactNode;
   titleClassName?: string;
   description?: ReactNode;
   children: ReactNode;
@@ -48,16 +30,42 @@ export function DialogShell({
   closeLabel?: string;
   showClose?: boolean;
   autoHeight?: boolean;
+  busy?: boolean;
   initialFocus?: InitialFocus;
-}) {
+} & DialogLabelProps;
+
+/**
+ * 通用模态框外壳（#739/#743/#763）：`purpose` 决定关闭语义。
+ * info 允许 Esc 与点遮罩、默认带右上角关闭；form 不让自己点遮罩丢输入、默认不带关闭叉；required 必须明确响应。
+ * `busy` 为真时表示异步提交中，不改 `purpose` 语义，但统一拦截 Esc、点遮罩与关闭叉。
+ * 可见标题通过 `title` 渲染；无可见标题的步骤弹窗必须显式提供 `aria-label`。
+ * 初始焦点落在对话框容器本身（不画焦点环），按 Tab 再进入内部焦点顺序；特定表单可显式覆盖。
+ */
+export function DialogShell({
+  open,
+  onOpenChange,
+  purpose,
+  title,
+  "aria-label": ariaLabel,
+  titleClassName = "k-title",
+  description,
+  children,
+  footer,
+  className,
+  closeLabel,
+  showClose = purpose === "info",
+  autoHeight = false,
+  busy = false,
+  initialFocus,
+}: DialogShellProps) {
   const popup = useRef<HTMLDivElement>(null);
   const { t } = useTranslation("shell");
   return (
     <Dialog.Root
       open={open}
-      disablePointerDismissal={purpose !== "info"}
+      disablePointerDismissal={purpose !== "info" || busy}
       onOpenChange={(next, details) => {
-        if (!next && purpose === "required" && details.reason === "escape-key") {
+        if (!next && (busy || (purpose === "required" && details.reason === "escape-key"))) {
           details.cancel();
           return;
         }
@@ -66,13 +74,18 @@ export function DialogShell({
     >
       <Dialog.Portal>
         <Dialog.Backdrop className="k-backdrop" />
-        <Dialog.Popup ref={popup} initialFocus={initialFocus ?? popup} className={classes("k-dialog", className)}>
+        <Dialog.Popup
+          ref={popup}
+          initialFocus={initialFocus ?? popup}
+          aria-label={ariaLabel}
+          className={classes("k-dialog", className)}
+        >
           {showClose && (
-            <Dialog.Close className="k-icon-btn k-dialog-x" aria-label={closeLabel ?? t("dialogClose")}>
+            <Dialog.Close className="k-icon-btn k-dialog-x" disabled={busy} aria-label={closeLabel ?? t("dialogClose")}>
               <X size={16} aria-hidden="true" />
             </Dialog.Close>
           )}
-          <Dialog.Title className={titleClassName}>{title}</Dialog.Title>
+          {title && <Dialog.Title className={titleClassName}>{title}</Dialog.Title>}
           {description && <Dialog.Description className="k-dialog-desc">{description}</Dialog.Description>}
           {autoHeight ? <DialogHeight>{children}</DialogHeight> : children}
           {footer && <DialogFooter>{footer}</DialogFooter>}
@@ -83,8 +96,8 @@ export function DialogShell({
 }
 
 /**
- * 危险/不可撤销确认外壳（#739/#743）：没有右上角关闭，Base UI 的 AlertDialog 禁止点遮罩；
- * Esc 仍可取消。初始焦点必须由 `cancelRef` 落在“取消”按钮，不能落到危险主按钮。
+ * 危险/不可撤销确认外壳（#739/#743/#763）：没有右上角关闭，Base UI 的 AlertDialog 禁止点遮罩；
+ * Esc 仍可取消，`busy` 时拦截关闭。初始焦点必须由 `cancelRef` 落在“取消”按钮，不能落到危险主按钮。
  */
 export function AlertDialog({
   open,
@@ -94,6 +107,7 @@ export function AlertDialog({
   children,
   footer,
   className,
+  busy = false,
   cancelRef,
 }: {
   open: boolean;
@@ -103,10 +117,20 @@ export function AlertDialog({
   children?: ReactNode;
   footer?: ReactNode;
   className?: string;
+  busy?: boolean;
   cancelRef: RefObject<HTMLButtonElement | null>;
 }) {
   return (
-    <BaseAlertDialog.Root open={open} onOpenChange={(next) => onOpenChange(next)}>
+    <BaseAlertDialog.Root
+      open={open}
+      onOpenChange={(next, details) => {
+        if (!next && busy) {
+          details.cancel();
+          return;
+        }
+        onOpenChange(next);
+      }}
+    >
       <BaseAlertDialog.Portal>
         <BaseAlertDialog.Backdrop className="k-backdrop" />
         <BaseAlertDialog.Popup initialFocus={cancelRef} className={classes("k-dialog", "is-alert", className)}>

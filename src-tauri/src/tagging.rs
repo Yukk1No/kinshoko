@@ -7,6 +7,7 @@
 //! 开始、结束、暂停、出错与子进程的显存额度、标准错误记进运行日志（#219）。
 
 use crate::app_notice::{AppNotice, publish};
+use crate::blocking::blocking;
 use crate::ui_text::{Text, text};
 use kinshoko_core::CommandError;
 use std::path::{Path, PathBuf};
@@ -277,15 +278,15 @@ pub async fn tagging_set_device(
 /// 选择要导入的模型包（zip）；取消时为 `null`。
 #[tauri::command]
 pub async fn tagging_pick_package(app: AppHandle) -> Result<Option<PathBuf>, CommandError> {
-    tauri::async_runtime::spawn_blocking(move || {
-        app.dialog()
+    blocking(move || {
+        Ok(app
+            .dialog()
             .file()
             .add_filter(text(Text::FilterModelPackage), &["zip"])
             .blocking_pick_file()
-            .and_then(|p| p.into_path().ok())
+            .and_then(|p| p.into_path().ok()))
     })
     .await
-    .map_err(CommandError::system)
 }
 
 /// 从文件导入模型包并校验（没有网络时）。成功后打标随即用上，不再询问下载。
@@ -295,11 +296,8 @@ pub async fn tagging_import_package(
     path: PathBuf,
 ) -> Result<ModelChoice, CommandError> {
     let models_dir = app.state::<TaggingState>().models_dir.clone();
-    tauri::async_runtime::spawn_blocking(move || {
-        ModelStore::new(models_dir, HUGGING_FACE).import_package(&path, &catalog())
-    })
-    .await
-    .map_err(CommandError::system)??;
+    blocking(move || ModelStore::new(models_dir, HUGGING_FACE).import_package(&path, &catalog()))
+        .await?;
     wake(&app);
     Ok(app.state::<TaggingState>().choice())
 }
