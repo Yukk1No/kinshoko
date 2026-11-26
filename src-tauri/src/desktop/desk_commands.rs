@@ -85,8 +85,10 @@ pub(super) fn apply(app: &AppHandle, switched: Option<Switched>) {
 /// 让钉图窗口与桌面上的参考组一致：窗口动作交给对齐模块；这里只保留换桌时的菜单与贴边行为。
 fn align(app: &AppHandle) {
     menu::close_open(app);
+    // 对齐会收掉旧钉图的运行记录；有没有收起要在收掉之前看。
+    let hidden = lock(&state(app).edge).any_hidden();
     pins::alignment::submit(app, pins::alignment::AlignIntent::Desk);
-    if lock(&state(app).edge).any_hidden() {
+    if hidden {
         super::edge::tuck_all(app);
     }
 }
