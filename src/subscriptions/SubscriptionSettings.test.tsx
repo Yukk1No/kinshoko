@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react";
 import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
 import { SubscriptionSettings, useSubscriptionList } from "./SubscriptionSettings";
 import { account, list, status, subscription } from "./subscriptions.fixtures";
@@ -7,6 +7,7 @@ import { ToastProvider } from "../ui/Toast";
 import { type FakeBackend, fakeBackend } from "../test/backend";
 import { SaveDestinationProvider } from "../library/SaveDestination";
 import { chooseOption } from "../test/select";
+import { emit } from "@tauri-apps/api/event";
 
 let backend: FakeBackend;
 
@@ -25,12 +26,12 @@ const rows = () => screen.getAllByRole("listitem").map((row) => row.querySelecto
 describe("设置 › 订阅", () => {
   it("退出或登录失效时清空已读到的订阅名单", async () => {
     fakeBackend({ subscriptions: list });
-    const { result, rerender } = renderHook(({ signedIn }) => useSubscriptionList(signedIn, false), {
+    const { result, rerender } = renderHook(({ signedIn }) => useSubscriptionList(signedIn), {
       initialProps: { signedIn: true },
     });
-    await waitFor(() => expect(result.current[0]).toHaveLength(list.length));
+    await waitFor(() => expect(result.current).toHaveLength(list.length));
     rerender({ signedIn: false });
-    expect(result.current[0]).toEqual([]);
+    expect(result.current).toEqual([]);
   });
 
   it("开着时：订阅功能、pixiv 账号与风险说明，标题旁标明非官方", () => {
@@ -152,5 +153,43 @@ describe("设置 › 订阅", () => {
       </ToastProvider>,
     );
     expect(screen.queryByRole("button", { name: "取消订阅" })).toBeNull();
+  });
+
+  it("重读先发出、退订先完成时，旧名单后返回也不把 R-18 榜单放回来", async () => {
+    const r18 = subscription("r1", "R-18 日榜 前 50", {
+      target: { kind: "pixivRanking", period: "day", top: 50, explicit: true },
+    });
+    let stored = [subscription("s1", "Mika"), r18];
+    let reads = 0;
+    let releaseOldRead: (() => void) | null = null;
+    backend = fakeBackend({
+      subscriptions: () => {
+        reads++;
+        if (reads === 2) {
+          const old = stored;
+          return new Promise((resolve) => {
+            releaseOldRead = () => resolve(old);
+          });
+        }
+        return stored;
+      },
+      subscription_remove: (args) => {
+        stored = stored.filter((sub) => sub.id !== args.id);
+        return null;
+      },
+    });
+    render(<SubscriptionSettings status={status()} onStatus={vi.fn()} error={null} onError={vi.fn()} />);
+    expect(await screen.findByText("R-18 日榜 前 50")).toBeTruthy();
+
+    await act(async () => {
+      emit("subscription-status", status({ checking: true }));
+    });
+    await waitFor(() => expect(backend.calls("subscriptions")).toHaveLength(2));
+    fireEvent.click(screen.getByRole("button", { name: "取消订阅" }));
+    await waitFor(() => expect(backend.calls("subscription_remove")).toHaveLength(1));
+    expect(screen.queryByText("R-18 日榜 前 50")).toBeNull();
+
+    await act(async () => releaseOldRead!());
+    expect(screen.queryByText("R-18 日榜 前 50")).toBeNull();
   });
 });
