@@ -1,11 +1,11 @@
 //! 删除参考组可撤销（#480）的命令。都经桌面上的参考组（#588）：删的正是桌面上那个时桌面换走。
 
+use crate::blocking::blocking;
 use kinshoko_core::CommandError;
 use kinshoko_core::reference_groups::DeletedGroup;
 use tauri::AppHandle;
 
 use super::desk_commands::{apply, with_desk};
-use super::groups::blocking;
 use super::{lock, state};
 
 /// 删除参考组（#480，可撤销）：参考组和它自带的截图暂放在回收位置，返回的内容交给

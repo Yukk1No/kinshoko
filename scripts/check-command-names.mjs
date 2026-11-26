@@ -1,9 +1,7 @@
 // 核对前端调用的命令名与 Rust 注册的命令（#525）：前端写错或漏改命令名，运行时只表现为被吞掉的 rejected promise。
 //
-// 命令分三组，各自在不同的 generate_handler![...] 里注册：
-//   app      src-tauri/src/lib.rs        前端写 invoke("name")
-//   library  src-tauri/src/library.rs    前端写 lib("name")
-//   desktop  src-tauri/src/desktop/mod.rs  前端写 desk("name")
+// 命令登记在 command_registry.rs，分三组：app 对应 invoke("name")，
+// library 对应 lib("name")，desktop 对应 desk("name")。
 // 规则：前端出现的命令名必须在对应组注册过；注册过的命令必须在前端出现，或写进下面的 EXCEPTIONS。
 // EXCEPTIONS 里已不需要的条目也算失败。
 //
@@ -14,11 +12,8 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
-export const GROUPS = {
-  app: "src-tauri/src/lib.rs",
-  library: "src-tauri/src/library.rs",
-  desktop: "src-tauri/src/desktop/mod.rs",
-};
+const COMMAND_REGISTRY = "src-tauri/src/command_registry.rs";
+const GROUPS = ["app", "library", "desktop"];
 
 /** 注册了却不在前端出现的命令：组 → { 命令名: 理由 }。 */
 export const EXCEPTIONS = {
@@ -69,31 +64,20 @@ function stripComments(text) {
   return out;
 }
 
-/** generate_handler![...] 里的命令名（去掉模块路径）。 */
-export function registeredCommands(source) {
-  const marker = "generate_handler![";
-  const start = source.indexOf(marker);
-  if (start === -1) throw new Error("没有 generate_handler!");
-  const rest = source.slice(start + marker.length).replace(/#\[[^\]]*\]/g, "");
-  const end = rest.indexOf("]");
-  if (end === -1) throw new Error("generate_handler! 没有结束");
-  return rest
-    .slice(0, end)
-    .replace(/\/\/[^\n]*/g, "")
+/** 读取 command_registry! 指定组里的命令名，去掉模块路径和平台属性。 */
+export function registeredCommands(source, group) {
+  const marker = new RegExp(`\\(\\s*${group}\\s*,\\s*\\$emit:ident\\s*\\)\\s*=>\\s*\\{\\s*\\$emit!\\s*\\[`);
+  const text = stripComments(source).replace(/#\[[^\]]*\]/g, "");
+  const start = marker.exec(text);
+  if (!start) throw new Error(`${COMMAND_REGISTRY} 缺少 ${group} 组`);
+  const end = text.indexOf("]", start.index + start[0].length);
+  if (end === -1) throw new Error(`${COMMAND_REGISTRY} 的 ${group} 组缺少结束符`);
+  return text
+    .slice(start.index + start[0].length, end)
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean)
     .map((item) => item.split("::").pop());
-}
-
-export function pluginCommands(source) {
-  return Object.fromEntries(
-    [
-      ...stripComments(source).matchAll(
-        /\.plugin\(\s*"([^"]+)",\s*tauri_build::InlinedPlugin::new\(\)\s*\.commands\(&\[([\s\S]*?)\]\)/g,
-      ),
-    ].map(([, group, commands]) => [group, [...commands.matchAll(/"([^"]+)"/g)].map(([, name]) => name)]),
-  );
 }
 
 const lineOf = (text, index) => text.slice(0, index).split("\n").length;
@@ -113,23 +97,14 @@ export function frontendCalls(source) {
 /**
  * registered: { 组: 命令名[] }；calls: [{ group, name, file, line }]。返回问题列表（每项一行文字）。
  */
-export function findProblems({ registered, calls, exceptions = EXCEPTIONS, permissions }) {
+export function findProblems({ registered, calls, exceptions = EXCEPTIONS }) {
   const problems = [];
-  if (permissions) {
-    for (const group of ["library", "desktop"]) {
-      for (const name of registered[group] ?? []) {
-        if (!permissions[group]?.includes(name)) {
-          problems.push(`src-tauri/build.rs: ${group}:${name} is registered without plugin permission`);
-        }
-      }
-    }
-  }
   const used = {};
   for (const group of Object.keys(registered)) used[group] = new Set();
   for (const { group, name, file, line } of calls) {
     used[group].add(name);
     if (!registered[group].includes(name)) {
-      problems.push(`${file}:${line}  前端调用了「${name}」（${group} 组），但 ${GROUPS[group]} 没有注册它`);
+      problems.push(`${file}:${line}  前端调用了「${name}」（${group} 组），但 ${COMMAND_REGISTRY} 没有注册它`);
     }
   }
   for (const [group, names] of Object.entries(registered)) {
@@ -138,13 +113,13 @@ export function findProblems({ registered, calls, exceptions = EXCEPTIONS, permi
       const isUsed = used[group].has(name);
       if (!isUsed && !(name in excepted)) {
         problems.push(
-          `${GROUPS[group]}  「${name}」（${group} 组）已注册，但前端没有调用；确认无用就删掉，仅 e2e 等用的写进 EXCEPTIONS`,
+          `${COMMAND_REGISTRY}  「${name}」（${group} 组）已注册，但前端没有调用；确认无用就删掉，仅 e2e 等用的写进 EXCEPTIONS`,
         );
       }
     }
     for (const name of Object.keys(excepted)) {
       if (!names.includes(name)) {
-        problems.push(`EXCEPTIONS.${group}  「${name}」已不在 ${GROUPS[group]} 里注册，删掉这条例外`);
+        problems.push(`EXCEPTIONS.${group}  「${name}」已不在 ${COMMAND_REGISTRY} 里注册，删掉这条例外`);
       } else if (used[group].has(name)) {
         problems.push(`EXCEPTIONS.${group}  「${name}」前端已在调用，删掉这条例外`);
       }
@@ -162,16 +137,13 @@ function* sourceFiles(dir) {
 }
 
 function main() {
-  const registered = {};
-  for (const [group, file] of Object.entries(GROUPS)) {
-    registered[group] = registeredCommands(readFileSync(join(ROOT, file), "utf8"));
-  }
+  const registry = readFileSync(join(ROOT, COMMAND_REGISTRY), "utf8");
+  const registered = Object.fromEntries(GROUPS.map((group) => [group, registeredCommands(registry, group)]));
   const calls = [];
   for (const file of sourceFiles("src")) {
     for (const call of frontendCalls(readFileSync(join(ROOT, file), "utf8"))) calls.push({ ...call, file });
   }
-  const permissions = pluginCommands(readFileSync(join(ROOT, "src-tauri/build.rs"), "utf8"));
-  const problems = findProblems({ registered, calls, permissions });
+  const problems = findProblems({ registered, calls });
   for (const problem of problems) console.error(problem);
   const total = Object.values(registered).reduce((sum, names) => sum + names.length, 0);
   console.log(

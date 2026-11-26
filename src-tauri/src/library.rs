@@ -47,6 +47,7 @@ use tag_commands::*;
 mod thumbnails;
 pub use thumbnails::*;
 mod forward;
+mod verbs;
 use forward::forward_events;
 
 use std::path::{Path, PathBuf};
@@ -84,6 +85,7 @@ use tauri::{AppHandle, Manager, Runtime, State};
 use tauri_plugin_dialog::DialogExt;
 
 use crate::app_notice::{AppNotice, publish};
+use crate::blocking::blocking;
 use crate::shell::ShellState;
 use crate::sync::lock;
 use std::panic::Location;
@@ -271,93 +273,7 @@ fn lock_libraries_at<'a>(
 
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
     Builder::new("library")
-        .invoke_handler(tauri::generate_handler![
-            settings_backup::pick_application_settings,
-            settings_backup::export_application_settings,
-            settings_backup::preview_application_settings,
-            settings_backup::restore_application_settings,
-            source_actions::workspace_source_group,
-            source_actions::workspace_edit_sources,
-            workspace::workspace_status,
-            workspace::workspace_browse,
-            workspace::workspace_resolve,
-            workspace::workspace_candidates,
-            workspace::workspace_library_candidates,
-            workspace::image,
-            workspace::catalog_image_tags,
-            workspace::workspace_card,
-            workspace::workspace_sidebar,
-            workspace::workspace_directories,
-            workspace::workspace_tag_groups,
-            current_library,
-            create_library,
-            create_library_unopened,
-            save_memory,
-            remember_import_destination,
-            remember_pixiv_destination,
-            remember_subscription_destination,
-            remember_new_library_parent,
-            pictures_folder,
-            registered_libraries,
-            register_library,
-            switch_library,
-            unregister_library,
-            edit,
-            preview_permanent_delete,
-            permanent_delete,
-            preview_empty_trash,
-            preview_permanent_delete_batch,
-            permanent_delete_batch,
-            create_folder,
-            rename_folder,
-            delete_folder,
-            restore_folder,
-            move_folder,
-            recovery,
-            start_import,
-            save_destination::import_tasks,
-            import_preview::open_import_preview,
-            import_preview::read_import_preview,
-            import_preview::close_import_preview,
-            save_destination::dismiss_import,
-            import_contains_eagle,
-            import_backups,
-            cancel_import,
-            pick_folder,
-            pick_files,
-            discover_eagle_libraries,
-            confirm_eagle_location,
-            inspect_tag_catalog,
-            correct_tag_mapping,
-            portable::publish_tag_definitions,
-            names::edit_tag_name,
-            names::tag_name_conflict_tags,
-            groups::shared_tag_groups,
-            approx::shared_personal_approx,
-            approx::edit_shared_approx,
-            groups::create_shared_tag_group,
-            groups::edit_shared_tag_group,
-            groups::delete_shared_tag_group,
-            groups::restore_shared_tag_group,
-            name_migration::plan_legacy_names,
-            name_migration::preview_legacy_names,
-            name_migration::confirm_legacy_names,
-            edit_tags,
-            vocabulary,
-            tag_groups,
-            add_tag_alias,
-            remove_tag_alias,
-            search_candidates,
-            rating_candidates,
-            set_tag_approx,
-            eagle_tag_mapping,
-            map_tag_external,
-            set_source_name_lang,
-            external_suggestions,
-            safe_mode,
-            set_safe_mode,
-            set_safe_mode_scope
-        ])
+        .invoke_handler(command_registry!(library, command_handler))
         .setup(|app, _api| {
             let dirs = crate::data_dirs::app_data(app);
             let device_dir = dirs.device().to_path_buf();
@@ -423,14 +339,6 @@ pub(crate) fn image_shown<R: Runtime>(
 /// 设置里的安全模式开关；还没迁移的命令组用它“开始记下、结束复核”。
 pub(crate) fn saved_safe_mode<R: Runtime>(app: &AppHandle<R>) -> bool {
     saved_mode(app).on
-}
-
-async fn blocking<T: Send + 'static>(
-    f: impl FnOnce() -> Result<T, CommandError> + Send + 'static,
-) -> Result<T, CommandError> {
-    tauri::async_runtime::spawn_blocking(f)
-        .await
-        .map_err(CommandError::system)?
 }
 
 #[cfg(test)]
