@@ -68,12 +68,12 @@ pub(super) async fn set_safe_mode<R: Runtime>(
             if let Some(libraries) = lock_libraries(state).as_ref() {
                 libraries.set_safe_mode(on);
             }
-            // Do not let delayed/reordered event workers preserve a reveal across off -> on.
-            crate::desktop::safe_mode_committed(&app, on);
+            publish(
+                &app,
+                AppNotice::SafeModeCommitted(state.safe_mode.current()),
+            );
         },
     )?;
-    let _ = app.emit(SAFE_MODE_EVENT, on);
-    wake_workspace_monitor();
     Ok(on)
 }
 
@@ -85,7 +85,6 @@ pub(super) async fn set_safe_mode<R: Runtime>(
 #[tauri::command]
 pub(super) async fn set_safe_mode_scope<R: Runtime>(
     app: AppHandle<R>,
-    state: State<'_, LibraryState>,
     scope: SafeModeScope,
 ) -> Result<kinshoko_core::ShellSettingsView, CommandError> {
     // 与开关相同：进行中的读取与发送都要按新视角重新核对；保存不成时退回原值。
@@ -111,15 +110,12 @@ pub(super) async fn set_safe_mode_scope<R: Runtime>(
                 crate::run_log::warn("安全模式范围的修订号未写入", error);
             }
             state.search.invalidate();
-            crate::desktop::safe_mode_scope_committed(&app, scope);
+            publish(
+                &app,
+                AppNotice::SafeModeCommitted(state.safe_mode.current()),
+            );
         },
     )?;
-    let safe = state.safe_mode.current().on;
-    // 与开关同一个通知：钉图重新核对，跟着安全模式重读的界面（词表、分组、导入……）都重读。
-    let _ = app.emit(SAFE_MODE_EVENT, safe);
-    if let Ok(status) = with_lens(&app, safe, Hold::Read, |w, d, c| w.status(d, c, safe)) {
-        let _ = app.emit(workspace::EVENT, status);
-    }
     Ok(view)
 }
 

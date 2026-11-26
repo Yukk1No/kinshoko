@@ -36,7 +36,7 @@ pub(super) async fn create_shared_tag_group<R: Runtime>(
             workspace.status(device, catalog, safe)?;
             catalog.create_group(&name, namespace)
         })?;
-        wake_workspace_monitor();
+        publish(&app, AppNotice::TagGroupsChanged);
         Ok(id)
     })
     .await
@@ -56,7 +56,7 @@ pub(super) async fn edit_shared_tag_group<R: Runtime>(
         with_lens(&app, safe_mode, Hold::Read, |workspace, device, catalog| {
             workspace.edit_group(device, catalog, &edit, safe_mode)
         })?;
-        wake_workspace_monitor();
+        publish(&app, AppNotice::TagGroupsChanged);
         Ok(lens.confirm(&app.state::<LibraryState>().safe_mode)?)
     })
     .await
@@ -77,7 +77,7 @@ pub(super) async fn delete_shared_tag_group<R: Runtime>(
         let deleted = with_lens(&app, safe_mode, Hold::Read, |_, _, catalog| {
             catalog.delete_group(&group_id)
         })?;
-        wake_workspace_monitor();
+        publish(&app, AppNotice::TagGroupsChanged);
         Ok(deleted)
     })
     .await
@@ -95,7 +95,7 @@ pub(super) async fn restore_shared_tag_group<R: Runtime>(
         with_lens(&app, safe, Hold::Read, |_, _, catalog| {
             catalog.restore_group(deleted)
         })?;
-        wake_workspace_monitor();
+        publish(&app, AppNotice::TagGroupsChanged);
         Ok(())
     })
     .await

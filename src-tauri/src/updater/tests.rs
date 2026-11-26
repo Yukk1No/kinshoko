@@ -92,6 +92,9 @@ fn app() -> AppHandle<MockRuntime> {
         .0
         .insert("updater".into(), updater);
     let app = mock_builder()
+        .manage(crate::app_notice::AppNotices::<MockRuntime>::new(vec![
+            crate::window_events::on_notice,
+        ]))
         .plugin(tauri_plugin_updater::Builder::new().build())
         .build(context)
         .unwrap();

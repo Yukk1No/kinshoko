@@ -123,7 +123,7 @@ pub(in crate::desktop) fn add_and_open(
 /// 返回要打开的钉图。先钉图状态、后截图历史。
 ///
 /// 开关打开、桌面空着时这一张开了新参考组（#588 决定 4）：参考组列表变了；有上一组时推送
-/// [`super::super::desk_commands::STARTED_EVENT`]，界面据此提示“加进上一组”。
+/// `desk-group-started`，界面据此提示“加进上一组”。
 pub(in crate::desktop) fn add(app: &AppHandle, pin: SavedPin) -> Result<SavedPin, CommandError> {
     let added = lock(&state(app).store).add(pin, &mut lock(&state(app).history))?;
     state(app).dirty.store(true, Ordering::Relaxed);

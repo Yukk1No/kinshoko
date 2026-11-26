@@ -24,7 +24,7 @@ pub(super) fn fixed_library<R: Runtime>(
 fn save<R: Runtime, T>(
     app: &AppHandle<R>,
     destination: &SaveDestination,
-    publish: bool,
+    publish_definitions: bool,
     f: impl FnOnce(&Library) -> Result<T, CommandError>,
 ) -> Result<T, CommandError> {
     let library = fixed_library(app, destination)?;
@@ -32,10 +32,11 @@ fn save<R: Runtime, T>(
         .for_destination(destination)
         .map_err(CommandError::from)?;
     let value = f(&bound)?;
-    if publish {
+    if publish_definitions {
         publish_saved(app, &library)?;
+    } else {
+        publish(app, AppNotice::LibraryWriteCommitted);
     }
-    wake_workspace_monitor();
     Ok(value)
 }
 pub fn with_destination<R: Runtime, T>(
@@ -57,7 +58,7 @@ pub(super) fn publish_saved<R: Runtime>(
     library: &Library,
 ) -> Result<(), CommandError> {
     let state = app.state::<LibraryState>();
-    library
+    let validated = library
         .validate_destination(&SaveDestination {
             library_id: library.info().id.clone(),
             folder_id: None,
@@ -68,19 +69,26 @@ pub(super) fn publish_saved<R: Runtime>(
                 |cause| ErrorKind::ProcessedDefinitionsNotSaved { cause },
                 |error| format!("内容处理结果已保留，资料库标签定义未更新：{error}。可在统一标签目录重试保存定义。"),
             )
-        })?;
-    with_catalog(&state.search, |catalog| {
-        catalog.publish_library_definitions(library)
-    })
-    .map_err(|e| {
-        CommandError::caused_by(
-            e,
-            |cause| ErrorKind::SavedDefinitionsNotSaved { cause },
-            |e| format!("内容已保存，资料库标签定义未更新：{e}。可在统一标签目录重试保存定义。"),
-        )
-    })?;
-    wake_workspace_monitor();
-    Ok(())
+        });
+    let publication = validated.and_then(|()| {
+        with_catalog(&state.search, |catalog| {
+            catalog.publish_library_definitions(library)
+        })
+        .map_err(|error| {
+            CommandError::caused_by(
+                error,
+                |cause| ErrorKind::SavedDefinitionsNotSaved { cause },
+                |error| {
+                    format!(
+                        "内容已保存，资料库标签定义未更新：{error}。可在统一标签目录重试保存定义。"
+                    )
+                },
+            )
+        })
+    });
+    // The content commit has already landed even if its definitions could not be saved.
+    publish(app, AppNotice::LibraryWriteCommitted);
+    publication
 }
 fn complete<R: Runtime>(app: &AppHandle<R>, owner: &str, id: &str, warning: Option<CommandError>) {
     let state = app.state::<LibraryState>();
@@ -89,7 +97,7 @@ fn complete<R: Runtime>(app: &AppHandle<R>, owner: &str, id: &str, warning: Opti
     }) {
         crate::run_log::error("无法记录原导入任务的收尾结果", error);
     }
-    wake_workspace_monitor();
+    publish(app, AppNotice::LibraryWriteCommitted);
 }
 pub(super) fn begin<R: Runtime>(
     app: &AppHandle<R>,

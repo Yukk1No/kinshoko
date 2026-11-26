@@ -6,6 +6,7 @@
 //! 不挂上、拆下打标；订阅等后台写入不必通知，调度器空闲时自己去各库找未打标的图。
 //! 开始、结束、暂停、出错与子进程的显存额度、标准错误记进运行日志（#219）。
 
+use crate::app_notice::{AppNotice, publish};
 use crate::ui_text::{Text, text};
 use kinshoko_core::CommandError;
 use std::path::{Path, PathBuf};
@@ -14,18 +15,17 @@ use std::time::{Duration, Instant};
 
 use kinshoko_core::Library;
 use kinshoko_core::diagnostics::{LogEvent, PauseReason};
+use kinshoko_core::library::LibraryEvent;
 use kinshoko_core::tagging::{
     Device, ForegroundCheck, HUGGING_FACE, ModelChoice, ModelStore, ProcessTagger, Tagging,
     TaggingConfig, TaggingLibraries, TaggingLog, TaggingStatus, UserNotificationState, catalog,
     yields_to_foreground,
 };
-use tauri::{AppHandle, Emitter, Manager, Runtime, State};
+use tauri::{AppHandle, Manager, Runtime, State};
 use tauri_plugin_dialog::DialogExt as _;
 
 use crate::shell::ShellState;
 use crate::sync::lock;
-
-const EVENT: &str = "tagging-status";
 
 pub struct TaggingState {
     models_dir: PathBuf,
@@ -115,16 +115,19 @@ pub fn setup<R: Runtime>(app: &AppHandle<R>, models_dir: PathBuf, preferred: Opt
                     crate::run_log::record(event);
                 }
                 if last.as_ref() != Some(&status) {
-                    let _ = app.emit(EVENT, &status);
-                    if last.is_some() {
-                        crate::library::wake_workspace_monitor();
-                    }
+                    publish(&app, AppNotice::TaggingStatus(status.clone()));
                     last = Some(status);
                 }
                 std::thread::sleep(Duration::from_millis(300));
             }
         })
         .expect("无法启动打标状态线程");
+}
+
+pub(crate) fn on_notice<R: Runtime>(app: &AppHandle<R>, notice: &AppNotice) {
+    if matches!(notice, AppNotice::Library(LibraryEvent::ListStale { .. })) {
+        wake(app);
+    }
 }
 
 fn start<R: Runtime>(

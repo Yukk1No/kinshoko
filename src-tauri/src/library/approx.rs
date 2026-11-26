@@ -30,11 +30,8 @@ pub(super) async fn edit_shared_approx<R: Runtime>(
         with_lens(&app, safe_mode, Hold::Read, |w, d, c| {
             w.edit_approx(d, c, &edit, safe_mode)
         })?;
+        publish(&app, AppNotice::PersonalApproxChanged);
         lens.confirm(&app.state::<LibraryState>().safe_mode)?;
-        let status = with_lens(&app, safe_mode, Hold::Read, |w, d, c| {
-            w.status(d, c, safe_mode)
-        })?;
-        let _ = app.emit(workspace::EVENT, status);
         Ok(())
     })
     .await

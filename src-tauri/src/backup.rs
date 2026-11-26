@@ -8,6 +8,7 @@
 //!   只登记、不切换；参考组恢复为新的参考组，推送 `reference-groups` 让列表刷新。
 //! - 状态变化推送 `backup-status`（[`BackupStatus`]）。
 
+use crate::app_notice::{AppNotice, publish as publish_notice};
 use crate::sync::lock;
 use crate::ui_text::{Text, text};
 use kinshoko_core::CommandError;
@@ -22,11 +23,8 @@ use kinshoko_core::backup::{
     BackupTarget, RestoreReport, ScopeSelection, SnapshotSummary, Stamp, compute_scope,
 };
 use kinshoko_core::reference_groups::ReferenceGroups;
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Manager};
 
-const STATUS_EVENT: &str = "backup-status";
-/// 参考组列表变化（与 desktop::groups 相同的事件）。
-const GROUPS_EVENT: &str = "reference-groups";
 const GROUPS_DIR: &str = "reference-groups";
 /// 没有键盘、鼠标、笔输入这么久算空闲。
 const IDLE_AFTER_MS: u32 = 10 * 60 * 1000;
@@ -78,7 +76,7 @@ fn status(app: &AppHandle) -> Result<BackupStatus, CommandError> {
 }
 
 /// 推送备份状态，并按状态与界面语言更新托盘提示。
-pub(crate) fn publish(app: &AppHandle) {
+fn publish(app: &AppHandle) {
     if let Ok(status) = status(app) {
         let tooltip = if status.running.is_some() {
             text(Text::TrayBackingUp).to_owned()
@@ -91,7 +89,13 @@ pub(crate) fn publish(app: &AppHandle) {
         if let Some(tray) = app.tray_by_id("main") {
             let _ = tray.set_tooltip(Some(tooltip));
         }
-        let _ = app.emit(STATUS_EVENT, status);
+        publish_notice(app, AppNotice::BackupStatus(Box::new(status)));
+    }
+}
+
+pub(crate) fn on_notice(app: &AppHandle, notice: &AppNotice) {
+    if matches!(notice, AppNotice::InterfaceLanguageChanged(_)) {
+        publish(app);
     }
 }
 
@@ -437,7 +441,7 @@ fn restore(
         Ok(report)
     })();
     state.busy.store(false, Ordering::SeqCst);
-    let _ = app.emit(GROUPS_EVENT, ());
+    publish_notice(app, AppNotice::ReferenceGroupsChanged);
     result
 }
 

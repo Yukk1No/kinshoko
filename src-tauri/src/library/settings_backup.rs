@@ -125,7 +125,10 @@ pub(super) async fn restore_application_settings<R: Runtime>(
                 log.set_enabled(view.run_log);
             }
             crate::tagging::apply_device_setting(&app, device);
-            crate::desktop::settings_restored(&app, SafeMode::new(safe, scope));
+            publish(
+                &app,
+                AppNotice::ApplicationSettingsRestored(SafeMode::new(safe, scope)),
+            );
             // 恢复的设置可能带来另一个更新通道（#204）。
             crate::updater::channel_changed(&app);
             if let Err(error) = names::refresh_labels(&app, &state) {
@@ -135,16 +138,13 @@ pub(super) async fn restore_application_settings<R: Runtime>(
                     |error| format!("资料库名称未刷新：{error}"),
                 ));
             }
-            let _ = app.emit(SAFE_MODE_EVENT, safe);
-            match with_lens(&app, safe, Hold::Read, |w, d, c| w.status(d, c, safe)) {
-                Ok(status) => {
-                    let _ = app.emit(workspace::EVENT, status);
-                }
-                Err(error) => problems.push(CommandError::caused_by(
+            // Keep the restore receipt's diagnostic. Only the monitor publishes revisions.
+            if let Err(error) = with_lens(&app, safe, Hold::Read, |w, d, c| w.status(d, c, safe)) {
+                problems.push(CommandError::caused_by(
                     error,
                     |cause| ErrorKind::LibraryListNotRefreshed { cause },
                     |error| format!("资料库列表未刷新：{error}"),
-                )),
+                ));
             }
             Ok(ApplicationSettingsRestored {
                 settings: view,

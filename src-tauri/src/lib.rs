@@ -3,6 +3,7 @@
 //! 进程常驻托盘（ADR-0004）：关闭主窗口只销毁它的 WebView，进程、托盘与全局快捷键
 //! 继续运行；从托盘重新打开时按配置重建主窗口。只有托盘菜单的“退出”结束进程。
 
+mod app_notice;
 mod backup;
 mod commands;
 mod data_dirs;
@@ -21,7 +22,9 @@ mod sync;
 mod tagging;
 mod ui_text;
 mod updater;
+mod window_events;
 
+use app_notice::{AppNotice, AppNotices, publish};
 use tauri::{Manager as _, RunEvent};
 
 pub fn run() {
@@ -47,6 +50,15 @@ pub fn run() {
         ))
         .manage(data)
         .manage(fidelity_gate::GateState::default())
+        .manage(AppNotices::new(vec![
+            library::refresh_search_on_notice,
+            desktop::on_notice,
+            tagging::on_notice,
+            window_events::on_notice,
+            library::wake_on_notice,
+            subscription::on_notice,
+            backup::on_notice,
+        ]))
         // 对话框插件要注册在这里：插件的 setup 运行时 Tauri 持有插件表的锁，
         // 在 setup 里再调用 `app.plugin` 会死锁，应用卡在启动阶段。
         .plugin(tauri_plugin_dialog::init())
@@ -186,7 +198,7 @@ pub fn run() {
                             && !window.is_minimized().unwrap_or(false)
                     })
                 {
-                    library::wake_workspace_monitor();
+                    publish(app, AppNotice::MainWindowActivated);
                 }
             }
             desktop::capture_geometry_changed(app, &label);
@@ -195,7 +207,7 @@ pub fn run() {
             label,
             event: tauri::WindowEvent::Focused(true),
             ..
-        } if label == shell::MAIN_WINDOW => library::wake_workspace_monitor(),
+        } if label == shell::MAIN_WINDOW => publish(app, AppNotice::MainWindowActivated),
         RunEvent::WindowEvent {
             label,
             event: tauri::WindowEvent::CloseRequested { .. },

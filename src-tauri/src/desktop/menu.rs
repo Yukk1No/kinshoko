@@ -17,15 +17,15 @@ use kinshoko_core::desktop::ScreenRect;
 use kinshoko_core::desktop::{PinMenu, PinMenuOpen, menu_surface};
 use kinshoko_core::diagnostics::{LogEvent, WindowKind};
 use tauri::{
-    AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindowBuilder,
+    AppHandle, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindowBuilder,
     WindowEvent,
 };
 
 use super::{lock, pins, state};
 use crate::data_dirs::SharedWebview as _;
+use crate::window_events::{self, WindowRequest};
 
 pub const MENU_WINDOW: &str = "desktop-menu";
-const OPEN_EVENT: &str = "desktop-menu";
 
 /// 菜单窗口的状态：最近一次菜单的编号，以及此刻打开着的那一次。
 #[derive(Default)]
@@ -68,7 +68,7 @@ pub fn popup(app: &AppHandle, menu: PinMenu) -> Result<(), CommandError> {
         None => build(app)?,
     };
     place(&window, surface.window)?;
-    let _ = app.emit_to(MENU_WINDOW, OPEN_EVENT, &open);
+    let _ = window_events::send(app, WindowRequest::DesktopMenu(&open));
     Ok(())
 }
 

@@ -80,27 +80,18 @@ use kinshoko_core::{
 };
 use tauri::http::{Response, StatusCode, header};
 use tauri::plugin::{Builder, TauriPlugin};
-use tauri::{AppHandle, Emitter, Manager, Runtime, State};
+use tauri::{AppHandle, Manager, Runtime, State};
 use tauri_plugin_dialog::DialogExt;
 
+use crate::app_notice::{AppNotice, publish};
 use crate::shell::ShellState;
 use crate::sync::lock;
 use std::panic::Location;
 
 use kinshoko_core::diagnostics::HeldLock;
 
-const EVENT: &str = "library-event";
 /// 连续的列表、图片与词表变化合并推送的窗口（#142）。
 const EVENT_COALESCE: std::time::Duration = std::time::Duration::from_millis(500);
-/// 安全模式（应用设置）开关或调整范围（#223）后推送，载荷为开关状态。不论有没有打开资料库都推送：
-/// 桌面钉图据此重新核对遮蔽（#65）。
-pub const SAFE_MODE_EVENT: &str = "safe-mode-setting";
-
-/// 整理在等某个库的导入收尾（#112），载荷为 `OrganizeWaiting`；界面据此给轻提示。
-const ORGANIZE_WAITING_EVENT: &str = "organize-waiting";
-/// 整理时后端把唯一的可写句柄切到了另一个库（#112），载荷为它的 `LibraryInfo`。只给跟着可写库走的
-/// 界面部分（自动标签）用；浏览范围与导入回执不随它变。
-const WRITABLE_LIBRARY_EVENT: &str = "writable-library";
 /// 等导入收尾时每次最多等这么久，然后重新检查（收尾结束会立即唤醒）。
 const ORGANIZE_RECHECK: std::time::Duration = std::time::Duration::from_millis(500);
 /// 等导入收尾的总上限：收尾一直不结束时，整理报错给界面，不让请求永远挂着。
@@ -124,6 +115,7 @@ struct LibraryState {
     /// Serialize visibility revocation with the final externally visible side effect.
     visibility_commit: Arc<Mutex<()>>,
     workspace: Mutex<Option<kinshoko_core::workspace::Workspace>>,
+    workspace_wake: workspace::MonitorWake,
     /// 缩略图请求的放行（#313）：工作区每次取快照发布到这里，各登记的资料库在这里长期只读打开。
     /// 缩略图请求先问它，不拿上面三把锁；与 [`Self::detached`] 同时清掉，释放数据库文件。
     gate: Arc<kinshoko_core::workspace::ImageGate>,
@@ -159,6 +151,7 @@ impl LibraryState {
             import_preview_generation: AtomicU64::new(0),
             visibility_commit: Arc::new(Mutex::new(())),
             workspace: Mutex::default(),
+            workspace_wake: workspace::MonitorWake::default(),
             gate: Arc::default(),
             image_gate_refresh: Mutex::default(),
             reference: Mutex::new(None),
@@ -407,10 +400,8 @@ pub fn start_background<R: Runtime>(app: &AppHandle<R>) {
     workspace::monitor(app.clone());
 }
 
-/// 唤醒工作区后台监控线程（主窗口恢复显示/激活或应用内写路径修改工作区状态后）。
-pub(crate) fn wake_workspace_monitor() {
-    workspace::wake_monitor();
-}
+pub(crate) use names::refresh_search_on_notice;
+pub(crate) use workspace::wake_on_notice;
 
 fn saved_mode<R: Runtime>(app: &AppHandle<R>) -> SafeMode {
     app.try_state::<LibraryState>().map_or_else(

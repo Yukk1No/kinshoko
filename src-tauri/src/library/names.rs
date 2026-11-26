@@ -1,6 +1,7 @@
 //! Formal IPC adapter for shared tag-name actions.
 
 use super::*;
+use crate::app_notice::VocabularyRevision;
 use kinshoko_core::CommandError;
 use kinshoko_core::tag_catalog::CatalogNameEdit;
 use kinshoko_core::tag_catalog::CatalogTag;
@@ -20,18 +21,44 @@ pub(super) fn refresh_labels<R: Runtime>(
     app: &AppHandle<R>,
     state: &LibraryState,
 ) -> Result<(), CommandError> {
-    state.search.invalidate();
-    if let Ok(active) = state.active() {
-        let _ = app.emit(
-            EVENT,
-            LibraryEvent::VocabularyChanged {
-                library_id: active.info().id.clone(),
-                revision: active.vocabulary_revision().map_err(CommandError::from)?,
-            },
-        );
+    let revision = state
+        .active()
+        .ok()
+        .map(|active| {
+            active
+                .vocabulary_revision()
+                .map(|revision| VocabularyRevision {
+                    library_id: active.info().id.clone(),
+                    revision,
+                })
+        })
+        .transpose();
+    match revision {
+        Ok(revision) => {
+            publish(app, AppNotice::CatalogLabelsChanged(revision));
+            Ok(())
+        }
+        Err(error) => {
+            publish(app, AppNotice::CatalogLabelsChanged(None));
+            Err(error.into())
+        }
     }
-    wake_workspace_monitor();
-    Ok(())
+}
+
+pub(crate) fn refresh_search_on_notice<R: Runtime>(app: &AppHandle<R>, notice: &AppNotice) {
+    if matches!(
+        notice,
+        AppNotice::CatalogLabelsChanged(_)
+            | AppNotice::Library(
+                LibraryEvent::VocabularyChanged { .. }
+                    | LibraryEvent::ImagesChanged { .. }
+                    | LibraryEvent::ListStale { .. }
+                    | LibraryEvent::SafeModeChanged { .. }
+            )
+    ) {
+        // Invalidate before the window adapter asks consumers to read again.
+        app.state::<LibraryState>().search.invalidate();
+    }
 }
 
 #[tauri::command]

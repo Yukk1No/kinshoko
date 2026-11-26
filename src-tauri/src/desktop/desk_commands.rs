@@ -3,7 +3,7 @@
 //! 加进上一组、移到新参考组，以及后三者的撤销。删除与撤销沿用 [`super::group_trash`] 的命令，
 //! 改名沿用 [`super::groups`] 的，开关打开时那边改走桌面上的参考组。规则都在 core，这里只接窗口。
 //!
-//! 桌面可以空着（没有参考组）：钉下的第一张开一个新参考组，推送 [`STARTED_EVENT`]。
+//! 桌面可以空着（没有参考组）：钉下的第一张开一个新参考组，推送 `desk-group-started`。
 //!
 //! 换一桌钉图（[`apply`]）：先在锁里让桌面模块换好，放开锁后再动窗口——关掉菜单，旧钉图一起关掉，
 //! 新钉图一起打开，不加转场；之前是收起的（F4），新钉图也直接收起。窗口按桌面模块此刻的钉图对齐，
@@ -15,14 +15,10 @@ use std::sync::Mutex;
 use kinshoko_core::CommandError;
 use kinshoko_core::desktop::SavedPin;
 use kinshoko_core::reference_groups::{Desk, DeskLists, GroupError, Pruned, Split, Switched};
-use tauri::{AppHandle, Emitter};
+use tauri::AppHandle;
 
 use super::groups::{blocking, changed};
-use super::{history_changed, lock, menu, pins, state};
-
-/// 空桌上钉下第一张、开了新参考组，而且有上一组时推送；载荷是上一组的 id，界面据此提示
-/// “加进「上一组」”（[`fold_into_previous`]）。
-pub const STARTED_EVENT: &str = "desk-group-started";
+use super::{AppNotice, history_changed, lock, menu, pins, publish, state};
 
 /// 最近一次“移出没钉着的”，撤销用（[`undo_prune_unpinned`]）。里面有自带截图的字节，不发给界面。
 static LAST_PRUNED: Mutex<Option<Pruned>> = Mutex::new(None);
@@ -55,30 +51,22 @@ pub(super) fn with_desk<T>(
     result.map_err(CommandError::from)
 }
 
-/// 空桌上开了新参考组（[`super::pins::add`] 调用，不持有锁）：列表变了；有上一组时推送 [`STARTED_EVENT`]。
+/// 空桌上开了新参考组（[`super::pins::add`] 调用，不持有锁）：列表变了；有上一组时提示界面可并入。
 pub(in crate::desktop) fn started(
     app: &AppHandle,
     group_id: Option<&str>,
     fold_into: Option<String>,
 ) {
     if let (Some(group_id), Some(previous_id)) = (group_id, fold_into) {
-        let _ = app.emit(
-            STARTED_EVENT,
-            Started {
+        publish(
+            app,
+            AppNotice::DeskGroupStarted {
                 group_id: group_id.to_owned(),
                 previous_id,
             },
         );
     }
     changed(app);
-}
-
-/// [`STARTED_EVENT`] 的载荷：开出的新参考组与它的上一组。“加进上一组”时两个都带上，提示出来之后换过桌就什么都不做。
-#[derive(Clone, serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-struct Started {
-    group_id: String,
-    previous_id: String,
 }
 
 /// 换了一桌：动窗口，再通知各窗口截图历史与参考组变了。成员钉不出来时只写运行日志，

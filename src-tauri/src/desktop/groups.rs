@@ -17,17 +17,15 @@ use kinshoko_core::CommandError;
 use kinshoko_core::desktop::CollectedCapture;
 
 use kinshoko_core::reference_groups::{GroupSummary, ReferenceGroup, ReferenceGroupView};
-use tauri::{AppHandle, Emitter};
+use tauri::AppHandle;
 
-use super::{lock, pins, state};
+use super::{AppNotice, lock, pins, publish, state};
 
 mod package;
 pub use package::*;
 
-pub(super) const CHANGED_EVENT: &str = "reference-groups";
-
 pub(super) fn changed(app: &AppHandle) {
-    let _ = app.emit(CHANGED_EVENT, ());
+    publish(app, AppNotice::ReferenceGroupsChanged);
 }
 
 pub(super) async fn blocking<T: Send + 'static>(

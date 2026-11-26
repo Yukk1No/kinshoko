@@ -1,6 +1,6 @@
 //! WebView2 file paths for HTML5 drops in the main window.
 
-use tauri::{AppHandle, Emitter, Manager, Url, WebviewWindow};
+use tauri::{AppHandle, Manager, Url, WebviewWindow};
 use webview2_com::Microsoft::Web::WebView2::Win32::{
     ICoreWebView2File, ICoreWebView2WebMessageReceivedEventArgs,
     ICoreWebView2WebMessageReceivedEventArgs2,
@@ -8,7 +8,7 @@ use webview2_com::Microsoft::Web::WebView2::Win32::{
 use webview2_com::{WebMessageReceivedEventHandler, take_pwstr};
 use windows::core::{Interface, PWSTR};
 
-const EVENT: &str = "kinshoko-file-drop";
+use crate::window_events::{self, FILE_DROP_EVENT, WindowRequest};
 
 fn accepts(message: &str, source: &str, origin: &Url, invoke_key: &str) -> bool {
     let Ok(source) = Url::parse(source) else {
@@ -20,7 +20,7 @@ fn accepts(message: &str, source: &str, origin: &Url, invoke_key: &str) -> bool 
         && serde_json::from_str::<serde_json::Value>(message).is_ok_and(|value| {
             value["cmd"] == "file_drop_ack"
                 && value["__TAURI_INVOKE_KEY__"] == invoke_key
-                && value["payload"] == serde_json::json!({ "kind": EVENT, "version": 1 })
+                && value["payload"] == serde_json::json!({ "kind": FILE_DROP_EVENT, "version": 1 })
         })
 }
 
@@ -115,7 +115,10 @@ pub fn install(window: &WebviewWindow) -> tauri::Result<()> {
                         if let Some(args) = args {
                             match paths(&args, &origin, &invoke_key) {
                                 Ok(paths) if !paths.is_empty() => {
-                                    if let Err(error) = target.emit_to("main", EVENT, paths) {
+                                    if let Err(error) = window_events::send(
+                                        target.app_handle(),
+                                        WindowRequest::FileDrop(paths),
+                                    ) {
                                         crate::run_log::error("file drop event", error);
                                     }
                                 }
@@ -150,7 +153,7 @@ mod tests {
             })
             .to_string()
         };
-        let marker = envelope(serde_json::json!({ "kind": EVENT, "version": 1 }));
+        let marker = envelope(serde_json::json!({ "kind": FILE_DROP_EVENT, "version": 1 }));
         for app in ["http://tauri.localhost", "http://127.0.0.1:1420"] {
             let origin = Url::parse(app).unwrap();
             assert!(accepts(

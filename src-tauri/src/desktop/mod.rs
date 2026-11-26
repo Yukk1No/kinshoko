@@ -28,10 +28,10 @@ mod pin_state;
 mod pins;
 mod tray;
 
-use events::{
-    capture_response, history_changed, on_library_event, request_collection, request_open,
-};
+pub(crate) use capture::CAPTURE_WINDOW;
+use events::{capture_response, history_changed, request_collection, request_open};
 pub use exit::on_exit;
+pub(crate) use menu::MENU_WINDOW;
 pub use tray::*;
 #[cfg(windows)]
 pub(crate) mod win32;
@@ -50,8 +50,9 @@ use tauri::http::{Response, StatusCode, header};
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::plugin::{Builder, TauriPlugin};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::{AppHandle, Emitter, Listener, Manager, Wry};
+use tauri::{AppHandle, Manager, Wry};
 
+use crate::app_notice::{AppNotice, publish};
 use crate::sync::lock;
 use crate::{library, shell};
 
@@ -81,10 +82,6 @@ const TIMING_ENV: &str = "KINSHOKO_CAPTURE_TIMING_LOG";
 const HISTORY_DIR: &str = "captures";
 /// 参考组独立于资料库，放在应用数据目录（ADR-0002）。
 const GROUPS_DIR: &str = "reference-groups";
-const HISTORY_EVENT: &str = "capture-history";
-/// 资料库插件转发给窗口的事件。
-const LIBRARY_EVENT: &str = "library-event";
-
 pub struct DesktopState {
     history: Mutex<CaptureHistory>,
     pending_collection: Mutex<Option<String>>,
@@ -146,10 +143,6 @@ pub fn with_groups<R: tauri::Runtime, T>(
     Some(f(&groups))
 }
 
-/// 桌面插件自己听的事件：参考组在别的插件里改过（图库墙“加入参考组”），让钉图窗口与桌面上的参考组
-/// 对齐，再通知各窗口。
-const DESK_CHANGED_EVENT: &str = "desktop://desk-changed";
-
 /// 图库墙“加入参考组”（`pin` 是资料库里的一张图）：加进参考组 `group_id`，成为它的新成员。
 /// 那个参考组正摆在桌面上时，把图钉到桌面上，以 `centre`（右键处）为中心，没有时在主显示器中间。
 /// 桌面插件还没装好时为 `None`。
@@ -177,14 +170,9 @@ pub fn add_to_reference_group<R: tauri::Runtime>(
     })()
     .map_err(CommandError::from);
     if result.is_ok() {
-        let _ = app.emit(DESK_CHANGED_EVENT, ());
+        publish(app, AppNotice::DeskChanged);
     }
     Some(result)
-}
-
-/// 通知各窗口参考组成员的状态可能变了（例如成员的图被永久删除），重新读取。
-pub fn reference_groups_changed<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
-    let _ = app.emit(groups::CHANGED_EVENT, ());
 }
 
 pub fn init() -> TauriPlugin<Wry> {
@@ -291,28 +279,6 @@ pub fn init() -> TauriPlugin<Wry> {
                 // 先按开启处理（主线程上不读应用壳设置）；恢复钉图的线程再按保存的设置核对。
                 veils: Mutex::new(PinVeils::new(true)),
                 groups: Mutex::new(groups),
-            });
-            let handle = app.clone();
-            app.listen_any(LIBRARY_EVENT, move |event| {
-                on_library_event(&handle, event.payload());
-            });
-            // 安全模式是应用设置：开关或调整范围（#223）时不论有没有打开资料库都到这里。
-            let handle = app.clone();
-            app.listen_any(library::SAFE_MODE_EVENT, move |event| {
-                if let Ok(on) = serde_json::from_str::<bool>(event.payload()) {
-                    let app = handle.clone();
-                    std::thread::spawn(move || pins::safe_mode_changed(&app, on));
-                }
-            });
-            let handle = app.clone();
-            app.listen_any(DESK_CHANGED_EVENT, move |_| {
-                let app = handle.clone();
-                std::thread::spawn(move || desk_commands::apply(&app, None));
-            });
-            let settings_handle = app.clone();
-            app.listen_any("application-settings-restored", move |_| {
-                let app = settings_handle.clone();
-                std::thread::spawn(move || pins::refresh_all(&app));
             });
             edge::start(app);
             // 恢复上次的钉图：建窗口要等事件循环跑起来，放到别的线程。
@@ -425,39 +391,4 @@ pub fn on_shortcut(app: &AppHandle, action: ShortcutAction) {
     }
 }
 
-/// Update reveal authority during the actual mode commit, before emitting delayed events.
-/// Caller holds visibility_commit; this performs no window operations or dispatch.
-pub fn safe_mode_committed<R: tauri::Runtime>(app: &AppHandle<R>, safe: bool) {
-    if let Some(state) = app.try_state::<DesktopState>() {
-        lock(&state.veils).set_safe_mode(safe);
-    }
-}
-
-/// 同 [`safe_mode_committed`]，在安全模式范围（#223）提交时调用：收紧时之前的确认显示
-/// 当即作废，放宽时保留。
-pub fn safe_mode_scope_committed<R: tauri::Runtime>(
-    app: &AppHandle<R>,
-    scope: kinshoko_core::library::SafeModeScope,
-) {
-    if let Some(state) = app.try_state::<DesktopState>() {
-        lock(&state.veils).set_scope(scope);
-    }
-}
-
-/// Revoke previous configuration views immediately, including same-mode explicit pin reveals.
-/// Caller holds visibility_commit. Native destruction callbacks only dispatch background cleanup.
-pub fn settings_restored<R: tauri::Runtime>(
-    app: &AppHandle<R>,
-    safe: kinshoko_core::library::SafeMode,
-) {
-    let state = app.state::<DesktopState>();
-    let mut veils = PinVeils::new(safe.on);
-    veils.set_scope(safe.scope);
-    *lock(&state.veils) = veils;
-    clear_viewer_reference(app);
-    *lock(&state.capture) = capture::Session::Idle;
-    if let Some(window) = app.get_webview_window(capture::CAPTURE_WINDOW) {
-        let _ = window.destroy();
-    }
-    let _ = app.emit("application-settings-restored", ());
-}
+pub(crate) use events::on_notice;

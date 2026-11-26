@@ -9,10 +9,11 @@ use std::time::{Duration, Instant};
 use kinshoko_core::desktop::{
     CaptureReferenceFrame, CaptureSurface, Placement, SavedPin, ScreenRect,
 };
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Manager};
 
 use super::ReferenceSurface;
 use crate::desktop::{lock, pins, state};
+use crate::window_events::{self, WindowRequest};
 
 /// Only one one-shot native request can receive a WebView reply. HWND is part of its identity.
 #[derive(Default)]
@@ -108,12 +109,8 @@ pub(super) fn request_main_frame(
         window: metrics.identity,
         frame: None,
     });
-    app.emit_to(
-        "main",
-        "capture-reference-request",
-        serde_json::json!({ "request": token }),
-    )
-    .map_err(CommandError::system)?;
+    window_events::send(app, WindowRequest::CaptureReference { request: &token })
+        .map_err(CommandError::system)?;
     let deadline = Instant::now() + Duration::from_secs(3);
     let mut pending = lock(&channel.pending);
     loop {

@@ -53,7 +53,7 @@ pub(super) fn forward_events<R: Runtime>(
     }
     handles.push(weak);
     drop(handles);
-    let (app, search) = (app.clone(), state.search.clone());
+    let app = app.clone();
     // 每个句柄的事件都转发，直到句柄关闭（ADR-0008）：可写句柄切到别的库后，原库仍在进行的导入的
     // 进度、结束与列表变化照常送到界面。事件都带资料库身份，导入回执归它自己的任务，不串台。
     std::thread::Builder::new()
@@ -62,29 +62,11 @@ pub(super) fn forward_events<R: Runtime>(
             // 自动打标每写一张图都有图片与词表变化：合并后再送到界面，免得每张图都让界面重读一遍、
             // 在后端阻塞线程池里排起长队（#142）。
             kinshoko_core::library::forward_coalesced(events, EVENT_COALESCE, |mut event| {
-                // 有新图进库：自动标签立即检查，不等下一次轮询。
-                if matches!(event, LibraryEvent::ListStale { .. }) {
-                    crate::tagging::wake(&app);
-                }
-                // 先清掉旧快照再通知前端，前端收到事件后的查找用的是新词表。
-                // 安全模式切换后词表计数与可见的标签都变了。
-                if matches!(
-                    event,
-                    LibraryEvent::VocabularyChanged { .. }
-                        | LibraryEvent::ImagesChanged { .. }
-                        | LibraryEvent::ListStale { .. }
-                        | LibraryEvent::SafeModeChanged { .. }
-                ) {
-                    search.invalidate();
-                    wake_workspace_monitor();
-                }
-                // Task-finished events may race the all-provider projection. Raw success details
-                // stay in the fixed task owner; polling returns the checked ordinary receipt.
+                // Polling returns the checked receipt. Raw success details stay in the task owner.
                 if let LibraryEvent::TaskFinished { report, .. } = &mut event {
                     *report = report.clone().without_content_details();
-                    wake_workspace_monitor();
                 }
-                let _ = app.emit(EVENT, event);
+                publish(&app, AppNotice::Library(event));
             });
         })
         .expect("无法启动事件转发线程");
