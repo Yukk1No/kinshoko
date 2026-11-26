@@ -33,6 +33,7 @@ use tauri::{AppHandle, Manager};
 use super::{history_changed, lock, request_collection, request_open, state};
 use kinshoko_core::diagnostics::{LogEvent, PinSource};
 
+pub(in crate::desktop) mod alignment;
 mod commands;
 pub use commands::*;
 mod menu_actions;
@@ -315,18 +316,9 @@ pub fn restore(app: &AppHandle) {
     for problem in &opened.problems {
         crate::run_log::warn("桌面上的参考组有成员钉不出来", problem);
     }
-    let pins = opened.pins;
-    if pins.is_empty() {
+    if opened.pins.is_empty() {
         return;
     }
     history_changed(app);
-    // 资料库钉图要经参考视角读图、核对遮蔽：先打开本设备上次打开的资料库。
-    if pins.iter().any(|p| p.capture_id().is_none())
-        && let Err(e) = crate::library::current_or_last(app)
-    {
-        crate::run_log::error("恢复资料库钉图时无法打开资料库", e);
-    }
-    for pin in &pins {
-        open_pin(app, pin);
-    }
+    alignment::submit(app, alignment::AlignIntent::Restore);
 }

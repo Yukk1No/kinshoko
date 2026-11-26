@@ -24,6 +24,8 @@ use kinshoko_core::desktop::frame::{ContentMotion, Monitor, SourceSize, source_s
 use kinshoko_core::desktop::{SavedPin, ScreenRect};
 use pin_shell::{Display, HookEvent, Key, PinCursor, PinId, PinInput, PinKeys, PinShell};
 
+use crate::desktop::pins::alignment::PinSave;
+
 use super::port::{RenderEvent, RenderPort};
 
 mod device;
@@ -56,11 +58,18 @@ const KEYS: [Key; 4] = [
     Key::Letter('R'),
 ];
 
+/// 这次交互改的是哪组钉图字段。
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum SaveField {
+    Placement,
+    Opacity,
+}
+
 /// 编排要应用壳做的事。
 #[derive(Debug, Clone, PartialEq)]
 pub enum Effect {
-    /// 钉图状态改了，写回 `pins.json`。
-    Saved(SavedPin),
+    /// 钉图状态改了，写回 `pins.json`；只提交这次交互改的字段。
+    Saved(PinSave),
     /// 钉图第一次显示出来。
     Shown(String),
     /// 画师要关掉它（Esc）：走应用的关闭流程，流程里再调 [`Orchestra::close`]。

@@ -11,7 +11,7 @@ use kinshoko_core::desktop::frame::{GroupGrab, ZOOM_MS};
 use pin_shell::{PinId, PinShell};
 
 use super::super::port::RenderPort;
-use super::Orchestra;
+use super::{Orchestra, SaveField};
 
 /// 整组操作的状态。
 #[derive(Debug, Default)]
@@ -174,7 +174,7 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
             }
             live.pin.placement = next.placement;
             live.anchor = None;
-            self.changed(id, ms, true);
+            self.changed(id, ms, Some(SaveField::Placement));
         }
     }
 

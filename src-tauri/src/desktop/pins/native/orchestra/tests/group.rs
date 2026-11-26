@@ -58,7 +58,7 @@ impl Rig {
             .take_effects()
             .into_iter()
             .filter_map(|e| match e {
-                Effect::Saved(p) => Some(p.id),
+                Effect::Saved(p) => Some(p.pin),
                 _ => None,
             })
             .collect();

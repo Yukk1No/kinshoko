@@ -103,19 +103,15 @@ pub(super) fn pin_reference_here(
     Ok(())
 }
 
-/// 放进钉图状态并开出窗口。期间换了桌时，刚放进旧桌的钉图已被换走，对齐时它的窗口可能还没开出来：
-/// 开完再核对一次，不在了就另起线程重新对齐把它关掉。不在这里加锁也不在这里关窗口：截图完成时调用方
-/// 正持有遮蔽的提交锁，对齐关窗口时也要取它。
+/// 放进钉图状态并提交打开意图。窗口动作由 [`super::alignment`] 按最新参考组快照决定；
+/// 期间换了桌时迟到的窗口回报也由它收口，不再在这里事后补查。关闭与切桌入口先把不想要的窗口
+/// 置为关闭中，所以新钉入口在截图完成的可见性提交里只需要打开，不会因关窗重入那把锁。
 pub(in crate::desktop) fn add_and_open(
     app: &AppHandle,
     pin: SavedPin,
 ) -> Result<SavedPin, CommandError> {
     let pin = add(app, pin)?;
-    open_pin(app, &pin);
-    if lock(&state(app).store).get(&pin.id).is_none() {
-        let app = app.clone();
-        std::thread::spawn(move || crate::desktop::desk_commands::realign(&app));
-    }
+    super::alignment::submit(app, super::alignment::AlignIntent::Pin);
     Ok(pin)
 }
 

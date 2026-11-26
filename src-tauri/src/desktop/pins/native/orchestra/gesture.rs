@@ -16,7 +16,7 @@ use kinshoko_core::desktop::{ScreenRect, Turn};
 use pin_shell::{Key, PinCursor, PinId, PinKeys, PinShell, Pointer, PointerEvent};
 
 use super::super::port::RenderPort;
-use super::{Effect, KEYS, Orchestra, SETTLE_MS};
+use super::{Effect, KEYS, Orchestra, SETTLE_MS, SaveField};
 
 /// 同一次按下引出的几个开菜单的事件（按下、长按）只开一次（以前钉图层的 `MENU_DEDUPE_MS`）。
 const MENU_DEDUPE: Duration = Duration::from_millis(800);
@@ -158,7 +158,7 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
                         let live = self.pins.get_mut(&p.pin).expect("上面找到");
                         let placement = (live.pin.placement.x, live.pin.placement.y);
                         if to != placement && live.pin.move_to(to.0, to.1) {
-                            self.changed(p.pin, 0, true);
+                            self.changed(p.pin, 0, Some(SaveField::Placement));
                         }
                     }
                     Grab::Zoom { origin, start } => {
@@ -169,7 +169,7 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
                         let anchor =
                             ZoomAnchor::new(&live.pin, (f64::from(origin.0), f64::from(origin.1)));
                         if anchor.zoom(&mut live.pin, scale) && live.pin.placement != before {
-                            self.changed(p.pin, ZOOM_MS, true);
+                            self.changed(p.pin, ZOOM_MS, Some(SaveField::Placement));
                         }
                     }
                 }
@@ -217,7 +217,7 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
                 return;
             }
             live.fresh = false;
-            self.changed(pin, 0, true);
+            self.changed(pin, 0, Some(SaveField::Opacity));
             return;
         }
         if live.pin.locked {
@@ -233,7 +233,7 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
         let scale = wheel_zoom_scale(live.pin.placement.scale, delta_y);
         let before = live.pin.placement;
         if anchor.zoom(&mut live.pin, scale) && live.pin.placement != before {
-            self.changed(pin, ZOOM_MS, true);
+            self.changed(pin, ZOOM_MS, Some(SaveField::Placement));
         }
     }
 
@@ -265,7 +265,7 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
         let live = self.pins.get_mut(&pin).expect("上面找到");
         live.pin.turn(turn);
         live.fresh = false;
-        self.changed(pin, 0, true);
+        self.changed(pin, 0, Some(SaveField::Placement));
     }
 
     /// 打开菜单（`reveal`：确认显示被遮蔽的图）：键盘钩子不再拦键（菜单窗口要收键），按着的手势

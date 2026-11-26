@@ -83,22 +83,14 @@ fn run(app: &AppHandle, job: Job) {
 
 fn apply(app: &AppHandle, effect: Effect) {
     match effect {
-        Effect::Saved(pin) => {
-            // 收起着的钉图只改了透明度：内容还在细边那里。
-            let tucked = lock(&state(app).edge).is_hidden(&pin.id);
-            if let Some(r) = lock(&state(app).pins).get_mut(&pin.id)
-                && !tucked
-            {
-                r.content = pin.rect();
-            }
-            super::super::edit(app, &pin.id.clone(), |p| *p = pin);
-        }
-        Effect::Shown(pin) => {
-            if let Some(r) = lock(&state(app).pins).get_mut(&pin) {
-                r.shown = true;
-            }
-            super::super::stop_waiting(app, &pin);
-        }
+        Effect::Saved(update) => super::super::alignment::native_report(
+            app,
+            super::super::alignment::NativeReport::Saved(update),
+        ),
+        Effect::Shown(pin) => super::super::alignment::native_report(
+            app,
+            super::super::alignment::NativeReport::Shown(pin),
+        ),
         Effect::CloseRequested(pin) => super::super::close(app, &pin),
         Effect::Menu(pin) => super::super::native_menu(app, &pin, false),
         Effect::RevealAsked(pin) => super::super::native_menu(app, &pin, true),
@@ -108,11 +100,14 @@ fn apply(app: &AppHandle, effect: Effect) {
                 r.click_through = false;
             }
         }
-        Effect::Closed(_) => {}
-        Effect::Failed(pin) => {
-            super::super::stop_waiting(app, &pin);
-            super::super::closed(app, &pin);
-        }
+        Effect::Closed(pin) => super::super::alignment::native_report(
+            app,
+            super::super::alignment::NativeReport::Closed(pin),
+        ),
+        Effect::Failed(pin) => super::super::alignment::native_report(
+            app,
+            super::super::alignment::NativeReport::Failed(pin),
+        ),
         Effect::Warn(site, detail) => crate::run_log::warn(site, detail),
     }
 }
