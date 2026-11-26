@@ -71,7 +71,12 @@ pub(super) fn open(app: &AppHandle, frame: Frame) {
         move |o| o.open(frame, std::time::Instant::now()),
         move |e| {
             crate::run_log::error("无法打开原生钉图", e);
-            std::thread::spawn(move || super::closed(&handle, &key));
+            std::thread::spawn(move || {
+                super::alignment::native_report(
+                    &handle,
+                    super::alignment::NativeReport::Failed(key),
+                );
+            });
         },
     );
 }
@@ -144,8 +149,7 @@ pub(super) fn notice_at(_: &AppHandle, _: (i32, i32), _: &str) {}
 pub(super) fn open(app: &AppHandle, frame: Frame) {
     let (app, key) = (app.clone(), frame.pin.id);
     std::thread::spawn(move || {
-        super::stop_waiting(&app, &key);
-        super::closed(&app, &key);
+        super::alignment::native_report(&app, super::alignment::NativeReport::Failed(key));
     });
 }
 

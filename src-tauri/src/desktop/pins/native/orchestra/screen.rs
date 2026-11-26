@@ -15,7 +15,9 @@ use pin_shell::{PinId, PinShell};
 
 use super::super::caption::Caption;
 use super::super::port::{DrawJob, RenderPort};
-use super::{ANIM_FRAME, Effect, Live, Orchestra, Reveal, SETTLE_MS, Screen, Submit, missing};
+use super::{
+    ANIM_FRAME, Effect, Live, Orchestra, Reveal, SETTLE_MS, SaveField, Screen, Submit, missing,
+};
 
 /// 淡到这么浅就当作没有了（不到 1/255 的一半）。
 const FADED: f64 = 1e-3;
@@ -87,8 +89,8 @@ impl Live {
 impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
     /// 输入或应用壳改了钉图：静止位置跟着改（收起着的除外），内容用 `duration_ms` 从此刻看到的位置
     /// 过渡过去（0 为直接到；静止位置没变时不打断正在走的动画），手势延长到动画结束后
-    /// [`SETTLE_MS`]，上屏。`save` 时写回 `pins.json`。
-    pub(super) fn changed(&mut self, pin: PinId, duration_ms: u32, save: bool) {
+    /// [`SETTLE_MS`]，上屏。`save` 时把这次交互改的字段写回 `pins.json`。
+    pub(super) fn changed(&mut self, pin: PinId, duration_ms: u32, save: Option<SaveField>) {
         let (now, at) = (self.now, self.ms(self.now));
         let live = self.pins.get_mut(&pin).expect("调用方已找到");
         if !live.tucked {
@@ -100,8 +102,13 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
         }
         let until = now + Duration::from_millis(u64::from(duration_ms) + SETTLE_MS);
         live.gesture_until = Some(live.gesture_until.map_or(until, |t| t.max(until)));
-        if save {
-            self.effects.push(Effect::Saved(live.pin.clone()));
+        if let Some(field) = save {
+            let key = live.key.clone();
+            let update = match field {
+                SaveField::Placement => super::PinSave::placement(&key, live.pin.placement),
+                SaveField::Opacity => super::PinSave::opacity(&key, live.pin.opacity),
+            };
+            self.effects.push(Effect::Saved(update));
         }
         self.update(pin, true);
     }

@@ -69,7 +69,9 @@ fn dragging_a_peeking_pin_releases_it_from_where_it_is() {
     assert_eq!(effects[0], Effect::Released("marker".into()));
     let pin = &r.o.pins[&A].pin;
     assert_eq!((pin.placement.x, pin.placement.y), (30, peek.y + 10));
-    assert!(matches!(&effects[1], Effect::Saved(p) if p == pin));
+    assert!(
+        matches!(&effects[1], Effect::Saved(p) if p.placement == Some(pin.placement) && p.opacity.is_none())
+    );
     assert!(!r.o.pins[&A].tucked);
 }
 

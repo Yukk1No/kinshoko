@@ -435,7 +435,9 @@ fn ctrl_wheel_changes_opacity_and_only_redraws() {
     assert_eq!(draws.len(), 1);
     assert!((draws[0].state.opacity - 0.9).abs() < 1e-9);
     let effects = r.o.take_effects();
-    assert!(matches!(effects.as_slice(), [Effect::Saved(p)] if (p.opacity - 0.9).abs() < 1e-9));
+    assert!(
+        matches!(effects.as_slice(), [Effect::Saved(p)] if p.opacity.is_some_and(|o| (o - 0.9).abs() < 1e-9) && p.placement.is_none())
+    );
     r.wheel(1.0, true);
     r.wheel(1.0, true);
     assert_eq!(r.draws().len(), 1, "已到 100% 的那一格不重画");
@@ -452,7 +454,8 @@ fn every_change_is_saved() {
     let Effect::Saved(last) = &effects[1] else {
         panic!("{effects:?}")
     };
-    assert_eq!(last, &r.o.pins[&A].pin);
+    assert_eq!(last.placement, Some(r.o.pins[&A].pin.placement));
+    assert_eq!(last.opacity, None);
 }
 
 #[test]

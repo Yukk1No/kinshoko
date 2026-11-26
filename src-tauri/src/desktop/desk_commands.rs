@@ -9,11 +9,9 @@
 //! 新钉图一起打开，不加转场；之前是收起的（F4），新钉图也直接收起。窗口按桌面模块此刻的钉图对齐，
 //! 所以连按几次切换时，最后留在桌面上的只有最后那一次的钉图。
 
-use std::collections::HashSet;
 use std::sync::Mutex;
 
 use kinshoko_core::CommandError;
-use kinshoko_core::desktop::SavedPin;
 use kinshoko_core::reference_groups::{Desk, DeskLists, GroupError, Pruned, Split, Switched};
 use tauri::AppHandle;
 
@@ -27,14 +25,6 @@ static LAST_PRUNED: Mutex<Option<Pruned>> = Mutex::new(None);
 
 /// 最近一次“移到新参考组”，撤销用（[`undo_split_off`]）。
 static LAST_SPLIT: Mutex<Option<Split>> = Mutex::new(None);
-
-/// 同一时刻只有一次在对齐钉图窗口。不在 `DesktopState` 里：持有它时要调用窗口 API。
-static ALIGNING: Mutex<()> = Mutex::new(());
-
-/// 另起线程时重新对齐一次（[`super::pins::add_and_open`]）。
-pub(in crate::desktop) fn realign(app: &AppHandle) {
-    align(app);
-}
 
 /// 在桌面模块上做一件事：先参考组、后钉图状态、再截图历史。
 pub(super) fn with_desk<T>(
@@ -92,31 +82,11 @@ pub(super) fn apply(app: &AppHandle, switched: Option<Switched>) {
     changed(app);
 }
 
-/// 让钉图窗口与桌面上的参考组一致：不在其中的关掉，新的打开。
+/// 让钉图窗口与桌面上的参考组一致：窗口动作交给对齐模块；这里只保留换桌时的菜单与贴边行为。
 fn align(app: &AppHandle) {
-    let _aligning = ALIGNING.lock().unwrap_or_else(|e| e.into_inner());
     menu::close_open(app);
-    let hidden = lock(&state(app).edge).any_hidden();
-    let wanted: Vec<SavedPin> = lock(&state(app).store).pins().to_vec();
-    let wanted_ids: HashSet<&str> = wanted.iter().map(|p| p.id.as_str()).collect();
-    let open: Vec<String> = lock(&state(app).pins).keys().cloned().collect();
-    for id in open.iter().filter(|id| !wanted_ids.contains(id.as_str())) {
-        // 对齐时可能刚钉了一张（不在上面那份快照里）：关之前再看一眼它还在不在桌面上。
-        let still_wanted = lock(&state(app).store).pins().iter().any(|p| &p.id == id);
-        if !still_wanted {
-            pins::dismiss(app, id);
-        }
-    }
-    let open: HashSet<String> = open.into_iter().collect();
-    let fresh: Vec<&SavedPin> = wanted.iter().filter(|p| !open.contains(&p.id)).collect();
-    if fresh.iter().any(|p| p.capture_id().is_none()) {
-        // 资料库钉图要经参考视角读图、核对遮蔽。
-        let _ = crate::library::current_or_last(app);
-    }
-    for pin in fresh {
-        pins::open_pin(app, pin);
-    }
-    if hidden {
+    pins::alignment::submit(app, pins::alignment::AlignIntent::Desk);
+    if lock(&state(app).edge).any_hidden() {
         super::edge::tuck_all(app);
     }
 }

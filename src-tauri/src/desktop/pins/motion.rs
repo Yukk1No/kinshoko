@@ -93,38 +93,11 @@ pub(super) fn mark_closing(app: &AppHandle, pin: &str) {
     }
 }
 
-/// 关闭钉图（Esc、菜单、Alt+F4）：窗口关掉，不再恢复，截图不再被它钉住。在别的线程上调用。
+/// 关闭钉图（Esc、菜单、Alt+F4）：先把关闭意图写进桌面上的参考组，窗口动作交给对齐模块。
+/// 在别的线程上调用。
 pub(super) fn close(app: &AppHandle, pin: &str) {
-    crate::library::with_visibility_commit(app, |_| mark_closing(app, pin));
-    native::close(app, pin);
-    stop_waiting(app, pin);
-    closed(app, pin);
-}
-
-/// 换了一桌钉图（#591）：关掉这张钉图的窗口和本次运行的记录，钉图状态不动（它已不在桌面上的
-/// 参考组里，或是旧的那一桌）。在别的线程上调用。
-pub(in crate::desktop) fn dismiss(app: &AppHandle, pin: &str) {
-    crate::library::with_visibility_commit(app, |_| {
-        lock(&state(app).pins).remove(pin);
-        lock(&state(app).veils).forget(pin);
-        lock(&state(app).edge).release(pin);
-    });
-    native::close(app, pin);
-    stop_waiting(app, pin);
-}
-
-/// 钉图没了。画师关闭的：不再恢复，截图不再被它钉住，按截图历史的规则丢弃。
-/// 没建起来的：状态留着，下次启动恢复。
-pub(super) fn closed(app: &AppHandle, pin: &str) {
     let history_updated = crate::library::with_visibility_commit(app, |_| {
-        let Some(record) = lock(&state(app).pins).remove(pin) else {
-            return false;
-        };
-        lock(&state(app).veils).forget(pin);
-        lock(&state(app).edge).release(pin);
-        if !record.closing {
-            return false;
-        }
+        mark_closing(app, pin);
         let updated = lock(&state(app).store).close(pin, &mut lock(&state(app).history));
         state(app).dirty.store(true, Ordering::Relaxed);
         updated
@@ -132,4 +105,27 @@ pub(super) fn closed(app: &AppHandle, pin: &str) {
     if history_updated {
         history_changed(app);
     }
+    super::alignment::submit(app, super::alignment::AlignIntent::Close);
+}
+
+/// 收掉本次运行的钉图记录（窗口可能已经关了，也可能关闭还在路上）。
+fn retire(app: &AppHandle, pin: &str) {
+    crate::library::with_visibility_commit(app, |_| {
+        lock(&state(app).pins).remove(pin);
+        lock(&state(app).veils).forget(pin);
+        lock(&state(app).edge).release(pin);
+    });
+    stop_waiting(app, pin);
+}
+
+/// 对齐模块决定关掉这张窗口：收掉本次运行的记录并通知原生钉图，钉图状态不动（调用方已改好）。
+/// 在别的线程上调用。
+pub(in crate::desktop) fn dismiss(app: &AppHandle, pin: &str) {
+    retire(app, pin);
+    native::close(app, pin);
+}
+
+/// 钉图没了，但没有关闭动作要做（打开失败，或原生窗口已经关上）。状态留着，下次启动恢复。
+pub(super) fn closed(app: &AppHandle, pin: &str) {
+    retire(app, pin);
 }
