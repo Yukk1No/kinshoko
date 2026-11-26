@@ -13,7 +13,7 @@ pub struct OrganizeWaiting {
 
 /// 按需取得可写句柄的结果（ADR-0008）。
 pub enum WriterAccess {
-    /// 可以整理了。`switched` 为真表示这次把唯一的可写句柄切到了这个库，调用方据此装配它。
+    /// 可以整理了。`switched` 为真表示这次把活动资料库切到了这个库，调用方据此装配它。
     Ready {
         library: Arc<Library>,
         switched: bool,
