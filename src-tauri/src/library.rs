@@ -49,6 +49,7 @@ pub use thumbnails::*;
 mod forward;
 mod verbs;
 use forward::forward_events;
+pub(crate) use verbs::commit_image;
 
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, Weak};

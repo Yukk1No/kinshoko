@@ -3,8 +3,8 @@
 //! `stage_clipboard_image`）；这里只接系统剪贴板与资源管理器。都在别的线程上做。
 
 use image::RgbaImage;
+use kinshoko_core::CommandError;
 use kinshoko_core::command_error::ErrorKind;
-use kinshoko_core::{CommandError, VisibilityPermit};
 use tauri::AppHandle;
 
 use crate::library;
@@ -20,23 +20,20 @@ pub async fn copy_reference_image(
     library_id: String,
     image_id: String,
 ) -> Result<(), CommandError> {
-    tauri::async_runtime::spawn_blocking(move || {
-        // 锁外解码；进门后许可复核安全模式与这张图仍可见，才写剪贴板。
-        VisibilityPermit::commit_image(
-            library::workspace_session(&app),
-            &library_id,
-            &image_id,
-            |source| {
-                let pixels = source
-                    .clipboard_pixels(&image_id)
-                    .map_err(CommandError::from)?;
-                super::clipboard::PreparedImage::prepare(&pixels)
-            },
-            |_, prepared| prepared.commit(&app),
-        )
-    })
+    // 锁外解码；进门后许可复核安全模式与这张图仍可见，才写剪贴板。
+    library::commit_image(
+        app,
+        library_id,
+        image_id,
+        |source, image_id| {
+            let pixels = source
+                .clipboard_pixels(image_id)
+                .map_err(CommandError::from)?;
+            super::clipboard::PreparedImage::prepare(&pixels)
+        },
+        |app, prepared| prepared.commit(app),
+    )
     .await
-    .map_err(CommandError::system)?
 }
 
 /// 在资源管理器中显示：打开原文件所在的文件夹并选中它。文件不在时报错（界面提示），不打开窗口。

@@ -350,3 +350,169 @@ fn reentering_the_permit_panics() {
         let _again = f.session.visibility();
     });
 }
+
+/// 一份几千字节的 PNG（像素不规则，压不小），分好几块才发完。
+fn noisy_png(dir: &std::path::Path) -> std::path::PathBuf {
+    let path = dir.join("noisy.png");
+    let mut seed = 0x2545_f491_u32;
+    RgbaImage::from_fn(40, 40, |_, _| {
+        seed ^= seed << 13;
+        seed ^= seed >> 17;
+        seed ^= seed << 5;
+        let [r, g, b, _] = seed.to_le_bytes();
+        Rgba([r, g, b, 255])
+    })
+    .save(&path)
+    .unwrap();
+    path
+}
+
+/// 安全模式开启时，把一份已在别的库评为成人的图导入 `target`：回执里它被封印，只能经预览显示。
+/// 返回打开的预览、要读的项与原图字节。
+fn sealed_duplicate_preview(f: &Fixture) -> (String, String, Vec<u8>) {
+    use kinshoko_core::library::{ImportOptions, SaveDestination};
+    let adult = f.library("adult");
+    let target = f.library("target");
+    let same = noisy_png(f.dir.path());
+    let adult_image = adult
+        .import(ImportSource {
+            paths: vec![same.clone()],
+        })
+        .wait()
+        .items[0]
+        .outcome
+        .image_id()
+        .unwrap()
+        .to_owned();
+    rate(&adult, &adult_image, ContentRating::Explicit);
+    let target_id = target.info().id.clone();
+    let task = f
+        .session
+        .with_libraries(|device| {
+            device.start_import_to(
+                SaveDestination {
+                    library_id: target_id.clone(),
+                    folder_id: None,
+                },
+                ImportSource {
+                    paths: vec![same.clone()],
+                },
+                ImportOptions::default(),
+            )
+        })
+        .unwrap();
+    let deadline = std::time::Instant::now() + Duration::from_secs(20);
+    while f
+        .session
+        .with_libraries(|device| Ok(device.import_task(&task).unwrap().report.is_none()))
+        .unwrap()
+    {
+        assert!(std::time::Instant::now() < deadline, "导入没有收尾");
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    let grant = f.session.begin_import_preview().unwrap();
+    let preview = f
+        .session
+        .open_import_preview(grant, &target_id, &task)
+        .unwrap();
+    let bytes = std::fs::read(&same).unwrap();
+    assert!(bytes.len() > 3 * kinshoko_core::session::IMPORT_PREVIEW_CHUNK_BYTES);
+    (preview.id, preview.items[0].clone(), bytes)
+}
+
+#[test]
+fn an_import_preview_sends_the_original_bytes_in_chunks() {
+    let f = Fixture::new(true);
+    let (preview, item, bytes) = sealed_duplicate_preview(&f);
+    let mut chunks = Vec::new();
+    f.session
+        .read_import_preview(
+            f.session.import_preview_grant().unwrap(),
+            &preview,
+            &item,
+            240,
+            |chunk| {
+                chunks.push(chunk.to_vec());
+                Ok(())
+            },
+        )
+        .unwrap();
+    assert!(chunks.len() > 3, "{} 块", chunks.len());
+    assert_eq!(chunks.concat(), bytes);
+}
+
+#[test]
+fn an_import_preview_stops_sending_once_safe_mode_is_committed() {
+    let f = Fixture::new(true);
+    let (preview, item, bytes) = sealed_duplicate_preview(&f);
+    let committed = AtomicBool::new(false);
+    let mut sent = 0;
+    let (first_tx, first) = mpsc::channel();
+    let result = std::thread::scope(|scope| {
+        let session = &f.session;
+        let committed = &committed;
+        scope.spawn(move || {
+            first.recv().unwrap();
+            let permit = session.visibility();
+            permit
+                .try_commit_safe_mode(|mode| mode.on = true, |_| Ok::<_, ()>(()))
+                .unwrap();
+            committed.store(true, Ordering::SeqCst);
+        });
+        f.session.read_import_preview(
+            f.session.import_preview_grant().unwrap(),
+            &preview,
+            &item,
+            240,
+            |chunk| {
+                assert!(
+                    !committed.load(Ordering::SeqCst),
+                    "提交之后又发送了预览字节"
+                );
+                if sent == 0 {
+                    first_tx.send(()).unwrap();
+                }
+                sent += chunk.len();
+                Ok(())
+            },
+        )
+    });
+    // 提交不一定赶在最后一块之前进门；赶上了就必须停下，不再发送。
+    match result {
+        Ok(()) => assert_eq!(sent, bytes.len()),
+        Err(error) => {
+            assert_eq!(error.kind, ErrorKind::LensChanged);
+            assert!(sent < bytes.len());
+        }
+    }
+    let after = f.session.read_import_preview(
+        f.session.import_preview_grant().unwrap(),
+        &preview,
+        &item,
+        240,
+        |_| panic!("安全模式提交后预览同意已作废"),
+    );
+    assert!(after.is_err());
+}
+
+#[test]
+fn closing_the_window_fences_an_import_preview_before_the_next_chunk() {
+    let f = Fixture::new(true);
+    let (preview, item, bytes) = sealed_duplicate_preview(&f);
+    let mut sent = 0;
+    let result = f.session.read_import_preview(
+        f.session.import_preview_grant().unwrap(),
+        &preview,
+        &item,
+        240,
+        |chunk| {
+            sent += chunk.len();
+            // 窗口线程不等许可，只让导入预览代次前进。
+            f.session.fence_import_preview();
+            Ok(())
+        },
+    );
+    assert_eq!(result.unwrap_err().kind, ErrorKind::LensChanged);
+    assert_eq!(sent, kinshoko_core::session::IMPORT_PREVIEW_CHUNK_BYTES);
+    assert!(sent < bytes.len());
+}

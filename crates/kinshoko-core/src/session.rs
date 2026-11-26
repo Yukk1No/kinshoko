@@ -13,9 +13,11 @@
 //! “锁外准备 → 进门复核 → 门内生效”由 [`VisibilityPermit::commit`] 与
 //! [`VisibilityPermit::stream`] 完成，调用方不接触裸锁、不手工复核代次。
 
+mod import_preview;
 mod order;
 mod permit;
 
+pub use import_preview::IMPORT_PREVIEW_CHUNK_BYTES;
 pub use permit::{Grant, VisibilityPermit};
 
 use std::panic::Location;
