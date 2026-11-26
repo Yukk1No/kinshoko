@@ -3,8 +3,8 @@
 //! `stage_clipboard_image`）；这里只接系统剪贴板与资源管理器。都在别的线程上做。
 
 use image::RgbaImage;
-use kinshoko_core::CommandError;
 use kinshoko_core::command_error::ErrorKind;
+use kinshoko_core::{CommandError, VisibilityPermit};
 use tauri::AppHandle;
 
 use crate::library;
@@ -21,15 +21,19 @@ pub async fn copy_reference_image(
     image_id: String,
 ) -> Result<(), CommandError> {
     tauri::async_runtime::spawn_blocking(move || {
-        let pixels = library::visible_source(&app, &library_id, &image_id)?
-            .clipboard_pixels(&image_id)
-            .map_err(CommandError::from)?;
-        let prepared = super::clipboard::PreparedImage::prepare(&pixels)?;
-        // 解码期间安全模式或分级可能变了：在可见性提交里重新核对后才写剪贴板。
-        library::with_visibility_commit(&app, |_| {
-            library::visible_source(&app, &library_id, &image_id)?;
-            prepared.commit(&app)
-        })
+        // 锁外解码；进门后许可复核安全模式与这张图仍可见，才写剪贴板。
+        VisibilityPermit::commit_image(
+            library::workspace_session(&app),
+            &library_id,
+            &image_id,
+            |source| {
+                let pixels = source
+                    .clipboard_pixels(&image_id)
+                    .map_err(CommandError::from)?;
+                super::clipboard::PreparedImage::prepare(&pixels)
+            },
+            |_, prepared| prepared.commit(&app),
+        )
     })
     .await
     .map_err(CommandError::system)?

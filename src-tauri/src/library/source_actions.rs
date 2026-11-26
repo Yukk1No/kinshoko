@@ -23,7 +23,7 @@ pub(super) async fn workspace_edit_sources<R: Runtime>(
             })
         });
         if results.iter().any(|(_, result)| result.is_ok()) {
-            app.state::<LibraryState>().search.invalidate();
+            app.state::<LibraryState>().search().invalidate();
             publish(&app, AppNotice::LibraryWriteCommitted);
         }
         Ok(results

@@ -9,7 +9,7 @@ pub(super) async fn inspect_tag_catalog<R: Runtime>(
     state: State<'_, LibraryState>,
 ) -> Result<TagCatalogWorkspace, CommandError> {
     let reader = app.clone();
-    let lens = state.safe_mode.lens();
+    let lens = state.safe_mode().lens();
     // 经共享的工作区读（#337）：复用它的快照。
     let result = blocking(move || {
         workspace::with_resources(
@@ -20,7 +20,7 @@ pub(super) async fn inspect_tag_catalog<R: Runtime>(
         )
     })
     .await?;
-    lens.confirm(&state.safe_mode)
+    lens.confirm(state.safe_mode())
         .map_err(|_| mapping_safe_mode_changed())?;
     Ok(result)
 }
@@ -34,7 +34,7 @@ pub(super) async fn correct_tag_mapping<R: Runtime>(
     correction: CatalogCorrection,
 ) -> Result<TagCatalogWorkspace, CommandError> {
     let reader = app.clone();
-    let lens = state.safe_mode.lens();
+    let lens = state.safe_mode().lens();
     let publish_library_id = library_id.clone();
     let result = blocking(move || {
         workspace::with_resources(
@@ -54,7 +54,7 @@ pub(super) async fn correct_tag_mapping<R: Runtime>(
     let publication =
         blocking(move || publish_definition_dependencies(&publish_app, &publish_library_id)).await;
     names::refresh_labels(&app, &state)?;
-    lens.confirm(&state.safe_mode)
+    lens.confirm(state.safe_mode())
         .map_err(|_| mapping_safe_mode_changed())?;
     publication.map_err(|error| {
         CommandError::caused_by(
@@ -97,7 +97,7 @@ pub(super) async fn vocabulary<R: Runtime>(
     state: State<'_, LibraryState>,
     library_id: String,
 ) -> Result<Vocabulary, CommandError> {
-    let catalog = state.search.clone();
+    let catalog = state.search().clone();
     blocking(move || {
         let library = readable(&app, &library_id)?;
         with_catalog(&catalog, |catalog| catalog.search_vocabulary(&library))
@@ -113,7 +113,7 @@ pub(super) async fn tag_groups<R: Runtime>(
     library_id: String,
     lang: String,
 ) -> Result<Vec<TagGroupView>, CommandError> {
-    let catalog = state.search.clone();
+    let catalog = state.search().clone();
     blocking(move || {
         let library = readable(&app, &library_id)?;
         with_catalog(&catalog, |catalog| catalog.tag_groups(&library, &lang))

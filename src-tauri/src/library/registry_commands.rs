@@ -21,7 +21,7 @@ pub(super) async fn create_library<R: Runtime>(
 ) -> Result<LibraryInfo, CommandError> {
     blocking(move || {
         let state = app.state::<LibraryState>();
-        let _transition = lock(&state.transition);
+        let _transition = state.session.transition();
         let library = with_visibility_commit(&app, |_| {
             with_libraries(&state, |libraries| {
                 libraries.create(&parent.join(name.trim()), &name)
@@ -155,7 +155,7 @@ pub(super) async fn register_library<R: Runtime>(
 ) -> Result<LibraryInfo, CommandError> {
     blocking(move || {
         let state = app.state::<LibraryState>();
-        let _transition = lock(&state.transition);
+        let _transition = state.session.transition();
         let library = with_visibility_commit(&app, |_| {
             with_libraries(&state, |libraries| libraries.register(&root))
         })?;
@@ -175,7 +175,7 @@ pub(super) async fn switch_library<R: Runtime>(
 ) -> Result<LibraryInfo, CommandError> {
     blocking(move || {
         let state = app.state::<LibraryState>();
-        let _transition = lock(&state.transition);
+        let _transition = state.session.transition();
         let library = with_visibility_commit(&app, |_| {
             with_libraries(&state, |libraries| libraries.switch(&library_id))
         })?;
@@ -194,7 +194,7 @@ pub(super) async fn unregister_library<R: Runtime>(
 ) -> Result<(), CommandError> {
     blocking(move || {
         let state = app.state::<LibraryState>();
-        let _transition = lock(&state.transition);
+        let _transition = state.session.transition();
         let closed = with_visibility_commit(&app, |_| {
             with_libraries(&state, |libraries| {
                 let closed = libraries
@@ -206,7 +206,7 @@ pub(super) async fn unregister_library<R: Runtime>(
         })?;
         if closed {
             *lock(&state.forwarded) = None;
-            state.search.invalidate();
+            state.search().invalidate();
             *lock(&state.reference) = None;
         }
         state.release_readers();

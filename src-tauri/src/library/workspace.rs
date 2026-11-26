@@ -131,38 +131,14 @@ fn monitor_step(
         backoff.reset();
     }
 }
-/// Acquire device, catalog, then workspace. Callers retain their lens and visibility guards.
+/// Acquire device, catalog, then workspace ([`kinshoko_core::WorkspaceSession::with_resources`]).
+/// Callers retain their lens and visibility guards.
 #[track_caller]
 pub(super) fn with_resources<T>(
     state: &LibraryState,
     f: impl FnOnce(&mut Workspace, &mut DeviceLibraries, &mut TagCatalog) -> Result<T, CatalogError>,
 ) -> Result<T, CommandError> {
-    with_resources_at(state, Location::caller(), f)
-}
-
-pub(super) fn with_resources_at<T>(
-    state: &LibraryState,
-    site: &'static Location<'static>,
-    f: impl FnOnce(&mut Workspace, &mut DeviceLibraries, &mut TagCatalog) -> Result<T, CatalogError>,
-) -> Result<T, CommandError> {
-    // 三把锁都记在调用方的位置上（#337）：日志里看得出是哪个命令占着它们。
-    with_libraries_at(state, site, |device| {
-        Ok(state
-            .search
-            .with_catalog_at(site, |catalog| {
-                let waiting = std::time::Instant::now();
-                let mut slot = lock(&state.workspace);
-                let _held = kinshoko_core::diagnostics::HeldLock::acquired("工作区", site, waiting);
-                if slot.is_none() {
-                    *slot = Some(Workspace::open_with_gate(
-                        &state.device_dir,
-                        state.gate.clone(),
-                    )?);
-                }
-                f(slot.as_mut().expect("workspace opened"), device, catalog)
-            })
-            .map_err(CommandError::from))
-    })?
+    state.session.with_resources_at(Location::caller(), f)
 }
 
 pub(super) fn monitor<R: Runtime>(app: AppHandle<R>) {
@@ -227,18 +203,18 @@ pub(super) async fn workspace_browse<R: Runtime>(
         // 不用 `Hold::Stable`：`confirm` 自己复核修订号，前后再各取一次状态只是多做几遍核对。
         let state = app.state::<LibraryState>();
         let browse = || -> Result<WorkspacePage, CommandError> {
-            let lens = state.safe_mode.lens();
+            let lens = state.safe_mode().lens();
             let mut pending = with_lens(&app, safe_mode, Hold::Read, |w, d, c| {
                 took("浏览：等资源锁", started, None);
                 w.browse_rows(d, c, &query, safe_mode)
             })?;
             let reading = std::time::Instant::now();
-            pending.fill_placeholders(&state.gate);
+            pending.fill_placeholders(state.session.gate());
             took("浏览：读占位图", reading, None);
             let page = with_lens(&app, safe_mode, Hold::Read, |w, d, c| {
                 w.confirm(d, c, pending)
             })?;
-            lens.confirm(&state.safe_mode)?;
+            lens.confirm(state.safe_mode())?;
             Ok(page)
         };
         let mut page = browse();
@@ -247,7 +223,7 @@ pub(super) async fn workspace_browse<R: Runtime>(
         if query.cursor.is_none()
             && matches!(&page, Err(error) if error.kind == ErrorKind::CursorExpired)
         {
-            let _visibility = lock(&state.visibility_commit);
+            let _visibility = state.session.visibility();
             page = browse();
         }
         match &page {
@@ -269,7 +245,7 @@ pub(super) async fn workspace_resolve<R: Runtime>(
         terms: input.conditions.len().min(u32::MAX as usize) as u32,
     });
     blocking(move || {
-        let catalog = app.state::<LibraryState>().search.clone();
+        let catalog = app.state::<LibraryState>().search().clone();
         with_lens(&app, safe_mode, Hold::Stable, |w, d, c| {
             w.resolve(d, c, &input, &lang, safe_mode, catalog.builtin_approx())
         })
@@ -285,7 +261,7 @@ pub(super) async fn workspace_candidates<R: Runtime>(
     safe_mode: bool,
 ) -> Result<Vec<Candidate>, CommandError> {
     blocking(move || {
-        let catalog = app.state::<LibraryState>().search.clone();
+        let catalog = app.state::<LibraryState>().search().clone();
         with_lens(&app, safe_mode, Hold::Stable, |w, d, c| {
             w.candidates(
                 d,
@@ -311,7 +287,7 @@ pub(super) async fn workspace_library_candidates<R: Runtime>(
     safe_mode: bool,
 ) -> Result<Vec<Candidate>, CommandError> {
     blocking(move || {
-        let catalog = app.state::<LibraryState>().search.clone();
+        let catalog = app.state::<LibraryState>().search().clone();
         with_lens(&app, safe_mode, Hold::Confirmed, |w, d, c| {
             w.library_candidates(
                 d,
@@ -327,23 +303,17 @@ pub(super) async fn workspace_library_candidates<R: Runtime>(
     })
     .await
 }
-/// Read any registered source without activating it. Safety includes every known byte-identical copy.
+/// Read any registered source without activating it. Safety includes every known byte-identical copy
+/// ([`kinshoko_core::WorkspaceSession::visible_source`]).
+#[track_caller]
 pub(super) fn read<R: Runtime>(
     app: &AppHandle<R>,
     library_id: &str,
     image_id: &str,
 ) -> Result<Arc<Library>, CommandError> {
-    let safe = saved_safe_mode(app);
-    with_lens(app, safe, Hold::Stable, |workspace, device, catalog| {
-        if !workspace.contains(device, catalog, library_id, image_id, safe)? {
-            return Err(kinshoko_core::library::Error::UnknownImage.into());
-        }
-        let library = device
-            .read(library_id)
-            .map_err(|e| CatalogError::Command(Box::new(e.into())))?;
-        library.set_safe_mode(safe);
-        Ok(library)
-    })
+    app.state::<LibraryState>()
+        .session
+        .visible_source(library_id, image_id)
 }
 /// One authorized image read for the `thumb` protocol (#123, #313). The published snapshot answers
 /// without any global lock or reopened provider ([`kinshoko_core::workspace::ImageGate`]); when it
@@ -357,11 +327,12 @@ pub(super) fn read_image<R: Runtime>(
     slow: &mut bool,
 ) -> Result<Arc<Library>, CommandError> {
     let state = app.state::<LibraryState>();
-    let lens = state.safe_mode.lens();
+    let lens = state.safe_mode().lens();
     let authorize = || {
         let mode = saved_mode(app);
         state
-            .gate
+            .session
+            .gate()
             .authorize(library_id, image_id, mode.on, mode.scope)
     };
     let library = match authorize() {
@@ -379,7 +350,7 @@ pub(super) fn read_image<R: Runtime>(
             }
         }
     };
-    lens.confirm(&state.safe_mode)?;
+    lens.confirm(state.safe_mode())?;
     Ok(library)
 }
 /// 一张图的详情。详情、标签、文件夹的可见性复核与安全模式封印都在 core（#424）。
@@ -392,7 +363,7 @@ pub(super) async fn image<R: Runtime>(
     blocking(move || {
         let state = app.state::<LibraryState>();
         with_resources(&state, |w, d, c| {
-            w.image_detail(d, c, &state.safe_mode, &library_id, &image_id)
+            w.image_detail(d, c, state.safe_mode(), &library_id, &image_id)
         })
     })
     .await
@@ -409,7 +380,7 @@ pub(super) async fn catalog_image_tags<R: Runtime>(
     blocking(move || {
         let state = app.state::<LibraryState>();
         with_resources(&state, |w, d, c| {
-            w.image_tags(d, c, &state.safe_mode, &library_id, &image_id, &lang)
+            w.image_tags(d, c, state.safe_mode(), &library_id, &image_id, &lang)
         })
     })
     .await

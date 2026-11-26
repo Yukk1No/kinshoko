@@ -191,17 +191,23 @@ fn copy_reference_pin(app: &AppHandle, pin: &str) -> Result<(), CommandError> {
             "安全模式下已遮蔽，不能复制",
         ));
     }
-    let pixels = crate::library::visible_source(app, library_id, image_id)?
-        .clipboard_pixels(image_id)
-        .map_err(CommandError::from)?;
-    let pixels = match saved.crop {
-        Some(c) => image::imageops::crop_imm(&pixels, c.x, c.y, c.width, c.height).to_image(),
-        None => pixels,
-    };
-    let prepared = super::super::clipboard::PreparedImage::prepare(&pixels)?;
-    // 解码期间安全模式或分级可能变了：在可见性提交里重新核对后才写剪贴板。
-    crate::library::with_visibility_commit(app, |_| {
-        crate::library::visible_source(app, library_id, image_id)?;
-        prepared.commit(app)
-    })
+    // 锁外解码与裁切；进门后许可复核安全模式与这张图仍可见，才写剪贴板。
+    kinshoko_core::VisibilityPermit::commit_image(
+        crate::library::workspace_session(app),
+        library_id,
+        image_id,
+        |source| {
+            let pixels = source
+                .clipboard_pixels(image_id)
+                .map_err(CommandError::from)?;
+            let pixels = match saved.crop {
+                Some(c) => {
+                    image::imageops::crop_imm(&pixels, c.x, c.y, c.width, c.height).to_image()
+                }
+                None => pixels,
+            };
+            super::super::clipboard::PreparedImage::prepare(&pixels)
+        },
+        |_, prepared| prepared.commit(app),
+    )
 }

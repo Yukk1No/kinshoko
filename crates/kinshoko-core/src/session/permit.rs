@@ -108,9 +108,14 @@ impl<'a> VisibilityPermit<'a> {
         }
     }
 
-    /// 开始一次新的导入预览：之前的授权都作废。返回新的代次。
-    pub fn begin_import_preview(&self) -> u64 {
-        self.session.import_preview.fetch_add(1, Ordering::SeqCst) + 1
+    /// 开始一次新的导入预览：之前的授权都作废。返回绑定新代次的授权；导入预览只在安全模式
+    /// 开启时有效，关着时代次照样前进、得到 [`LensStale`]。
+    pub fn begin_import_preview(&self) -> Result<Grant, LensStale> {
+        let generation = self.session.import_preview.fetch_add(1, Ordering::SeqCst) + 1;
+        Ok(Grant::new(
+            self.session.safe_mode.lens_expecting(true)?,
+            Some(generation),
+        ))
     }
 
     /// 关掉导入预览 `session_id`（`None` 时不论哪个）。晚到的、关旧预览的请求不作废新的授权。

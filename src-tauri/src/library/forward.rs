@@ -28,7 +28,7 @@ pub(super) fn forward_events<R: Runtime>(
     library.set_safe_mode(saved_safe_mode(app));
     took("装配：安全模式", started, None);
     let started = std::time::Instant::now();
-    if let Err(error) = with_catalog(&state.search, |catalog| {
+    if let Err(error) = with_catalog(state.search(), |catalog| {
         took("装配：等统一标签目录", started, None);
         catalog.synchronize(&library)
     }) {
@@ -41,7 +41,7 @@ pub(super) fn forward_events<R: Runtime>(
     *lock(&state.reference) = library.take_reference_lens();
     // 刚成为活动库的库不再经只读视角读取；其他库按需重开。
     state.release_readers();
-    state.search.invalidate();
+    state.search().invalidate();
     took("装配：设置与放掉只读句柄", started, None);
     let started = std::time::Instant::now();
     crate::tagging::prefer(app, &info.id);

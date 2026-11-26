@@ -57,7 +57,7 @@ pub(crate) fn refresh_search_on_notice<R: Runtime>(app: &AppHandle<R>, notice: &
             )
     ) {
         // Invalidate before the window adapter asks consumers to read again.
-        app.state::<LibraryState>().search.invalidate();
+        app.state::<LibraryState>().search().invalidate();
     }
 }
 
@@ -69,7 +69,7 @@ pub(super) async fn edit_tag_name<R: Runtime>(
     edit: CatalogNameEdit,
 ) -> Result<TagCatalogWorkspace, CommandError> {
     let reader = app.clone();
-    let lens = state.safe_mode.lens();
+    let lens = state.safe_mode().lens();
     // 经共享的工作区读可见目录（#337）：复用它的快照。
     let result = blocking(move || {
         workspace::with_resources(
@@ -99,7 +99,7 @@ pub(super) async fn edit_tag_name<R: Runtime>(
     })
     .await?;
     refresh_labels(&app, &state)?;
-    lens.confirm(&state.safe_mode).map_err(|_| {
+    lens.confirm(state.safe_mode()).map_err(|_| {
         CommandError::new(
             ErrorKind::TagNamesSafeModeChanged,
             "安全模式已变化，请重新读取标签名称",
@@ -120,7 +120,7 @@ pub(super) async fn edit_local_alias<R: Runtime>(
     local_id: String,
     edit: LocalAliasEdit,
 ) -> Result<(), CommandError> {
-    let catalog = state.search.clone();
+    let catalog = state.search().clone();
     let reader = app.clone();
     blocking(move || {
         // 别名记在本设备的统一目录里，资料库只读核对：不必是可写库（ADR-0008）。

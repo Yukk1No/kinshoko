@@ -51,13 +51,13 @@ pub(super) async fn edit_shared_tag_group<R: Runtime>(
     blocking(move || {
         let lens = app
             .state::<LibraryState>()
-            .safe_mode
+            .safe_mode()
             .lens_expecting(safe_mode)?;
         with_lens(&app, safe_mode, Hold::Read, |workspace, device, catalog| {
             workspace.edit_group(device, catalog, &edit, safe_mode)
         })?;
         publish(&app, AppNotice::TagGroupsChanged);
-        Ok(lens.confirm(&app.state::<LibraryState>().safe_mode)?)
+        Ok(lens.confirm(app.state::<LibraryState>().safe_mode())?)
     })
     .await
 }
@@ -71,7 +71,7 @@ pub(super) async fn delete_shared_tag_group<R: Runtime>(
 ) -> Result<DeletedCatalogGroup, CommandError> {
     blocking(move || {
         app.state::<LibraryState>()
-            .safe_mode
+            .safe_mode()
             .lens_expecting(safe_mode)?;
         // 删除一提交就把快照交回界面：这之后即使安全模式变了也不再报错，否则撤销就丢了。
         let deleted = with_lens(&app, safe_mode, Hold::Read, |_, _, catalog| {

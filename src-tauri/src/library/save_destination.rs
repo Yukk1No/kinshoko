@@ -10,7 +10,7 @@ pub(super) fn fixed_library<R: Runtime>(
     destination: &SaveDestination,
 ) -> Result<Arc<Library>, CommandError> {
     let state = app.state::<LibraryState>();
-    let _transition = lock(&state.transition);
+    let _transition = state.session.transition();
     let library = with_libraries(&state, |device| device.write(&destination.library_id))?;
     library
         .validate_destination(destination)
@@ -71,7 +71,7 @@ pub(super) fn publish_saved<R: Runtime>(
             )
         });
     let publication = validated.and_then(|()| {
-        with_catalog(&state.search, |catalog| {
+        with_catalog(state.search(), |catalog| {
             catalog.publish_library_definitions(library)
         })
         .map_err(|error| {
@@ -161,8 +161,8 @@ pub(super) async fn dismiss_import<R: Runtime>(
     task_id: String,
 ) -> Result<(), CommandError> {
     blocking(move || {
-        with_visibility_commit(&app, |_| {
-            import_preview::revoke(&app);
+        with_visibility_commit(&app, |permit| {
+            permit.revoke_import_preview();
             let state = app.state::<LibraryState>();
             with_libraries(&state, |device| {
                 device.dismiss_import(&library_id, &task_id)

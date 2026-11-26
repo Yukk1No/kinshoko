@@ -2,18 +2,22 @@
 
 use super::*;
 use kinshoko_core::CommandError;
+use kinshoko_core::VisibilityPermit;
 
 /// 运行日志里的资料库编号（#219）：它在本设备登记表里的位置。登记表还没加载、或正被别处
 /// 持有（例如切换资料库的途中）时为空：只为记日志，不等锁。
 pub fn library_no<R: Runtime>(app: &AppHandle<R>, library_id: &str) -> Option<LibraryNo> {
     let state = app.try_state::<LibraryState>()?;
-    let libraries = state.libraries.try_lock().ok()?;
-    libraries
-        .as_ref()?
-        .libraries()
-        .iter()
-        .position(|library| library.id == library_id)
-        .map(LibraryNo::from_index)
+    state
+        .session
+        .try_with_libraries(|libraries| {
+            libraries?
+                .libraries()
+                .iter()
+                .position(|library| library.id == library_id)
+                .map(LibraryNo::from_index)
+        })
+        .flatten()
 }
 
 /// 已登记资料库的身份，按登记顺序：自动打标逐个询问它们（ADR-0008 修订，#414）。
@@ -45,7 +49,7 @@ pub fn tagging_writer<R: Runtime>(
         .ok_or_else(|| CommandError::new(ErrorKind::LibraryNotOpen, "还没有打开资料库"))?;
     let registrations = with_libraries(&state, |libraries| Ok(libraries.libraries().to_vec()))?;
     DeviceLibraries::library_folder(&registrations, library_id).map_err(CommandError::from)?;
-    let _transition = lock(&state.transition);
+    let _transition = state.session.transition();
     let library = with_libraries(&state, |device| device.write(library_id))?;
     if fresh(&library) {
         state.configure_library(&library);
@@ -62,10 +66,11 @@ pub(super) fn restore<R: Runtime>(
     use kinshoko_core::diagnostics::took;
     let started = std::time::Instant::now();
     let state = app.state::<LibraryState>();
-    let _transition = lock(&state.transition);
-    let first = state.libraries.try_lock().map_or(true, |libraries| {
-        libraries.as_ref().is_none_or(|l| l.current().is_none())
-    });
+    let _transition = state.session.transition();
+    let first = state
+        .session
+        .try_with_libraries(|libraries| libraries.is_none_or(|l| l.current().is_none()))
+        .unwrap_or(true);
     if first {
         took("打开资料库：等切换锁", started, None);
     }
@@ -116,7 +121,7 @@ pub fn writable<R: Runtime>(
     let state = app.state::<LibraryState>();
     wait_for_writer(
         || {
-            let _transition = lock(&state.transition);
+            let _transition = state.session.transition();
             let access = with_visibility_commit(app, |_| {
                 with_libraries(&state, |libraries| libraries.organize(library_id))
             })?;
@@ -181,7 +186,7 @@ pub fn with_references<R: Runtime, T>(
         .as_ref()
         .map(|libraries| libraries.libraries().to_vec())
         .or_else(|| {
-            DeviceRegistry::open(&state.device_dir)
+            DeviceRegistry::open(state.device_dir())
                 .ok()
                 .map(|device| device.libraries().to_vec())
         })
@@ -197,7 +202,7 @@ pub fn with_references<R: Runtime, T>(
 
 /// 本设备的数据目录：资料库登记表、参考组与备份计划都在这里（见 `crate::data_dirs`）。
 pub fn data_dir<R: Runtime>(app: &AppHandle<R>) -> PathBuf {
-    app.state::<LibraryState>().device_dir.clone()
+    app.state::<LibraryState>().device_dir().to_path_buf()
 }
 
 /// 本设备登记的资料库（备份范围用，#69）。在切换锁里读：不会读到切换进行到一半的登记表。
@@ -205,7 +210,7 @@ pub fn registered<R: Runtime>(
     app: &AppHandle<R>,
 ) -> Result<Vec<kinshoko_core::RegisteredLibrary>, CommandError> {
     let state = app.state::<LibraryState>();
-    let _transition = lock(&state.transition);
+    let _transition = state.session.transition();
     with_libraries(&state, |libraries| Ok(libraries.libraries().to_vec()))
 }
 
@@ -215,7 +220,7 @@ pub fn register_restored<R: Runtime>(
     roots: &[PathBuf],
 ) -> Result<(), CommandError> {
     let state = app.state::<LibraryState>();
-    let _transition = lock(&state.transition);
+    let _transition = state.session.transition();
     with_visibility_commit(app, |_| {
         with_libraries(&state, |libraries| {
             for root in roots {
@@ -231,42 +236,47 @@ pub fn register_restored<R: Runtime>(
 
 /// Current authority generation for native capture actions.
 pub fn capture_generation<R: Runtime>(app: &AppHandle<R>) -> SafeModeSnapshot {
-    app.state::<LibraryState>().safe_mode.snapshot()
+    app.state::<LibraryState>().safe_mode().snapshot()
+}
+
+/// 本设备的工作区会话：取锁顺序与可见性许可（[`VisibilityPermit`]）都在它上面。
+/// 资料库插件还没装配时调用会 panic（同 `app.state`）。
+pub(crate) fn workspace_session<R: Runtime>(app: &AppHandle<R>) -> &WorkspaceSession {
+    &app.state::<LibraryState>().inner().session
 }
 
 /// Revoke receipt consent when its main window is destroyed.
 pub fn revoke_import_preview_context<R: Runtime>(app: &AppHandle<R>) {
     // Never wait for the visibility permit on the window thread. Fence pending sends
     // immediately, then retire the session in the normal permit -> resources order.
-    app.state::<LibraryState>()
-        .import_preview_generation
-        .fetch_add(1, Ordering::SeqCst);
+    app.state::<LibraryState>().session.fence_import_preview();
     let app = app.clone();
     tauri::async_runtime::spawn_blocking(move || {
-        with_visibility_commit(&app, |_| import_preview::revoke(&app))
+        with_visibility_commit(&app, |permit| permit.revoke_import_preview())
     });
 }
 
 /// Commit a final visibility-authorized side effect atomically with mode/settings,
 /// provider/source edits and background rating publication.
-/// Decode first, outside this closure. Revalidate the caller's capability against the supplied
+/// Decode first, outside this closure. Revalidate the caller's capability against the permit's
 /// generation, then perform the actual send/copy/pin before returning. This does not reject
 /// safe mode itself: an explicit, scoped preview capability can be valid while safe mode is on.
+/// New call sites prefer [`kinshoko_core::VisibilityPermit::commit`], which does the revalidation.
 ///
-/// 取锁顺序与线程限制见 [`super::lens`] 的模块说明。
+/// 取锁顺序与线程限制见 `kinshoko_core::session` 的模块说明。
 pub(crate) fn with_visibility_commit<R: Runtime, T>(
     app: &AppHandle<R>,
-    commit: impl FnOnce(SafeModeSnapshot) -> T,
+    commit: impl FnOnce(&VisibilityPermit<'_>) -> T,
 ) -> T {
-    let state = app.state::<LibraryState>();
-    let _visibility = lock(&state.visibility_commit);
-    commit(state.safe_mode.snapshot())
+    app.state::<LibraryState>().session.with_visibility(commit)
 }
 
 /// The same pure Rust gate is injected into background result publication.
 /// Lifecycle code must release it before stopping/joining a scheduler worker.
 pub(crate) fn visibility_publication_gate<R: Runtime>(app: &AppHandle<R>) -> Arc<Mutex<()>> {
-    app.state::<LibraryState>().visibility_commit.clone()
+    app.state::<LibraryState>()
+        .session
+        .tagging_publication_gate()
 }
 
 /// 安全模式是否开启（全局设置）；读不到设置时按开启处理。

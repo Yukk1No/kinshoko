@@ -12,7 +12,7 @@ pub(super) fn rating_candidates(
     text: String,
     safe_mode: bool,
 ) -> Vec<RatingCandidate> {
-    kinshoko_core::search::rating_candidates(&text, state.safe_mode.effective(safe_mode))
+    kinshoko_core::search::rating_candidates(&text, state.safe_mode().effective(safe_mode))
 }
 
 /// 搜索框打字时的候选：按命名空间与别名列出，名称按界面语言 `lang`。`safe_mode` 是界面
@@ -27,7 +27,7 @@ pub(super) async fn search_candidates<R: Runtime>(
     limit: u32,
     safe_mode: bool,
 ) -> Result<Vec<Candidate>, CommandError> {
-    let catalog = state.search.clone();
+    let catalog = state.search().clone();
     verbs::browse(app, library_id, move |library| {
         catalog
             .search(library, safe_mode)
@@ -39,7 +39,7 @@ pub(super) async fn search_candidates<R: Runtime>(
 /// 安全模式是否开启（全局设置）。
 #[tauri::command]
 pub(super) async fn safe_mode(state: State<'_, LibraryState>) -> Result<bool, CommandError> {
-    Ok(state.safe_mode.current().on)
+    Ok(state.safe_mode().current().on)
 }
 
 /// 开关安全模式：先提交给 [`SafeModeState`] 并保存设置（保存不成时退回原值），再设给开着的
@@ -68,7 +68,7 @@ pub(super) async fn set_safe_mode<R: Runtime>(
             }
             publish(
                 &app,
-                AppNotice::SafeModeCommitted(state.safe_mode.current()),
+                AppNotice::SafeModeCommitted(state.safe_mode().current()),
             );
         },
     )?;
@@ -107,10 +107,10 @@ pub(super) async fn set_safe_mode_scope<R: Runtime>(
                 // 视角已换上；只是修订号没写成，游标与工作区快照仍按视角作废。
                 crate::run_log::warn("安全模式范围的修订号未写入", error);
             }
-            state.search.invalidate();
+            state.search().invalidate();
             publish(
                 &app,
-                AppNotice::SafeModeCommitted(state.safe_mode.current()),
+                AppNotice::SafeModeCommitted(state.safe_mode().current()),
             );
         },
     )?;
@@ -154,7 +154,7 @@ pub(super) fn external_vocabulary<R: Runtime>(
     {
         return Ok(vocabulary.clone());
     }
-    let mut names = ExternalVocabulary::builtin_names(state.search.builtin_approx());
+    let mut names = ExternalVocabulary::builtin_names(state.search().builtin_approx());
     if let Some(path) = &csv {
         names.extend(ExternalVocabulary::read_tags_csv(path)?);
     }
