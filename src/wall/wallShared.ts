@@ -123,11 +123,6 @@ export type WallProps = {
   emptyAction?: (searching: boolean) => ReactNode;
 };
 
-/** 按键落在可输入的地方（输入框、文本框、可编辑区域）：Ctrl+V 是粘贴文字，不是导入。 */
-export const editable = (target: EventTarget | null) =>
-  target instanceof HTMLElement &&
-  (target.isContentEditable || target.closest("input, textarea, select, [contenteditable='true']") !== null);
-
 /** 每个范围各自记住位置。“全部”沿用 #44 的键。 */
 export const scopeKey = (scope: BrowseScope) =>
   scope.kind === "folder" || scope.kind === "folderTree" ? `${scope.kind}.${scope.id}` : scope.kind;

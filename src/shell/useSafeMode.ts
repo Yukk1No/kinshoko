@@ -2,9 +2,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { i18n } from "../i18n";
 import { onSafeModeSetting, safeMode, setSafeMode } from "../ipc";
 import { errorText } from "../ipc/commandError";
+import { usePageKeymap } from "../keymap/usePageKeymap";
 import { useToast } from "../ui/Toast";
 import { INITIAL_SAFE_LENS, needsRecheck, reduceSafeLens, type SafeLensAction } from "./safeLens";
 import { safeTiming } from "./safeTiming";
+
+const SAFE_MODE_KEY = ["main.safeMode"] as const;
 
 /** 主窗口的安全模式状态与切换（#60、#183），原样从 App.tsx 移出。 */
 export function useSafeMode() {
@@ -55,16 +58,7 @@ export function useSafeMode() {
     };
   }, [acceptSafe]);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && e.key.toLowerCase() === "s") {
-        e.preventDefault();
-        toggleSafe();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [toggleSafe]);
+  usePageKeymap(SAFE_MODE_KEY, toggleSafe);
 
   return { safe, lensSafe, acceptSafe, toggleSafe };
 }

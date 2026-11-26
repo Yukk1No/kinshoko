@@ -1,3 +1,5 @@
+import { isEditableTarget } from "../keymap/KeymapRegistry";
+
 /** 能输入文字的 input：右键时留给系统的剪切、复制、粘贴菜单。 */
 const TEXT_INPUTS = new Set(["", "text", "search", "url", "email", "tel", "password", "number"]);
 
@@ -7,9 +9,8 @@ function editable(target: EventTarget | null): boolean {
   if (target instanceof HTMLTextAreaElement) return !target.matches(":disabled");
   if (target instanceof HTMLInputElement)
     return !target.matches(":disabled") && TEXT_INPUTS.has(target.getAttribute("type")?.toLowerCase() ?? "");
-  return (
-    (target as HTMLElement).isContentEditable || !!target.closest('[contenteditable]:not([contenteditable="false"])')
-  );
+  if (target.closest("select")) return false;
+  return isEditableTarget(target);
 }
 
 /**

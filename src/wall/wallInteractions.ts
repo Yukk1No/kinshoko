@@ -1,22 +1,16 @@
 // 图片墙上的选择、键盘、右键与拖出，以及 Ctrl+V 导入（#105）。
-import { useEffect, useEffectEvent } from "react";
 import type { DragEvent, KeyboardEvent, MouseEvent, MutableRefObject, ReactNode } from "react";
 import type { BrowseScope } from "../bindings/BrowseScope";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
+import { keymapRegistry } from "../keymap/registry";
+import { usePageKeymap } from "../keymap/usePageKeymap";
 import { modalOpen } from "../ui/modal";
 import { isMenuKey, openMenuAt } from "../ui/menuKey";
 import type { Press } from "./doubleClick";
 import type { WallMenuTarget } from "./WallMenu";
 import { neighbour, type Direction, type Layout } from "./layout";
 import { pagesOf } from "./imageSets";
-import {
-  CARD_BUTTONS,
-  DRAG_IMAGE_SOURCES,
-  DRAG_IMAGES,
-  editable,
-  type BrowserCard,
-  type CardCommand,
-} from "./wallShared";
+import { CARD_BUTTONS, DRAG_IMAGE_SOURCES, DRAG_IMAGES, type BrowserCard, type CardCommand } from "./wallShared";
 
 const ARROWS: Partial<Record<string, Direction>> = {
   ArrowUp: "up",
@@ -189,14 +183,13 @@ export function wallInteractions({
       reveal(to);
       return;
     }
-    const command: CardCommand | null =
-      e.key === "p" || e.key === "P"
-        ? "pin"
-        : e.key === "F1"
-          ? "crop"
-          : e.key === "Delete" && scope.kind !== "trash"
-            ? "trash"
-            : null;
+    const command: CardCommand | null = keymapRegistry.matches("wall.pin", e.nativeEvent)
+      ? "pin"
+      : keymapRegistry.matches("wall.crop", e.nativeEvent)
+        ? "crop"
+        : keymapRegistry.matches("wall.trash", e.nativeEvent) && scope.kind !== "trash"
+          ? "trash"
+          : null;
     if (!command || !onCardCommand) return;
     e.preventDefault();
     const rect = e.currentTarget.getBoundingClientRect();
@@ -207,7 +200,6 @@ export function wallInteractions({
     });
   };
   const wallKey = (e: KeyboardEvent<HTMLDivElement>) => {
-    const chord = (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey;
     // 焦点在托盘里的页或它页角的勾（data-card）上。
     const at = e.target instanceof Element ? e.target.closest<HTMLElement>(".card, .card-check") : null;
     const inTray = trayIds.size > 0 && trayIds.has(at?.dataset.id ?? at?.dataset.card ?? "");
@@ -215,12 +207,12 @@ export function wallInteractions({
       // 托盘开着时（#418）：有选中的页先取消选择，再按一次关托盘。
       e.preventDefault();
       if (!dropTraySelection()) closeTray();
-    } else if (chord && e.key.toLowerCase() === "a") {
+    } else if (keymapRegistry.matches("wall.selectAll", e.nativeEvent)) {
       e.preventDefault();
       // 焦点在托盘里时只选中这一摞的全部页，不选中整面墙（#418）。
       if (inTray) onSelectionChange(new Set(ids.filter((id) => trayIds.has(id))));
       else selectAllRef.current();
-    } else if (chord && e.key.toLowerCase() === "c" && onCardCommand) {
+    } else if (keymapRegistry.matches("wall.copy", e.nativeEvent) && onCardCommand) {
       // 复制：焦点在卡片上时按右键的同一选择规则；否则是当前选择。多张由调用方提示一次只能复制一张。
       const node = e.target instanceof Element ? e.target.closest<HTMLElement>(".card") : null;
       const acted = node?.dataset.id ? actOn(node.dataset.id) : cards.filter((c) => selected.has(c.id));
@@ -277,6 +269,8 @@ export function wallInteractions({
   return { click, clearOnBlankClick, targetMenu, cardKey, wallKey, dragStart, trayClick, leaveTray, pruneTray, toggle };
 }
 
+const PASTE_KEYS = ["wall.paste"] as const;
+
 /** Ctrl+V：从剪贴板导入（#105）。主窗口里焦点不在输入框、没有模态与查看器时都响应。 */
 export function usePasteShortcut({
   onPaste,
@@ -287,16 +281,11 @@ export function usePasteShortcut({
   viewerOpen: boolean;
   scroller: MutableRefObject<HTMLDivElement | null>;
 }) {
-  const pasteOnKey = useEffectEvent((e: globalThis.KeyboardEvent) => {
-    if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey || e.key.toLowerCase() !== "v" || e.defaultPrevented)
-      return;
-    const el = scroller.current;
-    if (!onPaste || !el || viewerOpen || modalOpen() || el.closest("[hidden], [inert]") || editable(e.target)) return;
-    e.preventDefault();
-    onPaste();
+  usePageKeymap(PASTE_KEYS, () => onPaste?.(), {
+    disabled: !onPaste,
+    when: () => {
+      const el = scroller.current;
+      return !!el && !viewerOpen && !modalOpen() && !el.closest("[hidden], [inert]");
+    },
   });
-  useEffect(() => {
-    document.addEventListener("keydown", pasteOnKey);
-    return () => document.removeEventListener("keydown", pasteOnKey);
-  }, []);
 }

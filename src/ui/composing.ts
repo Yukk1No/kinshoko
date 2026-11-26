@@ -1,6 +1,7 @@
 import type { KeyboardEvent } from "react";
+import { isImeComposing } from "../keymap/KeymapRegistry";
 
-/** 输入法正在处理这次按键（选字时的回车、Esc、方向键）。两条都要判断：个别情况下结束选字的那一下按键 isComposing 已经是假，只有 keyCode 还是 229。 */
+/** React 按键事件的 IME 守卫；唯一实现留在 KeymapRegistry。 */
 export function isComposingKey(event: KeyboardEvent): boolean {
-  return event.nativeEvent.isComposing || event.keyCode === 229;
+  return isImeComposing(event.nativeEvent);
 }

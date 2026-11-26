@@ -1,9 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { i18n } from "../i18n";
 import { setUiScale, uiScale } from "../ipc";
+import { usePageKeymap } from "../keymap/usePageKeymap";
 import type { useToast } from "../ui/Toast";
-import { initialUiScale, stepUiScale, uiScaleStepForKey } from "./uiScale";
+import { initialUiScale, stepUiScale, type UiScaleStep } from "./uiScale";
 import { errorText } from "../ipc/commandError";
+
+const UI_SCALE_KEYS = ["main.zoomIn", "main.zoomOut", "main.zoomReset"] as const;
 
 /** 主窗口的界面缩放（#173），从 App 搬出来。 */
 export function useUiScaleChoice(toast: ReturnType<typeof useToast>) {
@@ -47,15 +50,9 @@ export function useUiScaleChoice(toast: ReturnType<typeof useToast>) {
   );
 
   // 界面缩放的固定按键；Ctrl+滚轮不在这里，它归图片墙的图片大小（#111）。
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const step = uiScaleStepForKey(e);
-      if (!step) return;
-      e.preventDefault();
-      void chooseUiScale(stepUiScale(uiScaleTarget.current, step));
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [chooseUiScale]);
+  usePageKeymap(UI_SCALE_KEYS, (action) => {
+    const step: UiScaleStep = action === "main.zoomIn" ? "in" : action === "main.zoomOut" ? "out" : "reset";
+    void chooseUiScale(stepUiScale(uiScaleTarget.current, step));
+  });
   return { uiScalePercent, uiScaleWriting, acceptUiScale, chooseUiScale };
 }

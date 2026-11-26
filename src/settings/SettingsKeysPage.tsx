@@ -7,6 +7,8 @@ import { errorText, hotkeyFailureText } from "../ipc";
 import { type ShellSettingsIntent } from "../shell/useShellSettings";
 import { SettingsGroup, SettingsRow } from "../ui/SettingsList";
 import { Keys } from "../ui/Keys";
+import { keymapEntryText } from "../keymap/KeymapRegistry";
+import { keymapRegistry } from "../keymap/registry";
 
 // 设置 › 快捷键分页，原样从 SettingsPanel.tsx 移出。
 
@@ -27,22 +29,6 @@ function acceleratorFromKey(e: KeyboardEvent): string | null {
   return parts.join("+");
 }
 
-/** 查看器里的固定操作（#179）：缩放、平移、框选、换图、详情侧栏与返回。按键是滚轮、拖动这类操作时写它的键名。 */
-type ViewerKeyWord = "wheel" | "drag" | "shiftDrag";
-const VIEWER_KEYS: [action: string, keys: string | { word: ViewerKeyWord }][] = [
-  ["zoom", { word: "wheel" }],
-  ["pan", { word: "drag" }],
-  ["crop", { word: "shiftDrag" }],
-  ["cropMode", "F1"],
-  ["previous", "←"],
-  ["next", "→"],
-  ["fit", "0"],
-  ["actual", "1"],
-  ["pin", "P"],
-  ["details", "I"],
-  ["back", "Esc"],
-];
-
 type Props = {
   view: ShellSettingsView;
   recording: ShortcutAction | null;
@@ -54,6 +40,8 @@ type Props = {
 
 export function KeysPage({ view, recording, setRecording, apply, pauseShortcuts, onError }: Props) {
   const { t } = useTranslation("settings");
+  // 注册表键跨多个命名空间；这个 `t` 的类型只认识 settings 命名空间，这里按运行时的完整键调用。
+  const keymapText = t as unknown as (key: string) => string;
   const isRecordingAny = recording !== null;
   // 全局快捷键在系统层先于 WebView 收到按键；录制期间暂停，按到已绑定的键才能录下或提示冲突。
   useEffect(() => {
@@ -136,27 +124,27 @@ export function KeysPage({ view, recording, setRecording, apply, pauseShortcuts,
             </SettingsRow>
           );
         })}
-        {(
-          [
-            ["safeMode", "Ctrl+Shift+S"],
-            ["zoomIn", "Ctrl+="],
-            ["zoomOut", "Ctrl+-"],
-            ["zoomReset", "Ctrl+0"],
-            ["details", "I"],
-          ] as const
-        ).map(([action, keys]) => (
-          <SettingsRow key={action} label={t(`keys.${action}`)} title={t(`keys.${action}`)} hint={t("keys.fixedHint")}>
-            <Keys accelerator={keys} />
-          </SettingsRow>
-        ))}
+        {keymapRegistry.settingsEntries("main").map((entry) => {
+          const label = keymapText(entry.labelKey);
+          return (
+            <SettingsRow
+              key={entry.action}
+              label={label}
+              title={label}
+              hint={entry.settings?.hintKey ? keymapText(entry.settings.hintKey) : undefined}
+            >
+              <Keys accelerator={keymapEntryText(entry, keymapText)} />
+            </SettingsRow>
+          );
+        })}
       </SettingsGroup>
       {/* 查看器的操作提示（#179，原在查看器的信息浮层里）。 */}
       <SettingsGroup label={t("keys.viewerGroup")}>
-        {VIEWER_KEYS.map(([action, keys]) => {
-          const title = t(`keys.viewer.${action}` as "keys.viewer.zoom");
+        {keymapRegistry.settingsEntries("viewer").map((entry) => {
+          const label = keymapText(entry.labelKey);
           return (
-            <SettingsRow key={action} label={title} title={title}>
-              <Keys accelerator={typeof keys === "string" ? keys : t(`keys.key.${keys.word}`)} />
+            <SettingsRow key={entry.action} label={label} title={label}>
+              <Keys accelerator={keymapEntryText(entry, keymapText)} />
             </SettingsRow>
           );
         })}

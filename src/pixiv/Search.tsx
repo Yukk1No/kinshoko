@@ -4,6 +4,8 @@ import { useTranslation } from "react-i18next";
 import type { Artist } from "../bindings/Artist";
 import type { PixivArtist } from "../bindings/PixivArtist";
 import { subscriptionSearchArtists } from "../ipc/pixivBrowse";
+import { keymapRegistry } from "../keymap/registry";
+import { usePageKeymap } from "../keymap/usePageKeymap";
 import { isComposingKey } from "../ui/composing";
 import { Segmented } from "../ui/Segmented";
 import { TARGET } from "../wall/wallShared";
@@ -12,6 +14,8 @@ import { PixivStatus } from "./Status";
 import { useFeedbackContext } from "./useFeedback";
 
 export type SearchKind = "works" | "artists";
+
+const SEARCH_OPEN_KEYS = ["subscriptionSearch.open"] as const;
 
 /** 离底还剩多少像素时读下一页画师。 */
 const NEAR_END = 600;
@@ -50,23 +54,10 @@ export function SearchBox({
   }, [open]);
 
   // Ctrl+F 或 `/` 打开；正在别的输入框里打字时 `/` 不算。
-  const openRef = useRef(onOpen);
-  openRef.current = onOpen;
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const typing =
-        e.target instanceof HTMLElement &&
-        (e.target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName));
-      const ctrlF = (e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === "f";
-      const slash = e.key === "/" && !e.ctrlKey && !e.metaKey && !e.altKey && !typing;
-      if (!ctrlF && !slash) return;
-      e.preventDefault();
-      openRef.current();
-      input.current?.focus();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  usePageKeymap(SEARCH_OPEN_KEYS, () => {
+    onOpen();
+    input.current?.focus();
+  });
 
   if (!open)
     return (
@@ -106,11 +97,11 @@ export function SearchBox({
         onKeyDown={(e) => {
           // 输入法选字时的回车、Esc 是给输入法的。
           if (isComposingKey(e)) return;
-          if (e.key === "Escape") {
+          if (keymapRegistry.matches("subscriptionSearch.close", e.nativeEvent)) {
             e.preventDefault();
             e.stopPropagation();
             onClose();
-          } else if (e.key === "Enter" && !filtering && text.trim()) {
+          } else if (keymapRegistry.matches("subscriptionSearch.submit", e.nativeEvent) && !filtering && text.trim()) {
             e.preventDefault();
             onSubmit();
           }

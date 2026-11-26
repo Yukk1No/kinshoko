@@ -40,6 +40,7 @@ import { logFailure } from "./runLog";
 import { StartupSplash } from "./shell/StartupSplash";
 import { LoginExpiredNotice, SubscriptionSection, useSubscriptionSection } from "./subscriptions/SubscriptionSection";
 import { usePageSwap } from "./shell/usePageSwap";
+import { useMainPageKeymap } from "./shell/useMainPageKeymap";
 import { errorText } from "./ipc/commandError";
 
 /**
@@ -253,22 +254,11 @@ function MainWindow() {
     };
   }, [lensSafe]);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
-      if (e.key.toLowerCase() === "b") {
-        e.preventDefault();
-        setPaneOpen((open) => !open);
-      }
-      if (["1", "2", "3"].includes(e.key) || (e.key === "4" && subscriptions.onRef.current)) {
-        e.preventDefault();
-        setSection((["browse", "groups", "captures", "subscriptions"] as Section[])[Number(e.key) - 1]);
-        setPaneOpen(true);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [subscriptions.onRef]);
+  useMainPageKeymap({
+    setSection,
+    setPaneOpen,
+    subscriptionsOn: () => subscriptions.onRef.current,
+  });
 
   const appAlive = useRef(true);
   useEffect(() => {
