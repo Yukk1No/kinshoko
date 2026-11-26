@@ -28,7 +28,7 @@ pub(super) async fn create_library<R: Runtime>(
             })
         })?;
         let info = forward_events(&app, &state, library);
-        wake_workspace_monitor();
+        publish(&app, AppNotice::RegistryChanged);
         Ok(info)
     })
     .await
@@ -50,7 +50,7 @@ pub(super) async fn create_library_unopened<R: Runtime>(
             with_libraries(&state, |libraries| libraries.add_registration(&root))
         })?;
         state.release_readers();
-        wake_workspace_monitor();
+        publish(&app, AppNotice::RegistryChanged);
         Ok(registered)
     })
     .await
@@ -160,7 +160,7 @@ pub(super) async fn register_library<R: Runtime>(
             with_libraries(&state, |libraries| libraries.register(&root))
         })?;
         let info = forward_events(&app, &state, library);
-        wake_workspace_monitor();
+        publish(&app, AppNotice::RegistryChanged);
         Ok(info)
     })
     .await
@@ -180,7 +180,7 @@ pub(super) async fn switch_library<R: Runtime>(
             with_libraries(&state, |libraries| libraries.switch(&library_id))
         })?;
         let info = forward_events(&app, &state, library);
-        wake_workspace_monitor();
+        publish(&app, AppNotice::RegistryChanged);
         Ok(info)
     })
     .await
@@ -212,7 +212,7 @@ pub(super) async fn unregister_library<R: Runtime>(
         state.release_readers();
         // 打标正在打这个库时中止那一批并等它放下句柄（#414）；发布闸门已放开。
         crate::tagging::release(&app, &library_id);
-        wake_workspace_monitor();
+        publish(&app, AppNotice::RegistryChanged);
         Ok(())
     })
     .await

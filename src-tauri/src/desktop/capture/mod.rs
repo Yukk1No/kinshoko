@@ -20,9 +20,7 @@ use kinshoko_core::desktop::{
     CaptureSelection, CaptureSurface, FrozenScreen, OriginalPixels, Region, ScreenRect, Screenshot,
     overlay_window,
 };
-use tauri::{
-    AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindowBuilder,
-};
+use tauri::{AppHandle, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindowBuilder};
 
 pub use finish::*;
 pub use sources::*;
@@ -30,6 +28,7 @@ use sources::{main_metrics, references, request_main_frame, same_surfaces};
 
 use super::{lock, state};
 use crate::data_dirs::SharedWebview as _;
+use crate::window_events::{self, WindowRequest};
 use kinshoko_core::diagnostics::{LogEvent, WindowKind};
 use kinshoko_core::safe_mode::SafeModeSnapshot;
 
@@ -114,7 +113,7 @@ fn close_owned(app: &AppHandle, token: &str) {
         crate::run_log::record(LogEvent::WindowHidden {
             window: WindowKind::Capture,
         });
-        let _ = window.emit_to(CAPTURE_WINDOW, SESSION_EVENT, ());
+        let _ = window_events::send(app, WindowRequest::CaptureSession);
     }
 }
 
@@ -126,9 +125,6 @@ impl Drop for CloseOnDrop<'_> {
         close_owned(self.0, self.1);
     }
 }
-
-/// 告诉框选页面：会话变了（有了新的冻结屏幕，或已结束），重新取 `frozen_screen`。
-const SESSION_EVENT: &str = "capture-session";
 
 fn capture_window(app: &AppHandle) -> Result<tauri::WebviewWindow, CommandError> {
     if let Some(window) = app.get_webview_window(CAPTURE_WINDOW) {
@@ -253,9 +249,7 @@ fn grab_and_show(app: &AppHandle, token: &str) -> Result<(), CommandError> {
         .set_size(PhysicalSize::new(rect.width, rect.height))
         .map_err(CommandError::system)?;
     // 复用的页面早已载入：通知它取这次的冻结屏幕。新建的页面载入时自己会取。
-    window
-        .emit_to(CAPTURE_WINDOW, SESSION_EVENT, ())
-        .map_err(CommandError::system)?;
+    window_events::send(app, WindowRequest::CaptureSession).map_err(CommandError::system)?;
     Ok(())
 }
 

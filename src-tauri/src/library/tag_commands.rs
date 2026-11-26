@@ -53,18 +53,7 @@ pub(super) async fn correct_tag_mapping<R: Runtime>(
     let publish_app = app.clone();
     let publication =
         blocking(move || publish_definition_dependencies(&publish_app, &publish_library_id)).await;
-    state.search.invalidate();
-    // Compatibility event refreshes current candidates, conditions and selected image labels.
-    if let Ok(active) = state.active() {
-        let _ = app.emit(
-            EVENT,
-            LibraryEvent::VocabularyChanged {
-                library_id: active.info().id.clone(),
-                revision: active.vocabulary_revision().map_err(CommandError::from)?,
-            },
-        );
-    }
-    wake_workspace_monitor();
+    names::refresh_labels(&app, &state)?;
     lens.confirm(&state.safe_mode)
         .map_err(|_| mapping_safe_mode_changed())?;
     publication.map_err(|error| {
@@ -96,7 +85,7 @@ pub(super) async fn edit_tags<R: Runtime>(
                 |error| format!("标签整理已保存，但资料库定义尚未更新：{error}。请在统一标签目录中重试保存标签定义。"),
             )
         })?;
-        wake_workspace_monitor();
+        publish(&app, AppNotice::LibraryWriteCommitted);
         Ok(())
     })
     .await

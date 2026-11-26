@@ -18,7 +18,7 @@ pub(super) fn write_visible<R: Runtime, T>(
             w.write_visible_images(d, c, &state.safe_mode, &writer, image_ids, action)
         })?;
         state.search.invalidate();
-        wake_workspace_monitor();
+        publish(app, AppNotice::LibraryWriteCommitted);
         Ok(value)
     })
 }
@@ -92,8 +92,8 @@ pub(super) async fn permanent_delete<R: Runtime>(
             .ok_or_else(groups_not_ready)?
             .map_err(CommandError::from)
         })?;
-        crate::desktop::reference_groups_changed(&app);
-        wake_workspace_monitor();
+        publish(&app, AppNotice::ReferenceGroupsChanged);
+        publish(&app, AppNotice::LibraryWriteCommitted);
         Ok(())
     })
     .await
@@ -153,8 +153,8 @@ pub(super) async fn permanent_delete_batch<R: Runtime>(
             })
         });
         if results.iter().any(|(_, result)| result.is_ok()) {
-            crate::desktop::reference_groups_changed(&app);
-            wake_workspace_monitor();
+            publish(&app, AppNotice::ReferenceGroupsChanged);
+            publish(&app, AppNotice::LibraryWriteCommitted);
         }
         Ok(results
             .into_iter()

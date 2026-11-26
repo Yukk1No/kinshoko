@@ -21,8 +21,9 @@ use kinshoko_core::subscription::{
     Destination, PreviewImage, SourceError, SourceId, Store, Subscription, SubscriptionStatus,
     check, schedule,
 };
-use tauri::{AppHandle, Emitter, Listener, Manager, State};
+use tauri::{AppHandle, Manager, State};
 
+use crate::app_notice::{AppNotice, publish as publish_notice};
 use crate::shell::ShellState;
 use crate::sync::lock;
 
@@ -36,7 +37,6 @@ pub use badge::badge;
 use login::{LOGIN_WINDOW, remove_login_profile};
 
 /// 订阅状态变了（检查开始或结束、登录变化、新图数量变化），载荷为 [`SubscriptionStatus`]。
-const STATUS_EVENT: &str = "subscription-status";
 /// 没有更早到期的订阅时也隔这么久醒一次，防止系统休眠或改时间后睡过头。
 const MAX_SLEEP: Duration = Duration::from_secs(60 * 60);
 /// 画师页每张卡片带几个作品的缩略图。
@@ -134,9 +134,17 @@ pub fn manage(app: &AppHandle) {
         .name("subscription".into())
         .spawn(move || run(&worker))
         .expect("建不了订阅检查线程");
-    let listener = app.clone();
-    app.listen(crate::library::SAFE_MODE_EVENT, move |_| publish(&listener));
     publish(app);
+}
+
+pub(crate) fn on_notice(app: &AppHandle, notice: &AppNotice) {
+    if matches!(
+        notice,
+        AppNotice::SafeModeCommitted(_) | AppNotice::ApplicationSettingsRestored(_)
+    ) {
+        let app = app.clone();
+        std::thread::spawn(move || publish(&app));
+    }
 }
 
 fn status(app: &AppHandle, state: &SubscriptionState) -> SubscriptionStatus {
@@ -169,7 +177,7 @@ fn publish(app: &AppHandle) {
     let status = status(app, &state);
     let count = if status.enabled { status.new_count } else { 0 };
     crate::desktop::set_tray_badge(app, count);
-    let _ = app.emit(STATUS_EVENT, status);
+    publish_notice(app, AppNotice::SubscriptionStatus(status));
 }
 
 /// 检查线程。

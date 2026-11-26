@@ -5,6 +5,7 @@
 //! 私有阶段只用安装包手动更新。公开阶段必须明确声明原仓库已公开，并有原仓库入口与更新公钥。
 //! 签名私钥只在 GitHub 仓库的 Actions secret 里，不进仓库（见 docs/validation/release-checklist.md）。
 
+use crate::app_notice::{AppNotice, publish};
 use crate::sync::lock;
 use kinshoko_core::CommandError;
 use kinshoko_core::command_error::ErrorKind;
@@ -14,12 +15,8 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use kinshoko_core::{
     ShellSettingsView, UpdateChannel, UpdatePolicy, UpdateProgress, UpdateStatus, offers_update,
 };
-use tauri::{AppHandle, Emitter, Manager, Runtime, State, Url};
+use tauri::{AppHandle, Manager, Runtime, State, Url};
 use tauri_plugin_updater::{Update, UpdaterExt as _};
-
-const PROGRESS_EVENT: &str = "update-progress";
-/// 更新通道换了（设置页切换或恢复程序设置）：之前查到的更新作废，主窗口的更新提示收起。
-const CHANNEL_EVENT: &str = "update-channel-changed";
 
 pub struct UpdaterState {
     status: Mutex<UpdateStatus>,
@@ -182,7 +179,7 @@ pub fn channel_changed<R: Runtime>(app: &AppHandle<R>) {
         *pending = None;
         state.set(update_policy(app).initial_status());
     }
-    let _ = app.emit(CHANNEL_EVENT, ());
+    publish(app, AppNotice::UpdateChannelChanged);
 }
 
 /// 下载并安装已检查到的新版本。成功时安装程序接管，本进程退出、装好后重新启动。
@@ -224,7 +221,10 @@ async fn install_pending<R: Runtime>(
         .download_and_install(
             move |chunk, total| {
                 downloaded += chunk as u64;
-                let _ = progress_app.emit(PROGRESS_EVENT, UpdateProgress { downloaded, total });
+                publish(
+                    &progress_app,
+                    AppNotice::UpdateProgress(UpdateProgress { downloaded, total }),
+                );
             },
             || {},
         )

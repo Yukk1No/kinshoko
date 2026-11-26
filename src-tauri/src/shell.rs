@@ -13,10 +13,11 @@ use kinshoko_core::{
     AppSettings, GlobalShortcuts, HotkeyFailure, HotkeyRegistrar, ShellSettingsView,
     ShortcutAction, UiScale,
 };
-use tauri::{AppHandle, Emitter as _, Manager, WebviewWindowBuilder};
+use tauri::{AppHandle, Manager, WebviewWindowBuilder};
 use tauri_plugin_autostart::ManagerExt as _;
 use tauri_plugin_global_shortcut::{GlobalShortcutExt as _, Shortcut, ShortcutState};
 
+use crate::app_notice::{AppNotice, publish};
 use crate::data_dirs::SharedWebview as _;
 use crate::desktop;
 
@@ -27,9 +28,6 @@ mod windows_autostart;
 
 /// 主窗口的标签，与 `tauri.conf.json` 一致。
 pub const MAIN_WINDOW: &str = "main";
-
-/// 界面语言改变时发给各窗口的事件，带新的界面语言（#354）。
-pub const INTERFACE_LANGUAGE_EVENT: &str = "interface-language";
 
 /// 开机自启时附带的参数：带着它启动时只进托盘，不打开主窗口。
 pub const AUTOSTART_ARG: &str = "--autostart";
@@ -124,9 +122,8 @@ pub fn choose_interface_language(choice: &str) -> &'static str {
 
 /// 告诉各窗口界面语言改了。
 pub fn announce_interface_language(app: &AppHandle, lang: &str) {
-    let _ = app.emit(INTERFACE_LANGUAGE_EVENT, lang);
     desktop::relabel_tray(app);
-    crate::backup::publish(app);
+    publish(app, AppNotice::InterfaceLanguageChanged(lang.to_owned()));
 }
 
 /// Apply an explicit change from the startup switch.
@@ -234,7 +231,7 @@ pub fn open_main_window(app: &AppHandle) {
         let _ = window.unminimize();
         let _ = window.show();
         let _ = window.set_focus();
-        crate::library::wake_workspace_monitor();
+        publish(app, AppNotice::MainWindowActivated);
         return;
     }
     let Some(config) = app
@@ -281,7 +278,7 @@ pub fn open_main_window(app: &AppHandle) {
             apply_ui_scale(app, factor);
             let _ = window.show();
             let _ = window.set_focus();
-            crate::library::wake_workspace_monitor();
+            publish(app, AppNotice::MainWindowActivated);
         }
         Err(e) => crate::run_log::error("打开主窗口失败", e),
     }

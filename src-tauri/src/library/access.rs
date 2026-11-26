@@ -126,12 +126,12 @@ pub fn writable<R: Runtime>(
             } = &access
             {
                 let info = forward_events(app, &state, library.clone());
-                let _ = app.emit(WRITABLE_LIBRARY_EVENT, info);
+                publish(app, AppNotice::WritableLibraryChanged(info));
             }
             Ok::<_, CommandError>(access)
         },
         |notice| {
-            let _ = app.emit(ORGANIZE_WAITING_EVENT, notice);
+            publish(app, AppNotice::OrganizeWaiting(notice.clone()));
         },
         ORGANIZE_RECHECK,
         ORGANIZE_LIMIT,
@@ -225,7 +225,7 @@ pub fn register_restored<R: Runtime>(
         })
     })?;
     state.release_readers();
-    wake_workspace_monitor();
+    publish(app, AppNotice::RegistryChanged);
     Ok(())
 }
 
