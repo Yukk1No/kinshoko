@@ -63,6 +63,20 @@ describe("T05 shared groups", () => {
     const settingsGroups = await screen.findByRole("region", { name: "标签分组" });
     expect(await within(settingsGroups).findByRole("group", { name: "发色" })).toBeTruthy();
   });
+  it("still opens settings groups when the initial workspace monitor read fails", async () => {
+    const fake = backend();
+    fake.on("workspace_status", () => {
+      throw { code: "io" };
+    });
+    const onError = vi.fn();
+    render(
+      <ToastProvider>
+        <SharedTagGroupsSettings onError={onError} />
+      </ToastProvider>,
+    );
+    expect(await screen.findByRole("group", { name: "发色" })).toBeTruthy();
+    await waitFor(() => expect(onError).toHaveBeenCalled());
+  });
   it("keeps a settings rename draft when the monitor repeats the current revision", async () => {
     backend();
     render(

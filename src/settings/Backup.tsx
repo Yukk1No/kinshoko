@@ -29,6 +29,8 @@ import { useTranslation } from "react-i18next";
 import { i18n } from "../i18n/instance";
 import { formatBytes, formatMoment } from "../i18n/format";
 import { describeCommandError, storedReasonText } from "../ipc/commandError";
+import { createBackendMirror } from "../ipc/backendMirror";
+import { useBackendMirror } from "../ipc/useBackendMirror";
 
 /** 日期时间，按记录时的时区偏移，例如“10月5日 08:00”；不在今年时带年份。 */
 export function stampText(s: Stamp): string {
@@ -43,30 +45,37 @@ function uncoveredText(u: Uncovered): string {
     : i18n.t("backup:uncovered.libraryLeftOut", { group: u.group.name, library: u.libraryName });
 }
 
-/** 备份状态：先读一次，之后跟随 `backup-status` 推送。 */
+const BACKUP_STATUS_KEY = "local-backup-status";
+
+/** 备份计划的唯一后端镜像。`backup-status` 推送带着完整状态，直接接受；写入成功后也由调用方交回同一份。 */
+const backupStatusMirror = createBackendMirror<typeof BACKUP_STATUS_KEY, BackupStatus>({
+  read: () => backupStatus(),
+  listen: (_invalidate, accept) => onBackupStatus((status) => accept(BACKUP_STATUS_KEY, status)),
+});
+
+const acceptBackupStatus = (status: BackupStatus) => backupStatusMirror.accept(BACKUP_STATUS_KEY, status);
+
+/** 备份状态：设置页与退出前的提醒共用同一份镜像。 */
 function useBackupStatus(): [BackupStatus | null, (s: BackupStatus) => void] {
-  const [status, setStatus] = useState<BackupStatus | null>(null);
-  useEffect(() => {
-    let alive = true;
-    backupStatus().then(
-      (s) => {
-        if (alive && s) setStatus(s);
-      },
-      () => {},
-    );
-    const unlisten = onBackupStatus((s) => alive && setStatus(s));
-    return () => {
-      alive = false;
-      // 忽略失败：收尾时取消监听；之后的事件不再处理。
-      void unlisten.then((f) => f()).catch(() => {});
-    };
-  }, []);
-  return [status, setStatus];
+  return [useBackendMirror(backupStatusMirror, BACKUP_STATUS_KEY).value, acceptBackupStatus];
 }
+
+type PreviewAnswer = { preview: BackupPreview | null };
+type PreviewQuery = [ScopeSelection, string | null];
+
+const previewKey = (selection: ScopeSelection | null, target: string | null) => JSON.stringify([selection, target]);
+const readPreviewKey = (key: string): PreviewQuery => JSON.parse(key) as PreviewQuery;
+
+/** 备份容量估计镜像。查询键含范围与备份目录；备份进行中退订，结束后重新订阅就是全新的一代。 */
+const backupPreviewMirror = createBackendMirror<string, PreviewAnswer>({
+  read: async (key) => {
+    const [selection] = readPreviewKey(key);
+    return { preview: await backupPreview(selection) };
+  },
+});
 
 type PreviewResult = {
   value: BackupPreview;
-  selectionKey: string | null;
   kind: ScopeSelection["kind"];
   target: string | null;
 };
@@ -79,7 +88,6 @@ export function BackupSettings() {
   const { t } = useTranslation("backup");
   const [status, setStatus] = useBackupStatus();
   const [libraries, setLibraries] = useState<LibraryRegistration[]>([]);
-  const [preview, setPreview] = useState<PreviewResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pendingSelection, setPendingSelection] = useState<ScopeSelection | null>(null);
   const nextSelection = useRef<ScopeSelection | null>(null);
@@ -89,37 +97,37 @@ export function BackupSettings() {
     registeredLibraries().then(setLibraries, () => {});
   }, []);
 
-  const selection = pendingSelection ?? status?.plan.selection;
-  const selectionKey = JSON.stringify(selection ?? null);
+  const selection = pendingSelection ?? status?.plan.selection ?? null;
   const target = status?.plan.target ?? null;
   const isRunning = status?.running != null;
-  const sameContext = !isRunning && preview !== null && preview.kind === selection?.kind && preview.target === target;
-  const currentPreview = sameContext && preview.selectionKey === selectionKey ? preview.value : null;
-  const layoutPreview = currentPreview ?? (sameContext && selection?.kind === "libraries" ? preview.value : null);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: 按范围的内容（selectionKey）而不是对象身份重新估计，备份目录变了也重估
+  const queryKey = previewKey(selection, target);
+  const preview = useBackendMirror(backupPreviewMirror, queryKey, selection !== null && !isRunning);
+  /** 上一份已接受的估计，只用于新估计未回时按弱化样式留住布局；乱序交付由镜像处理。 */
+  const [previewCache, setPreviewCache] = useState<PreviewResult | null>(null);
   useEffect(() => {
-    setPreview((previous) =>
-      !isRunning && selection?.kind === "libraries" && previous?.kind === selection.kind && previous.target === target
-        ? { ...previous, selectionKey: null }
-        : null,
-    );
-    if (!selection || isRunning) return;
-    let alive = true;
-    backupPreview(selection).then(
-      (p) => {
-        if (alive) setPreview(p ? { value: p, selectionKey, kind: selection.kind, target } : null);
-      },
-      (e) => {
-        if (!alive) return;
-        setPreview(null);
-        setError(errorText(e));
-      },
-    );
-    return () => {
-      alive = false;
-    };
-    // 按范围的内容（不是对象身份）与备份目录重新估计。
-  }, [selectionKey, target, isRunning]);
+    if (preview.value === null || selection === null) return;
+    setPreviewCache(preview.value.preview ? { value: preview.value.preview, kind: selection.kind, target } : null);
+  }, [preview.value, selection, target]);
+  useEffect(() => {
+    if (isRunning) setPreviewCache(null);
+  }, [isRunning]);
+  useEffect(() => {
+    if (preview.error === null) return;
+    setPreviewCache(null);
+    setError(errorText(preview.error));
+  }, [preview.error]);
+
+  const cached = previewCache;
+  const missingPreview = preview.value !== null && preview.value.preview === null;
+  const sameContext =
+    !isRunning &&
+    preview.error === null &&
+    !missingPreview &&
+    cached !== null &&
+    cached.kind === selection?.kind &&
+    cached.target === target;
+  const currentPreview = !isRunning && preview.error === null ? (preview.value?.preview ?? null) : null;
+  const layoutPreview = currentPreview ?? (sameContext && selection?.kind === "libraries" ? cached.value : null);
 
   const apply = useCallback(
     async (change: Promise<BackupStatus>) => {
