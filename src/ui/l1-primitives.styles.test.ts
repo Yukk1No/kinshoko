@@ -20,7 +20,7 @@ const DIRECT_DIALOG_ALLOWLIST = new Set([
   "../subscriptions/FirstRunDialog.tsx",
   "../subscriptions/FollowingDialog.tsx",
 ]);
-const MANUAL_CLOSE_ALLOWLIST = new Set([]);
+const MANUAL_CLOSE_ALLOWLIST = new Set<string>([]);
 const MANUAL_FOOTER_ALLOWLIST = new Set([
   "../library/CreateLibrary.tsx",
   "../subscriptions/ArtistDialog.tsx",
