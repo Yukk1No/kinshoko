@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatNumber } from "../i18n/format";
-import { Dialog } from "@base-ui/react/dialog";
-import { Tag, X } from "lucide-react";
+import { Tag } from "lucide-react";
 import type { LegacyNameGroup } from "../bindings/LegacyNameGroup";
 import type { LegacyNameMigrationWorkspace } from "../bindings/LegacyNameMigrationWorkspace";
 import type { LegacyNameMigrationPreview } from "../bindings/LegacyNameMigrationPreview";
@@ -10,7 +9,8 @@ import type { LegacyNameResolution } from "../bindings/LegacyNameResolution";
 import { describeCommandError, errorText } from "../ipc/commandError";
 import { confirmLegacyNames, onSafeModeSetting, planLegacyNames, previewLegacyNames } from "../ipc";
 import { languageName } from "../tags/languages";
-import { DialogHeight, DialogSwap } from "../ui/DialogHeight";
+import { DialogSwap } from "../ui/DialogHeight";
+import { DialogShell } from "../ui/DialogShell";
 import { WarnIcon } from "../ui/WarnIcon";
 
 import { CHANGED } from "./LegacyNameNotice";
@@ -199,214 +199,208 @@ export function LegacyNameWizard({ open, onOpenChange }: { open: boolean; onOpen
   const outcomes = validPreview ? preview!.outcomes : [];
 
   return (
-    <Dialog.Root
+    <DialogShell
       open={open}
-      onOpenChange={(next) => {
-        if (!busy || next) onOpenChange(next);
-      }}
-    >
-      <Dialog.Portal>
-        <Dialog.Backdrop className="k-backdrop" />
-        <Dialog.Popup className="k-dialog k-wizard legacy-name-migration">
-          <Dialog.Close className="k-icon-btn k-dialog-x" aria-label={t("close")}>
-            <X size={16} aria-hidden="true" />
-          </Dialog.Close>
-          <Dialog.Title className="k-title">{t("title")}</Dialog.Title>
-          <DialogHeight>
-            {busy && (
-              <p className="k-description is-spaced" role="status">
-                {t("busy")}
-              </p>
-            )}
-            {error && (
-              <p className="k-error-text is-boxed" role="alert">
-                {error}
-              </p>
-            )}
-            {view?.libraries
-              .filter((entry) => entry.unavailable)
-              .map((entry) => (
-                <p key={entry.library.id} className="k-description is-spaced" role="status">
-                  {t("libraryOffline", {
-                    library: entry.library.name,
-                    reason: describeCommandError(entry.unavailable!),
-                  })}
-                </p>
-              ))}
-            {saved && <p role="status">{t("saved")}</p>}
-            {view && groups.length === 0 && <p className="k-description is-spaced">{t("none")}</p>}
-            {groups.length > 0 && (
-              <>
-                <div className="k-steps-row">
-                  <div className="k-steps" aria-hidden="true">
-                    {groups.length <= 12 ? (
-                      groups.map((entry, index) => (
-                        <i
-                          key={key(entry)}
-                          className={index === page ? "is-current" : selected[key(entry)] ? "is-done" : ""}
-                        />
-                      ))
-                    ) : (
-                      <i className="is-done" style={{ flex: "none", width: `${(chosen / groups.length) * 100}%` }} />
-                    )}
-                  </div>
-                  <span className="k-steps-count tabular">
-                    {reviewing ? t("reviewStep") : t("step", { current: page + 1, total: groups.length })}
-                  </span>
-                </div>
-                <p className="k-description is-spaced" role="status">
-                  {t("chosen", { chosen, total: groups.length })}
-                </p>
-              </>
-            )}
-            {(group || reviewing) && (
-              <DialogSwap step={reviewing ? groups.length : page}>
-                {group && (
-                  <>
-                    <div className="k-big-tag">
-                      <span className="k-big-tag-icon" aria-hidden="true">
-                        <Tag size={18} />
-                      </span>
-                      <div>
-                        <div className="k-big-tag-name">{shown}</div>
-                        <div className="k-list-desc">
-                          {t("usedIn", {
-                            count: group.affectedLibraries.length,
-                            libraries: group.affectedLibraries.map(libraryName).join(t("librarySeparator")),
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                    {group.existingPreference !== null &&
-                      group.sources.some((source) => source.legacyName !== group.existingPreference) && (
-                        <p className="k-list-desc is-warn">
-                          <WarnIcon />
-                          {t("differsFromPreference", { name: group.existingPreference })}
-                        </p>
-                      )}
-                    <div className="k-radio-cards" role="radiogroup" aria-label={t("choiceLabel")}>
-                      {options.map((option) => (
-                        <label key={option.value} className={`k-radio-card${value === option.value ? " is-on" : ""}`}>
-                          <input
-                            type="radio"
-                            name={`legacy-${key(group)}`}
-                            value={option.value}
-                            checked={value === option.value}
-                            disabled={busy}
-                            onChange={() => setSelected({ ...selected, [key(group)]: option.value })}
-                          />
-                          <span>
-                            <span className="k-radio-title">{option.title}</span>
-                            <span className="k-radio-desc">{option.desc}</span>
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                  </>
-                )}
-                {reviewing && (
-                  <>
-                    {previewBusy && <p role="status">{t("checking")}</p>}
-                    {validPreview && (
-                      <>
-                        <table className="k-preview-table" aria-label={t("preview.label")}>
-                          <thead>
-                            <tr>
-                              <th>{t("preview.tag")}</th>
-                              <th>{t("preview.display")}</th>
-                              <th>{t("preview.preference")}</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {outcomes
-                              .slice(previewPage * PREVIEW_PAGE, (previewPage + 1) * PREVIEW_PAGE)
-                              .map((outcome) => (
-                                <tr key={`${outcome.catalogId}/${outcome.lang}`}>
-                                  <td>
-                                    {t("preview.tagInLanguage", {
-                                      tag: tagLabel(outcome.catalogId),
-                                      language: languageName(outcome.lang),
-                                    })}
-                                  </td>
-                                  <td>{outcome.displayName}</td>
-                                  <td>{outcome.preferenceName ?? t("preview.noPreference")}</td>
-                                </tr>
-                              ))}
-                          </tbody>
-                        </table>
-                        {outcomes.length > PREVIEW_PAGE && (
-                          <div className="k-dialog-foot is-tight">
-                            <span className="k-description is-spaced">
-                              {formatNumber(previewPage * PREVIEW_PAGE + 1)}–
-                              {formatNumber(Math.min((previewPage + 1) * PREVIEW_PAGE, outcomes.length))} /{" "}
-                              {formatNumber(outcomes.length)}
-                            </span>
-                            <span className="k-grow" />
-                            <button
-                              type="button"
-                              className="k-btn is-sm"
-                              disabled={previewPage === 0}
-                              onClick={() => setPreviewPage(previewPage - 1)}
-                            >
-                              <span className="k-label">{t("preview.previousPage")}</span>
-                            </button>
-                            <button
-                              type="button"
-                              className="k-btn is-sm"
-                              disabled={(previewPage + 1) * PREVIEW_PAGE >= outcomes.length}
-                              onClick={() => setPreviewPage(previewPage + 1)}
-                            >
-                              <span className="k-label">{t("preview.nextPage")}</span>
-                            </button>
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </>
-                )}
-              </DialogSwap>
-            )}
-          </DialogHeight>
-          <div className="k-dialog-foot">
-            {groups.length > 0 && !reviewing && !saved && (
-              <button type="button" className="k-link" disabled={busy || bulk.length === 0} onClick={bulkFollow}>
-                <span className="k-label">{t("bulk", { count: bulk.length })}</span>
+      onOpenChange={onOpenChange}
+      purpose="form"
+      showClose
+      closeLabel={t("close")}
+      busy={busy}
+      autoHeight
+      title={t("title")}
+      className="k-wizard legacy-name-migration"
+      footer={
+        <>
+          {groups.length > 0 && !reviewing && !saved && (
+            <button type="button" className="k-link" disabled={busy || bulk.length === 0} onClick={bulkFollow}>
+              <span className="k-label">{t("bulk", { count: bulk.length })}</span>
+            </button>
+          )}
+          <span className="k-grow" />
+          {groups.length === 0 || saved ? (
+            <button type="button" className="k-btn is-primary" disabled={busy} onClick={() => onOpenChange(false)}>
+              <span className="k-label">{t("done")}</span>
+            </button>
+          ) : (
+            <>
+              <button type="button" className="k-btn" disabled={busy} onClick={() => onOpenChange(false)}>
+                <span className="k-label">{t("cancel")}</span>
               </button>
-            )}
-            <span className="k-grow" />
-            {groups.length === 0 || saved ? (
-              <Dialog.Close className="k-btn is-primary">
-                <span className="k-label">{t("done")}</span>
-              </Dialog.Close>
-            ) : (
-              <>
-                <Dialog.Close className="k-btn" disabled={busy}>
-                  <span className="k-label">{t("cancel")}</span>
-                </Dialog.Close>
-                <button type="button" className="k-btn" disabled={busy || page === 0} onClick={() => setPage(page - 1)}>
-                  <span className="k-label">{t("previous")}</span>
+              <button type="button" className="k-btn" disabled={busy || page === 0} onClick={() => setPage(page - 1)}>
+                <span className="k-label">{t("previous")}</span>
+              </button>
+              {reviewing ? (
+                <button
+                  type="button"
+                  className="k-btn is-primary"
+                  disabled={busy || !validPreview}
+                  onClick={() => {
+                    if (view && validPreview) void run(() => confirmLegacyNames(view.plan.revision, decisions), true);
+                  }}
+                >
+                  <span className="k-label">{t("confirm")}</span>
                 </button>
-                {reviewing ? (
-                  <button
-                    type="button"
-                    className="k-btn is-primary"
-                    disabled={busy || !validPreview}
-                    onClick={() => {
-                      if (view && validPreview) void run(() => confirmLegacyNames(view.plan.revision, decisions), true);
-                    }}
-                  >
-                    <span className="k-label">{t("confirm")}</span>
-                  </button>
-                ) : (
-                  <button type="button" className="k-btn is-primary" disabled={busy} onClick={forward}>
-                    <span className="k-label">{t("next")}</span>
-                  </button>
-                )}
-              </>
-            )}
+              ) : (
+                <button type="button" className="k-btn is-primary" disabled={busy} onClick={forward}>
+                  <span className="k-label">{t("next")}</span>
+                </button>
+              )}
+            </>
+          )}
+        </>
+      }
+    >
+      {busy && (
+        <p className="k-description is-spaced" role="status">
+          {t("busy")}
+        </p>
+      )}
+      {error && (
+        <p className="k-error-text is-boxed" role="alert">
+          {error}
+        </p>
+      )}
+      {view?.libraries
+        .filter((entry) => entry.unavailable)
+        .map((entry) => (
+          <p key={entry.library.id} className="k-description is-spaced" role="status">
+            {t("libraryOffline", {
+              library: entry.library.name,
+              reason: describeCommandError(entry.unavailable!),
+            })}
+          </p>
+        ))}
+      {saved && <p role="status">{t("saved")}</p>}
+      {view && groups.length === 0 && <p className="k-description is-spaced">{t("none")}</p>}
+      {groups.length > 0 && (
+        <>
+          <div className="k-steps-row">
+            <div className="k-steps" aria-hidden="true">
+              {groups.length <= 12 ? (
+                groups.map((entry, index) => (
+                  <i
+                    key={key(entry)}
+                    className={index === page ? "is-current" : selected[key(entry)] ? "is-done" : ""}
+                  />
+                ))
+              ) : (
+                <i className="is-done" style={{ flex: "none", width: `${(chosen / groups.length) * 100}%` }} />
+              )}
+            </div>
+            <span className="k-steps-count tabular">
+              {reviewing ? t("reviewStep") : t("step", { current: page + 1, total: groups.length })}
+            </span>
           </div>
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
+          <p className="k-description is-spaced" role="status">
+            {t("chosen", { chosen, total: groups.length })}
+          </p>
+        </>
+      )}
+      {(group || reviewing) && (
+        <DialogSwap step={reviewing ? groups.length : page}>
+          {group && (
+            <>
+              <div className="k-big-tag">
+                <span className="k-big-tag-icon" aria-hidden="true">
+                  <Tag size={18} />
+                </span>
+                <div>
+                  <div className="k-big-tag-name">{shown}</div>
+                  <div className="k-list-desc">
+                    {t("usedIn", {
+                      count: group.affectedLibraries.length,
+                      libraries: group.affectedLibraries.map(libraryName).join(t("librarySeparator")),
+                    })}
+                  </div>
+                </div>
+              </div>
+              {group.existingPreference !== null &&
+                group.sources.some((source) => source.legacyName !== group.existingPreference) && (
+                  <p className="k-list-desc is-warn">
+                    <WarnIcon />
+                    {t("differsFromPreference", { name: group.existingPreference })}
+                  </p>
+                )}
+              <div className="k-radio-cards" role="radiogroup" aria-label={t("choiceLabel")}>
+                {options.map((option) => (
+                  <label key={option.value} className={`k-radio-card${value === option.value ? " is-on" : ""}`}>
+                    <input
+                      type="radio"
+                      name={`legacy-${key(group)}`}
+                      value={option.value}
+                      checked={value === option.value}
+                      disabled={busy}
+                      onChange={() => setSelected({ ...selected, [key(group)]: option.value })}
+                    />
+                    <span>
+                      <span className="k-radio-title">{option.title}</span>
+                      <span className="k-radio-desc">{option.desc}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </>
+          )}
+          {reviewing && (
+            <>
+              {previewBusy && <p role="status">{t("checking")}</p>}
+              {validPreview && (
+                <>
+                  <table className="k-preview-table" aria-label={t("preview.label")}>
+                    <thead>
+                      <tr>
+                        <th>{t("preview.tag")}</th>
+                        <th>{t("preview.display")}</th>
+                        <th>{t("preview.preference")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {outcomes.slice(previewPage * PREVIEW_PAGE, (previewPage + 1) * PREVIEW_PAGE).map((outcome) => (
+                        <tr key={`${outcome.catalogId}/${outcome.lang}`}>
+                          <td>
+                            {t("preview.tagInLanguage", {
+                              tag: tagLabel(outcome.catalogId),
+                              language: languageName(outcome.lang),
+                            })}
+                          </td>
+                          <td>{outcome.displayName}</td>
+                          <td>{outcome.preferenceName ?? t("preview.noPreference")}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {outcomes.length > PREVIEW_PAGE && (
+                    <div className="k-preview-pagination">
+                      <span className="k-description is-spaced">
+                        {formatNumber(previewPage * PREVIEW_PAGE + 1)}–
+                        {formatNumber(Math.min((previewPage + 1) * PREVIEW_PAGE, outcomes.length))} /{" "}
+                        {formatNumber(outcomes.length)}
+                      </span>
+                      <span className="k-grow" />
+                      <button
+                        type="button"
+                        className="k-btn is-sm"
+                        disabled={previewPage === 0}
+                        onClick={() => setPreviewPage(previewPage - 1)}
+                      >
+                        <span className="k-label">{t("preview.previousPage")}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="k-btn is-sm"
+                        disabled={(previewPage + 1) * PREVIEW_PAGE >= outcomes.length}
+                        onClick={() => setPreviewPage(previewPage + 1)}
+                      >
+                        <span className="k-label">{t("preview.nextPage")}</span>
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </>
+          )}
+        </DialogSwap>
+      )}
+    </DialogShell>
   );
 }

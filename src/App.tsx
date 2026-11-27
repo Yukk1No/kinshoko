@@ -5,10 +5,10 @@ import { useSafeMode } from "./shell/useSafeMode";
 import { onCollectionRequest, registerLibrary, takeCollectionRequest } from "./ipc";
 import { SaveDestinationProvider } from "./library/SaveDestination";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { i18n } from "./i18n";
 import { ToastProvider, useToast } from "./ui/Toast";
+import { DialogShell } from "./ui/DialogShell";
 import type { AppInfo } from "./bindings/AppInfo";
 import type { ShellSettingsView } from "./bindings/ShellSettingsView";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
@@ -25,7 +25,6 @@ import { useUiScaleChoice } from "./shell/useUiScaleChoice";
 import { SettingsPanel, type SettingsTab } from "./settings/SettingsPanel";
 import { createShellSettings } from "./shell/useShellSettings";
 import { BackupReminder } from "./settings/Backup";
-import { Dialog } from "@base-ui/react/dialog";
 import { UpdateNotice } from "./Update";
 import { RuntimeNotice } from "./RuntimeSupport";
 import type { TagDisplay } from "./bindings/TagDisplay";
@@ -113,7 +112,6 @@ function MainWindow() {
     setInspectorWidthState(view.inspectorWidth);
     if (!keepInspector) setInspectorShownState(view.inspectorOpen);
   }, []);
-  const settingsPopup = useRef<HTMLDivElement>(null);
   const [shellSettingsStore] = useState(() => createShellSettings(acceptShellSettings));
   /**
    * 只读的几项直接取已接受的设置，读到之前用默认值：相近标签来源标记（默认不显示）、
@@ -381,39 +379,33 @@ function MainWindow() {
                     onBusyChange={setCreating}
                   />
                 )}
-                <Dialog.Root open={showSettings} onOpenChange={setShowSettings}>
-                  <Dialog.Portal>
-                    <Dialog.Backdrop className="k-backdrop" />
-                    <Dialog.Popup
-                      ref={settingsPopup}
-                      initialFocus={settingsPopup}
-                      className="k-dialog k-settings-dialog"
-                    >
-                      <Dialog.Title className="sr-only">{t("settingsTitle")}</Dialog.Title>
-                      {/* 关闭按钮不归设置面板管：读取中或读取失败时也在。 */}
-                      <Dialog.Close className="k-icon-btn k-dialog-x" aria-label={t("closeSettings")}>
-                        <X size={16} aria-hidden="true" />
-                      </Dialog.Close>
-                      <SettingsPanel
-                        version={info && `${info.productName} ${info.version}`}
-                        hasLibrary={!!hasProviders}
-                        initialTab={settingsTab}
-                        initialTagFocus={settingsTagFocus}
-                        safe={safe}
-                        onSafeMode={toggleSafe}
-                        onOpenNameWizard={() => setNameWizard(true)}
-                        settings={shellSettingsStore}
-                        uiScale={uiScalePercent}
-                        onUiScale={(percent) => void chooseUiScale(percent)}
-                        subscriptions={subscriptions.settings}
-                        onShowUnfinishedTagging={() => {
-                          setShowSettings(false);
-                          setUnfinishedRequest((n) => n + 1);
-                        }}
-                      />
-                    </Dialog.Popup>
-                  </Dialog.Portal>
-                </Dialog.Root>
+                <DialogShell
+                  open={showSettings}
+                  onOpenChange={setShowSettings}
+                  purpose="info"
+                  title={t("settingsTitle")}
+                  titleClassName="sr-only"
+                  closeLabel={t("closeSettings")}
+                  className="k-settings-dialog"
+                >
+                  <SettingsPanel
+                    version={info && `${info.productName} ${info.version}`}
+                    hasLibrary={!!hasProviders}
+                    initialTab={settingsTab}
+                    initialTagFocus={settingsTagFocus}
+                    safe={safe}
+                    onSafeMode={toggleSafe}
+                    onOpenNameWizard={() => setNameWizard(true)}
+                    settings={shellSettingsStore}
+                    uiScale={uiScalePercent}
+                    onUiScale={(percent) => void chooseUiScale(percent)}
+                    subscriptions={subscriptions.settings}
+                    onShowUnfinishedTagging={() => {
+                      setShowSettings(false);
+                      setUnfinishedRequest((n) => n + 1);
+                    }}
+                  />
+                </DialogShell>
                 <LegacyNameWizard open={nameWizard} onOpenChange={setNameWizard} />
                 {opened && (
                   <>
