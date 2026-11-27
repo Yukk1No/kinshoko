@@ -230,6 +230,7 @@ pub fn register_restored<R: Runtime>(
 }
 
 /// Current authority generation for native capture actions.
+#[allow(dead_code)] // #795 移除
 pub fn capture_generation<R: Runtime>(app: &AppHandle<R>) -> SafeModeSnapshot {
     app.state::<LibraryState>().safe_mode().snapshot()
 }

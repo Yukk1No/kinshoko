@@ -302,7 +302,7 @@ fn wait_for_shell_settings(app: &AppHandle) {
 pub fn restore(app: &AppHandle) {
     wait_for_shell_settings(app);
     // 设置在桌面插件装配之后才可读：恢复前按保存的安全模式核对一次。
-    crate::library::with_visibility_commit(app, |_| {
+    crate::library::workspace_session(app).with_visibility(|_| {
         let safe = crate::library::safe_mode_on(app);
         let mut veils = lock(&state(app).veils);
         veils.set_safe_mode(safe);

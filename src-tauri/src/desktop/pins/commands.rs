@@ -128,7 +128,7 @@ pub async fn pin_reference(
 
 /// 画师确认显示这一张被遮蔽的参考图：遮蔽淡出，直到安全模式再次开启或钉图关闭。
 pub(super) fn reveal_here(app: &AppHandle, pin: &str) -> Result<(), CommandError> {
-    crate::library::with_visibility_commit(app, |_| {
+    crate::library::workspace_session(app).with_visibility(|_| {
         if !capture_source_open(app, pin) {
             return Err(pin_closed());
         }
