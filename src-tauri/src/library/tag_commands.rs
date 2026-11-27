@@ -6,64 +6,59 @@ use kinshoko_core::CommandError;
 #[tauri::command]
 pub(super) async fn inspect_tag_catalog<R: Runtime>(
     app: AppHandle<R>,
-    state: State<'_, LibraryState>,
 ) -> Result<TagCatalogWorkspace, CommandError> {
-    let reader = app.clone();
-    let lens = state.safe_mode().lens();
     // 经共享的工作区读（#337）：复用它的快照。
-    let result = blocking(move || {
-        workspace::with_resources(
-            &reader.state::<LibraryState>(),
-            |workspace, libraries, catalog| {
-                workspace.inspect_catalog(libraries, catalog, lens.on())
-            },
-        )
-    })
-    .await?;
-    lens.confirm(state.safe_mode())
-        .map_err(|_| mapping_safe_mode_changed())?;
-    Ok(result)
+    verbs::current_lens(
+        app,
+        |_| mapping_safe_mode_changed(),
+        |workspace, libraries, catalog, safe| workspace.inspect_catalog(libraries, catalog, safe),
+    )
+    .await
 }
 
 #[tauri::command]
 pub(super) async fn correct_tag_mapping<R: Runtime>(
     app: AppHandle<R>,
-    state: State<'_, LibraryState>,
     library_id: String,
     local_tag_id: String,
     correction: CatalogCorrection,
 ) -> Result<TagCatalogWorkspace, CommandError> {
-    let reader = app.clone();
-    let lens = state.safe_mode().lens();
-    let publish_library_id = library_id.clone();
-    let result = blocking(move || {
-        workspace::with_resources(
-            &reader.state::<LibraryState>(),
-            |workspace, libraries, catalog| {
+    blocking(move || {
+        let state = app.state::<LibraryState>();
+        let grant = state.session.grant();
+        let result = match state.session.with_current_lens(
+            |_| mapping_safe_mode_changed(),
+            |workspace, libraries, catalog, safe| {
                 let library = libraries
                     .read(&library_id)
                     .map_err(|e| CatalogError::Command(Box::new(e.into())))?;
-                library.set_safe_mode(lens.on());
+                library.set_safe_mode(safe);
                 catalog.correct(&library, &local_tag_id, correction)?;
-                workspace.inspect_catalog(libraries, catalog, lens.on())
+                workspace.inspect_catalog(libraries, catalog, safe)
             },
-        )
+        ) {
+            Ok(result) => Some(result),
+            Err(error) if error.kind == ErrorKind::TagMappingSafeModeChanged => None,
+            Err(error) => return Err(error),
+        };
+        let publication = publish_definition_dependencies(&app, &library_id);
+        names::refresh_labels(&app, &state)?;
+        if !state.session.is_grant_current(&grant) {
+            return Err(mapping_safe_mode_changed());
+        }
+        publication.map_err(|error| {
+            CommandError::caused_by(
+                error,
+                |cause| ErrorKind::MappingDefinitionsNotSaved { cause },
+                |error| format!("标签对应已保存在程序中，但资料库定义尚未更新：{error}。请在统一标签目录中重试保存标签定义。"),
+            )
+        })?;
+        let Some(result) = result else {
+            return Err(mapping_safe_mode_changed());
+        };
+        Ok(result)
     })
-    .await?;
-    let publish_app = app.clone();
-    let publication =
-        blocking(move || publish_definition_dependencies(&publish_app, &publish_library_id)).await;
-    names::refresh_labels(&app, &state)?;
-    lens.confirm(state.safe_mode())
-        .map_err(|_| mapping_safe_mode_changed())?;
-    publication.map_err(|error| {
-        CommandError::caused_by(
-            error,
-            |cause| ErrorKind::MappingDefinitionsNotSaved { cause },
-            |error| format!("标签对应已保存在程序中，但资料库定义尚未更新：{error}。请在统一标签目录中重试保存标签定义。"),
-        )
-    })?;
-    Ok(result)
+    .await
 }
 
 /// 对若干参考图批量添加、否决或清除标签决定。
@@ -94,13 +89,13 @@ pub(super) async fn edit_tags<R: Runtime>(
 #[tauri::command]
 pub(super) async fn vocabulary<R: Runtime>(
     app: AppHandle<R>,
-    state: State<'_, LibraryState>,
     library_id: String,
 ) -> Result<Vocabulary, CommandError> {
-    let catalog = state.search().clone();
     blocking(move || {
         let library = readable(&app, &library_id)?;
-        with_catalog(&catalog, |catalog| catalog.search_vocabulary(&library))
+        app.state::<LibraryState>()
+            .session
+            .with_catalog(|catalog| catalog.search_vocabulary(&library))
     })
     .await
 }
@@ -109,14 +104,14 @@ pub(super) async fn vocabulary<R: Runtime>(
 #[tauri::command]
 pub(super) async fn tag_groups<R: Runtime>(
     app: AppHandle<R>,
-    state: State<'_, LibraryState>,
     library_id: String,
     lang: String,
 ) -> Result<Vec<TagGroupView>, CommandError> {
-    let catalog = state.search().clone();
     blocking(move || {
         let library = readable(&app, &library_id)?;
-        with_catalog(&catalog, |catalog| catalog.tag_groups(&library, &lang))
+        app.state::<LibraryState>()
+            .session
+            .with_catalog(|catalog| catalog.tag_groups(&library, &lang))
     })
     .await
 }
@@ -125,32 +120,22 @@ pub(super) async fn tag_groups<R: Runtime>(
 #[tauri::command]
 pub(super) async fn add_tag_alias<R: Runtime>(
     app: AppHandle<R>,
-    state: State<'_, LibraryState>,
     library_id: String,
     tag_id: String,
     alias: TagAlias,
 ) -> Result<(), CommandError> {
-    names::edit_local_alias(
-        app,
-        &state,
-        library_id,
-        tag_id,
-        names::LocalAliasEdit::Add(alias),
-    )
-    .await
+    names::edit_local_alias(app, library_id, tag_id, names::LocalAliasEdit::Add(alias)).await
 }
 
 #[tauri::command]
 pub(super) async fn remove_tag_alias<R: Runtime>(
     app: AppHandle<R>,
-    state: State<'_, LibraryState>,
     library_id: String,
     tag_id: String,
     alias: String,
 ) -> Result<(), CommandError> {
     names::edit_local_alias(
         app,
-        &state,
         library_id,
         tag_id,
         names::LocalAliasEdit::Remove(alias),

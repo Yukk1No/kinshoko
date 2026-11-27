@@ -11,6 +11,7 @@ use kinshoko_core::workspace::Workspace;
 /// 按 `hold` 取资源锁并核对安全模式，在锁里调用 `f`。开关 `safe` 与设置不一致、或按 `hold`
 /// 复核时安全模式变过，得到 [`kinshoko_core::library::Error::LensChanged`]。
 #[track_caller]
+#[allow(dead_code)] // #795 移除
 pub(super) fn with_lens<R: Runtime, T>(
     app: &AppHandle<R>,
     safe: bool,

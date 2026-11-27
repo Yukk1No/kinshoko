@@ -134,6 +134,7 @@ fn monitor_step(
 /// Acquire device, catalog, then workspace ([`kinshoko_core::WorkspaceSession::with_resources`]).
 /// Callers retain their lens and visibility guards.
 #[track_caller]
+#[allow(dead_code)] // #795 移除
 pub(super) fn with_resources<T>(
     state: &LibraryState,
     f: impl FnOnce(&mut Workspace, &mut DeviceLibraries, &mut TagCatalog) -> Result<T, CatalogError>,
