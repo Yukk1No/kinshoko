@@ -1,13 +1,12 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import type { ResolvedTagIdentity } from "../bindings/ResolvedTagIdentity";
-import type { ImageTags } from "../bindings/ImageTags";
 import type { TagEdit } from "../bindings/TagEdit";
 import type { TagLabel } from "../bindings/TagLabel";
 import type { TagNamespace } from "../bindings/TagNamespace";
 import type { ImageTag } from "../bindings/ImageTag";
 import type { TagRef } from "../bindings/TagRef";
-import { catalogImageTags, editTags } from "../ipc";
+import { editTags } from "../ipc";
+import { useImageTags } from "./imageTagsMirror";
 import { TagMarks, tagName } from "../search/SearchBox";
 import { LIMIT, useCandidateState } from "../search/useCandidates";
 import { useUiLang } from "../i18n";
@@ -53,10 +52,6 @@ const byId = (tag: TagLabel): TagRef => ({ kind: "id", id: tag.id });
 export function TagPanel({ libraryId, ids, safe, generation, onError, rating }: Props) {
   const { t } = useTranslation("tags");
   const single = ids.length === 1 ? ids[0] : null;
-  // 读到的标签记着它属于哪一次读取：切换选中图时先留着上一张的（不可操作），新的到了再换（#158）。
-  const [loaded, setLoaded] = useState<{ key: string; tags: ImageTags; identities: ResolvedTagIdentity[] } | null>(
-    null,
-  );
   const [aliasFor, setAliasFor] = useState<TagLabel | null>(null);
   const [namespace, setNamespace] = useState<TagNamespace>("general");
   const [text, setText] = useState("");
@@ -72,31 +67,17 @@ export function TagPanel({ libraryId, ids, safe, generation, onError, rating }: 
     };
   }, [identityKey]);
   const lang = useUiLang();
-  const loadKey = JSON.stringify([identityKey, refresh, lang]);
-
-  useEffect(() => {
-    let alive = true;
-    if (!single) {
-      setLoaded(null);
-      return;
-    }
-    // 统一标签身份与有效标签出自同一次查询（#158）。
-    catalogImageTags(libraryId, single, lang).then(
-      (value) => alive && setLoaded({ key: loadKey, tags: value.image, identities: value.identities }),
-      (error) => {
-        if (alive) {
-          setLoaded(null);
-          onError(error);
-        }
-      },
-    );
-    return () => {
-      alive = false;
-    };
-  }, [libraryId, single, onError, loadKey, lang]);
-  const tags = loaded?.tags ?? null;
-  const identities = loaded?.identities ?? [];
-  const stale = loaded !== null && loaded.key !== loadKey;
+  // 标签读取收口到镜像（#780）：订阅、重读、防闪烁与失败上报都在 useImageTags 里。
+  const { tags, identities, stale } = useImageTags(
+    libraryId,
+    single,
+    identityKey,
+    safe,
+    generation,
+    refresh,
+    lang,
+    onError,
+  );
 
   // 换了选中的图，别名编辑跟着关掉。在渲染中比较，换图的这一帧就不显示上一张的编辑。
   const [aliasImage, setAliasImage] = useState(single);

@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TagLabel } from "../bindings/TagLabel";
-import type { VocabularyTag } from "../bindings/VocabularyTag";
-import { addTagAlias, removeTagAlias, vocabulary, tagNameConflictTags } from "../ipc";
+import type { Vocabulary } from "../bindings/Vocabulary";
+import { addTagAlias, isLensChanged, removeTagAlias, vocabulary, tagNameConflictTags } from "../ipc";
+import { createBackendMirror } from "../ipc/backendMirror";
+import { useBackendMirror } from "../ipc/useBackendMirror";
 import type { CatalogTag } from "../bindings/CatalogTag";
 import { nameConflict } from "../tags/nameConflict";
 import { NameConflictWarning } from "../tags/NameConflictWarning";
@@ -11,6 +13,24 @@ import { useUiLang } from "../i18n";
 import { isComposingKey } from "../ui/composing";
 import { X } from "lucide-react";
 import { Tip } from "../ui/Tip";
+
+/** 别名编辑器的词表镜像（#780）：按资料库与标签建键，共用读取、过期重试与代次防乱序。 */
+const aliasVocabularyMirror = createBackendMirror<string, Vocabulary>({
+  read: (key) => {
+    const [libraryId] = JSON.parse(key) as [string, string];
+    return vocabulary(libraryId);
+  },
+  stale: isLensChanged,
+});
+/** 重名对照的镜像：读取失败按原样忽略（编辑别名时它只是提示）。 */
+const nameConflictMirror = createBackendMirror<string, CatalogTag[]>({
+  read: (key) => {
+    const [libraryId, tagId] = JSON.parse(key) as [string, string];
+    return tagNameConflictTags(libraryId, tagId);
+  },
+  stale: isLensChanged,
+});
+const aliasKey = (libraryId: string, tagId: string) => JSON.stringify([libraryId, tagId]);
 
 /** 一个标签的别名：列出已有的，加新的叫法或去掉一个。别名随词表（vocabulary）刷新。 */
 export function AliasEditor({
@@ -28,27 +48,36 @@ export function AliasEditor({
 }) {
   const { t } = useTranslation("tags");
   const lang = useUiLang();
-  const [entry, setEntry] = useState<VocabularyTag | null>(null);
   const [draft, setDraft] = useState("");
-  const [others, setOthers] = useState<CatalogTag[]>([]);
   const name = tagName(tag);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies(generation): 词表代次前进时重读
+  // 词表与重名对照的读取收口到镜像（#780）：词表代次前进时重读。
+  const key = aliasKey(libraryId, tag.id);
+  const vocabularyMirror = useBackendMirror(aliasVocabularyMirror, key);
+  const conflictMirror = useBackendMirror(nameConflictMirror, key);
+  const refreshed = useRef({ key, generation });
+  useLayoutEffect(() => {
+    const before = refreshed.current;
+    refreshed.current = { key, generation };
+    if (before.key === key && before.generation !== generation) {
+      aliasVocabularyMirror.invalidate(key);
+      nameConflictMirror.invalidate(key);
+    }
+  }, [key, generation]);
+  const entry = vocabularyMirror.value?.tags.find((v) => v.id === tag.id) ?? null;
+  const others = conflictMirror.value ?? [];
+
+  // 词表读取失败报告一次；同一份失败不重复上报。重名对照的失败按原样忽略。
+  const reported = useRef<unknown>(null);
   useEffect(() => {
-    let alive = true;
-    setOthers([]);
-    tagNameConflictTags(libraryId, tag.id).then(
-      (tags) => alive && setOthers(tags),
-      () => {},
-    );
-    vocabulary(libraryId).then(
-      (v) => alive && setEntry(v.tags.find((t) => t.id === tag.id) ?? null),
-      (e) => alive && onError(e),
-    );
-    return () => {
-      alive = false;
-    };
-  }, [libraryId, tag.id, generation, onError]);
+    if (vocabularyMirror.error === null) {
+      reported.current = null;
+      return;
+    }
+    if (reported.current === vocabularyMirror.error) return;
+    reported.current = vocabularyMirror.error;
+    onError(vocabularyMirror.error);
+  }, [vocabularyMirror.error, onError]);
 
   const add = () => {
     const alias = draft.trim();

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Name } from "../ui/Name";
 import { useTranslation } from "react-i18next";
 import { formatMoment } from "../i18n/format";
@@ -11,7 +11,9 @@ import type { ImageDetail } from "../bindings/ImageDetail";
 import type { ImageEdit } from "../bindings/ImageEdit";
 import type { SafeModeScope } from "../bindings/SafeModeScope";
 import type { TaggingFailure } from "../bindings/TaggingFailure";
-import { editImages, workspaceImage } from "../ipc";
+import { editImages } from "../ipc";
+import { useBackendMirror } from "../ipc/useBackendMirror";
+import { imageDetailKey, imageDetailMirror } from "./imageDetailMirror";
 import { TagPanel } from "./TagPanel";
 import { DEFAULT_SAFE_MODE_SCOPE, ratingInSafeScope } from "../shell/safeLens";
 import { Tip } from "../ui/Tip";
@@ -312,9 +314,6 @@ export function SelectionPanel({
   const single = ids.length === 1 ? ids[0] : null;
   // 读到的详情记着它属于哪一次读取与哪座资料库：切换选中图时先留着上一张的（不可操作），新的到了再换（#158）。
   const [loaded, setLoadedState] = useState<{ key: string; libraryId: string; detail: ImageDetail } | null>(null);
-  const setLoaded = (next: { key: string; libraryId?: string; detail: ImageDetail } | null) =>
-    setLoadedState(next ? { ...next, libraryId: next.libraryId ?? libraryId } : null);
-  const [failed, setFailed] = useState(false);
   const selectionKey = ids.join("\n");
   const requestKey = JSON.stringify([libraryId, selectionKey, safeMode]);
   const currentKey = useRef(requestKey);
@@ -332,30 +331,46 @@ export function SelectionPanel({
   const currentSafeMode = useRef(safeMode);
   currentSafeMode.current = safeMode;
   const noteSeqRef = useRef(new Map<string, number>());
-  // biome-ignore lint/correctness/useExhaustiveDependencies(reloadKey): 重读信号，与下面的 generation 一样不在 effect 里读
-  // biome-ignore lint/correctness/useExhaustiveDependencies(generation): 词表代次前进时重读详情
+
+  // 详情读取收口到镜像（#780）：面板只订阅当前这张图，镜像交付时以当时的 detailKey 记进 loaded，
+  // 切换选中图时上一张先留着（不可操作），新的到了再换（#158）。
+  const mirrorKey = single === null ? "" : imageDetailKey(libraryId, single);
+  const mirror = useBackendMirror(imageDetailMirror, mirrorKey, single !== null);
+  // reloadKey 或词表代次前进时重读详情；词表代次随 imagesChanged 前进（例如这张图打标失败被记下，#475）：
+  // 重读详情，但不算换了一张，不先变成不可操作。
+  const refreshed = useRef({ key: mirrorKey, reloadKey, generation, safeMode });
+  useLayoutEffect(() => {
+    const before = refreshed.current;
+    refreshed.current = { key: mirrorKey, reloadKey, generation, safeMode };
+    if (
+      single !== null &&
+      before.key === mirrorKey &&
+      (before.reloadKey !== reloadKey || before.generation !== generation || before.safeMode !== safeMode)
+    )
+      imageDetailMirror.invalidate(mirrorKey);
+  }, [single, mirrorKey, reloadKey, generation, safeMode]);
+
   useEffect(() => {
-    let alive = true;
-    setFailed(false);
     if (!single) {
       setLoadedState(null);
       return;
     }
-    workspaceImage(libraryId, single).then(
-      (d) => alive && setLoadedState({ key: detailKey, libraryId, detail: d }),
-      (e) => {
-        if (alive) {
-          setLoadedState(null);
-          setFailed(true);
-          onError(e);
-        }
-      },
-    );
-    return () => {
-      alive = false;
-    };
-    // 词表代次随 imagesChanged 前进（例如这张图打标失败被记下，#475）：重读详情，但不算换了一张，不先变成不可操作。
-  }, [libraryId, single, reloadKey, onError, detailKey, generation]);
+    if (mirror.value !== null) setLoadedState({ key: currentDetailKey.current, libraryId, detail: mirror.value });
+  }, [mirror.value, single, libraryId]);
+
+  // 读取失败：清空并报告一次；同一份失败不重复上报。镜像重读成功后错误消失，面板随之恢复。
+  const reported = useRef<unknown>(null);
+  useEffect(() => {
+    if (mirror.error === null) {
+      reported.current = null;
+      return;
+    }
+    setLoadedState(null);
+    if (reported.current === mirror.error) return;
+    reported.current = mirror.error;
+    onError(mirror.error);
+  }, [mirror.error, onError]);
+  const failed = mirror.error !== null;
   const detail = loaded?.detail ?? null;
   const stale = loaded?.key !== detailKey;
 
@@ -371,7 +386,8 @@ export function SelectionPanel({
     editImages(libraryId, ids, edits).then(
       (details) => {
         if (currentKey.current !== requestKey) return;
-        if (single && details[0]) setLoaded({ key: detailKey, detail: details[0] });
+        // 写入已成功：最新详情直接交回镜像，还在路上的旧读取不能把它盖掉。
+        if (single && details[0]) imageDetailMirror.accept(imageDetailKey(libraryId, single), details[0]);
         if (safeMode && details.some((d) => ratingInSafeScope(d.rating.effective, safeModeScope))) onClear();
       },
       (e) => {
@@ -396,7 +412,7 @@ export function SelectionPanel({
           currentKey.current === JSON.stringify([targetLibraryId, targetImageId, currentSafeMode.current]) &&
           details[0]
         ) {
-          setLoadedState({ key: currentDetailKey.current, libraryId: targetLibraryId, detail: details[0] });
+          imageDetailMirror.accept(imageDetailKey(targetLibraryId, targetImageId), details[0]);
         }
         return true;
       },
