@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 // Ported from bd8aea44:prototype/reference-browser/src/components/Rail.tsx: lucide icons, logo path,
 // indicator and dark number badges. The badge counts are the app's real ones. 参考组不用 Layers：
@@ -36,8 +36,11 @@ const count = (list: readonly unknown[]) => (list.length > 0 ? list.length : und
 
 /** 参考组与截图历史的数量（原型的深色数字角标）；图片与文件夹没有角标。 */
 function useBadges(): Partial<Record<Section, number>> {
-  const groups = useReferenceGroups().value;
-  const captures = useCaptureHistory().value;
+  // 角标是次要信息：首帧之后再订阅，避免镜像在根组件挂载期间同步发布加载态，迫使整个 App 先重渲染。
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const groups = useReferenceGroups(mounted).value;
+  const captures = useCaptureHistory(mounted).value;
   return {
     groups: groups ? count(groups) : undefined,
     captures: captures ? count(captures) : undefined,
