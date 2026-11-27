@@ -19,18 +19,11 @@ pub(super) async fn create_library<R: Runtime>(
     parent: PathBuf,
     name: String,
 ) -> Result<LibraryInfo, CommandError> {
-    blocking(move || {
-        let state = app.state::<LibraryState>();
-        let _transition = state.session.transition();
-        let library = with_visibility_commit(&app, |_| {
-            with_libraries(&state, |libraries| {
-                libraries.create(&parent.join(name.trim()), &name)
-            })
-        })?;
-        let info = forward_events(&app, &state, library);
-        publish(&app, AppNotice::RegistryChanged);
-        Ok(info)
-    })
+    verbs::transition_commit(
+        app,
+        move |libraries| libraries.create(&parent.join(name.trim()), &name),
+        finish_library_switch,
+    )
     .await
 }
 
@@ -42,17 +35,19 @@ pub(super) async fn create_library_unopened<R: Runtime>(
     parent: PathBuf,
     name: String,
 ) -> Result<kinshoko_core::RegisteredLibrary, CommandError> {
-    blocking(move || {
-        let state = app.state::<LibraryState>();
-        let root = parent.join(name.trim());
-        Library::create(&root, &name).map_err(DeviceLibraryError::Library)?;
-        let registered = with_visibility_commit(&app, |_| {
-            with_libraries(&state, |libraries| libraries.add_registration(&root))
-        })?;
-        state.release_readers();
-        publish(&app, AppNotice::RegistryChanged);
-        Ok(registered)
-    })
+    verbs::transition_commit(
+        app,
+        move |libraries| {
+            let root = parent.join(name.trim());
+            Library::create(&root, &name).map_err(DeviceLibraryError::Library)?;
+            libraries.add_registration(&root)
+        },
+        |app, registered| {
+            app.state::<LibraryState>().release_readers();
+            publish(app, AppNotice::RegistryChanged);
+            Ok(registered)
+        },
+    )
     .await
 }
 
@@ -153,16 +148,11 @@ pub(super) async fn register_library<R: Runtime>(
     app: AppHandle<R>,
     root: PathBuf,
 ) -> Result<LibraryInfo, CommandError> {
-    blocking(move || {
-        let state = app.state::<LibraryState>();
-        let _transition = state.session.transition();
-        let library = with_visibility_commit(&app, |_| {
-            with_libraries(&state, |libraries| libraries.register(&root))
-        })?;
-        let info = forward_events(&app, &state, library);
-        publish(&app, AppNotice::RegistryChanged);
-        Ok(info)
-    })
+    verbs::transition_commit(
+        app,
+        move |libraries| libraries.register(&root),
+        finish_library_switch,
+    )
     .await
 }
 
@@ -173,17 +163,21 @@ pub(super) async fn switch_library<R: Runtime>(
     app: AppHandle<R>,
     library_id: String,
 ) -> Result<LibraryInfo, CommandError> {
-    blocking(move || {
-        let state = app.state::<LibraryState>();
-        let _transition = state.session.transition();
-        let library = with_visibility_commit(&app, |_| {
-            with_libraries(&state, |libraries| libraries.switch(&library_id))
-        })?;
-        let info = forward_events(&app, &state, library);
-        publish(&app, AppNotice::RegistryChanged);
-        Ok(info)
-    })
+    verbs::transition_commit(
+        app,
+        move |libraries| libraries.switch(&library_id),
+        finish_library_switch,
+    )
     .await
+}
+
+fn finish_library_switch<R: Runtime>(
+    app: &AppHandle<R>,
+    library: Arc<Library>,
+) -> Result<LibraryInfo, CommandError> {
+    let info = forward_events(app, &app.state::<LibraryState>(), library);
+    publish(app, AppNotice::RegistryChanged);
+    Ok(info)
 }
 
 /// 取消本设备的登记；资料库文件夹与整理结果原样保留。取消的是活动库时一并关闭它。
@@ -192,28 +186,28 @@ pub(super) async fn unregister_library<R: Runtime>(
     app: AppHandle<R>,
     library_id: String,
 ) -> Result<(), CommandError> {
-    blocking(move || {
-        let state = app.state::<LibraryState>();
-        let _transition = state.session.transition();
-        let closed = with_visibility_commit(&app, |_| {
-            with_libraries(&state, |libraries| {
-                let closed = libraries
-                    .current()
-                    .is_some_and(|library| library.info().id == library_id);
-                libraries.unregister(&library_id)?;
-                Ok(closed)
-            })
-        })?;
-        if closed {
-            *lock(&state.forwarded) = None;
-            state.search().invalidate();
-            *lock(&state.reference) = None;
-        }
-        state.release_readers();
-        // 打标正在打这个库时中止那一批并等它放下句柄（#414）；发布闸门已放开。
-        crate::tagging::release(&app, &library_id);
-        publish(&app, AppNotice::RegistryChanged);
-        Ok(())
-    })
+    verbs::transition_commit(
+        app,
+        move |libraries| {
+            let closed = libraries
+                .current()
+                .is_some_and(|library| library.info().id == library_id);
+            libraries.unregister(&library_id)?;
+            Ok((library_id, closed))
+        },
+        |app, (library_id, closed)| {
+            let state = app.state::<LibraryState>();
+            if closed {
+                *lock(&state.forwarded) = None;
+                state.search().invalidate();
+                *lock(&state.reference) = None;
+            }
+            state.release_readers();
+            // 打标正在打这个库时中止那一批并等它放下句柄（#414）；发布闸门已放开。
+            crate::tagging::release(app, &library_id);
+            publish(app, AppNotice::RegistryChanged);
+            Ok(())
+        },
+    )
     .await
 }
