@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { installDialogOrigin } from "./dialogOrigin";
 
 let uninstall: () => void;
@@ -125,4 +125,99 @@ it("按钮不在了就缩回打开时的位置", async () => {
   d.setAttribute("data-ending-style", "");
   await flush();
   expect(d.style.transformOrigin).toBe("600px -230px");
+});
+
+describe("一挂上就是打开的对话框（父组件按条件挂载）", () => {
+  let frames: { el: Element; keyframes: Keyframe[]; finish: () => void }[];
+  beforeEach(() => {
+    frames = [];
+    for (const [name, value] of Object.entries({
+      "--t": "200ms",
+      "--t-fast": "120ms",
+      "--t-slow": "320ms",
+      "--t-pop": "220ms",
+    }))
+      document.documentElement.style.setProperty(name, value);
+    HTMLElement.prototype.animate = function (this: Element, keyframes: Keyframe[]) {
+      let finish = () => {};
+      const finished = new Promise((resolve) => {
+        finish = () => resolve(undefined);
+      });
+      frames.push({ el: this, keyframes, finish });
+      return { finished } as unknown as Animation;
+    } as unknown as typeof HTMLElement.prototype.animate;
+  });
+  afterEach(() => {
+    delete (HTMLElement.prototype as { animate?: unknown }).animate;
+    document.documentElement.removeAttribute("style");
+  });
+
+  function backdrop() {
+    const b = document.createElement("div");
+    b.className = "k-backdrop";
+    return b;
+  }
+  const ghosts = (selector: string) => document.querySelectorAll(`${selector}.is-k-ghost`);
+
+  it("遮罩跟着淡入，卸下后留一个副本淡出再拿掉", async () => {
+    const root = document.createElement("div");
+    root.append(backdrop(), dialog());
+    document.body.append(root);
+    await flush();
+    const dimIn = frames.find((f) => (f.el as HTMLElement).matches(".k-backdrop"));
+    expect(dimIn?.keyframes).toEqual([{ opacity: 0 }, { opacity: 1 }]);
+
+    root.remove();
+    await flush();
+    expect(ghosts(".k-backdrop")).toHaveLength(1);
+    const dimOut = frames.find((f) => (f.el as HTMLElement).matches(".k-backdrop.is-k-ghost"));
+    expect(dimOut?.keyframes).toEqual([{ opacity: 1 }, { opacity: 0 }]);
+    // 副本不能挡住点击，也不让读屏读到。
+    const ghost = ghosts(".k-backdrop")[0] as HTMLElement;
+    expect(ghost.inert).toBe(true);
+    expect(ghost.getAttribute("aria-hidden")).toBe("true");
+    for (const f of frames) f.finish();
+    await flush();
+    expect(ghosts(".k-backdrop")).toHaveLength(0);
+  });
+
+  it("认不出按钮时从中间轻微放大出现，卸下时在中间缩小淡出", async () => {
+    const d = dialog();
+    document.body.append(d);
+    await flush();
+    expect(d.dataset.kFrom).toBeUndefined();
+    expect(frames.find((f) => f.el === d)?.keyframes).toEqual([
+      { transform: "scale(0.97)" },
+      { transform: "scale(1)" },
+    ]);
+
+    d.remove();
+    await flush();
+    const ghost = ghosts(".k-dialog")[0] as HTMLElement;
+    expect(ghost).toBeDefined();
+    expect(ghost.style.transformOrigin).toBe("");
+    expect(frames.find((f) => f.el === ghost)?.keyframes).toEqual([
+      { transform: "scale(1)" },
+      { transform: "scale(0.97)" },
+    ]);
+  });
+
+  it("走了 Base UI 起止态的遮罩与对话框不再补动画", async () => {
+    const b = backdrop();
+    const d = dialog();
+    b.setAttribute("data-starting-style", "");
+    d.setAttribute("data-starting-style", "");
+    document.body.append(b, d);
+    await flush();
+    expect(frames).toHaveLength(0);
+
+    b.setAttribute("data-ending-style", "");
+    d.setAttribute("data-ending-style", "");
+    await flush();
+    b.remove();
+    d.remove();
+    await flush();
+    expect(frames).toHaveLength(0);
+    expect(document.querySelectorAll(".is-k-ghost")).toHaveLength(0);
+  });
 });
