@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Name } from "../ui/Name";
-import { Dialog } from "@base-ui/react/dialog";
+import { DialogShell } from "../ui/DialogShell";
 import { CircleAlert, LoaderCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { Artist } from "../bindings/Artist";
@@ -53,12 +53,14 @@ export function ArtistDialog({
   onImport: () => void;
 }) {
   const { t } = useTranslation("subscriptions", { keyPrefix: "artist" });
+  const { t: ts } = useTranslation("subscriptions");
   const libraries = useLibraryOptions();
   const fallback = libraries.options[0]?.value ?? "";
   const [input, setInput] = useState("");
   const [lookup, setLookup] = useState<Lookup>({ kind: "idle" });
   /** 第几次查找；输入改了也加一，晚到的旧结果对不上就丢掉。 */
   const asked = useRef(0);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [choices, setChoices] = useState<ArtistChoices>(() => initialChoices(""));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -111,107 +113,114 @@ export function ArtistDialog({
   };
 
   return (
-    <Dialog.Root
+    <DialogShell
       open
+      purpose="form"
+      busy={busy}
+      title={
+        <>
+          {t("title")}
+          <span aria-hidden="true">
+            <UnofficialMark />
+          </span>
+        </>
+      }
+      titleClassName="k-title subs-first-run-head"
+      initialFocus={inputRef}
       onOpenChange={(open) => {
         if (!open && !busy) onClose();
       }}
-    >
-      <Dialog.Portal>
-        <Dialog.Backdrop className="k-backdrop" />
-        <Dialog.Popup className="k-dialog subs-artist-dialog">
-          <div className="subs-first-run-head">
-            <Dialog.Title className="k-title">{t("title")}</Dialog.Title>
-            <UnofficialMark />
-          </div>
-          <form
-            className="subs-artist-find"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (lookup.kind === "failed") find(input);
-            }}
+      className="subs-artist-dialog"
+      footer={
+        <>
+          {followingChoice(status) && (
+            <button type="button" className="k-btn is-quiet" disabled={busy} onClick={onImport}>
+              <span className="k-label">{t("importFollowing")}</span>
+            </button>
+          )}
+          <span className="k-grow" />
+          <button type="button" className="k-btn" disabled={busy} onClick={onClose}>
+            <span className="k-label">{t("cancel")}</span>
+          </button>
+          <button
+            type="button"
+            className="k-btn is-primary"
+            disabled={busy || !found || already || !backlog || !chosen.libraryId}
+            onClick={subscribe}
           >
-            <label className="k-field">
-              <span className="k-section-label">{t("input")}</span>
-              <span className="k-field-row">
-                <span className="k-input" aria-invalid={lookup.kind === "failed" ? true : undefined}>
-                  <input
-                    value={input}
-                    aria-label={t("input")}
-                    placeholder={t("placeholder")}
-                    disabled={busy}
-                    autoFocus
-                    spellCheck={false}
-                    onChange={(e) => {
-                      asked.current++;
-                      setInput(e.target.value);
-                      setLookup({ kind: e.target.value.trim() ? "finding" : "idle" });
-                    }}
-                  />
-                  {lookup.kind === "finding" && (
-                    <LoaderCircle className="k-spinner" size={14} role="status" aria-label={t("finding")} />
-                  )}
-                </span>
-              </span>
-            </label>
-            {lookup.kind === "failed" && (
-              <p className="k-error-text is-field" role="alert">
-                <CircleAlert size={14} aria-hidden="true" />
-                {lookup.message}
-              </p>
-            )}
-          </form>
-          {found && (
-            <div className="subs-artist-found">
-              <span className="subs-avatar" aria-hidden="true">
-                {found.name.slice(0, 1).toUpperCase()}
-              </span>
-              <span className="subs-account-text">
-                <Name className="subs-account-name">{found.name}</Name>
-                <span className="subs-account-sub">{t("id", { id: found.userId })}</span>
-              </span>
-              {already && (
-                <span className="k-pill">
-                  <span className="k-label">{t("already")}</span>
-                </span>
+            <span className="k-label">{t(busy ? "subscribing" : "subscribe")}</span>
+          </button>
+        </>
+      }
+    >
+      <span className="sr-only">{ts("unofficial")}</span>
+      <form
+        className="subs-artist-find"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (lookup.kind === "failed") find(input);
+        }}
+      >
+        <label className="k-field">
+          <span className="k-section-label">{t("input")}</span>
+          <span className="k-field-row">
+            <span className="k-input" aria-invalid={lookup.kind === "failed" ? true : undefined}>
+              <input
+                ref={inputRef}
+                value={input}
+                aria-label={t("input")}
+                placeholder={t("placeholder")}
+                disabled={busy}
+                spellCheck={false}
+                onChange={(e) => {
+                  asked.current++;
+                  setInput(e.target.value);
+                  setLookup({ kind: e.target.value.trim() ? "finding" : "idle" });
+                }}
+              />
+              {lookup.kind === "finding" && (
+                <LoaderCircle className="k-spinner" size={14} role="status" aria-label={t("finding")} />
               )}
-            </div>
+            </span>
+          </span>
+        </label>
+        {lookup.kind === "failed" && (
+          <p className="k-error-text is-field" role="alert">
+            <CircleAlert size={14} aria-hidden="true" />
+            {lookup.message}
+          </p>
+        )}
+      </form>
+      {found && (
+        <div className="subs-artist-found">
+          <span className="subs-avatar" aria-hidden="true">
+            {found.name.slice(0, 1).toUpperCase()}
+          </span>
+          <span className="subs-account-text">
+            <Name className="subs-account-name">{found.name}</Name>
+            <span className="subs-account-sub">{t("id", { id: found.userId })}</span>
+          </span>
+          {already && (
+            <span className="k-pill">
+              <span className="k-label">{t("already")}</span>
+            </span>
           )}
-          <ArtistOptionFields
-            value={chosen}
-            onChange={setChoices}
-            backlogAs="cards"
-            showExplicit={showExplicit}
-            disabled={busy}
-          />
-          {error && (
-            <p className="k-error-text is-field" role="alert">
-              <CircleAlert size={14} aria-hidden="true" />
-              {error}
-            </p>
-          )}
-          <div className="k-dialog-foot">
-            {followingChoice(status) && (
-              <button type="button" className="k-btn is-quiet" disabled={busy} onClick={onImport}>
-                <span className="k-label">{t("importFollowing")}</span>
-              </button>
-            )}
-            <span className="k-grow" />
-            <button type="button" className="k-btn" disabled={busy} onClick={onClose}>
-              <span className="k-label">{t("cancel")}</span>
-            </button>
-            <button
-              type="button"
-              className="k-btn is-primary"
-              disabled={busy || !found || already || !backlog || !chosen.libraryId}
-              onClick={subscribe}
-            >
-              <span className="k-label">{t(busy ? "subscribing" : "subscribe")}</span>
-            </button>
-          </div>
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
+        </div>
+      )}
+      <ArtistOptionFields
+        value={chosen}
+        onChange={setChoices}
+        backlogAs="cards"
+        showExplicit={showExplicit}
+        disabled={busy}
+      />
+      {error && (
+        <p className="k-error-text is-field" role="alert">
+          <CircleAlert size={14} aria-hidden="true" />
+          {error}
+        </p>
+      )}
+    </DialogShell>
   );
 }
 
@@ -257,41 +266,41 @@ export function ArtistSettingsDialog({
     );
   };
   return (
-    <Dialog.Root
+    <DialogShell
       open
+      purpose="form"
+      busy={busy}
+      title={t("settingsTitle")}
+      description={displayName(ts, subscription)}
       onOpenChange={(open) => {
         if (!open && !busy) onClose();
       }}
+      className="subs-artist-dialog"
+      footer={
+        <>
+          <span className="k-grow" />
+          <button type="button" className="k-btn" disabled={busy} onClick={onClose}>
+            <span className="k-label">{t("cancel")}</span>
+          </button>
+          <button type="button" className="k-btn is-primary" disabled={busy} onClick={save}>
+            <span className="k-label">{t("save")}</span>
+          </button>
+        </>
+      }
     >
-      <Dialog.Portal>
-        <Dialog.Backdrop className="k-backdrop" />
-        <Dialog.Popup className="k-dialog subs-artist-dialog">
-          <Dialog.Title className="k-title">{t("settingsTitle")}</Dialog.Title>
-          <Dialog.Description className="k-dialog-desc">{displayName(ts, subscription)}</Dialog.Description>
-          <ArtistOptionFields
-            value={choices}
-            onChange={setChoices}
-            backlogAs={null}
-            showExplicit={showExplicit}
-            disabled={busy}
-          />
-          {error && (
-            <p className="k-error-text is-field" role="alert">
-              <CircleAlert size={14} aria-hidden="true" />
-              {error}
-            </p>
-          )}
-          <div className="k-dialog-foot">
-            <span className="k-grow" />
-            <button type="button" className="k-btn" disabled={busy} onClick={onClose}>
-              <span className="k-label">{t("cancel")}</span>
-            </button>
-            <button type="button" className="k-btn is-primary" disabled={busy} onClick={save}>
-              <span className="k-label">{t("save")}</span>
-            </button>
-          </div>
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
+      <ArtistOptionFields
+        value={choices}
+        onChange={setChoices}
+        backlogAs={null}
+        showExplicit={showExplicit}
+        disabled={busy}
+      />
+      {error && (
+        <p className="k-error-text is-field" role="alert">
+          <CircleAlert size={14} aria-hidden="true" />
+          {error}
+        </p>
+      )}
+    </DialogShell>
   );
 }

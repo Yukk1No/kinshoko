@@ -1,4 +1,4 @@
-import { Dialog } from "@base-ui/react/dialog";
+import { DialogShell } from "../ui/DialogShell";
 import { Clock, ImageOff, Info, TriangleAlert } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { UnofficialMark } from "./UnofficialMark";
@@ -54,51 +54,55 @@ export function FirstRunDialog({
     { icon: <ImageOff size={16} strokeWidth={1.75} />, title: t("firstRun.animationTitle") },
   ];
   return (
-    <Dialog.Root
+    <DialogShell
       open={open}
+      purpose="info"
+      showClose={false}
+      title={
+        <>
+          {t("firstRun.title")}
+          <span aria-hidden="true">
+            <UnofficialMark />
+          </span>
+        </>
+      }
+      titleClassName="k-title subs-first-run-head"
+      description={t("firstRun.lead")}
       onOpenChange={(next) => {
         if (!next) onClose();
       }}
+      className="subs-first-run"
+      footer={
+        signedIn ? (
+          <button type="button" className="k-btn is-primary" onClick={onClose}>
+            <span className="k-label">{t("firstRun.close")}</span>
+          </button>
+        ) : (
+          <>
+            <button type="button" className="k-btn" onClick={onClose}>
+              <span className="k-label">{t("firstRun.later")}</span>
+            </button>
+            <button type="button" className="k-btn is-primary" onClick={onSignIn}>
+              <span className="k-label">{t("firstRun.signIn")}</span>
+            </button>
+          </>
+        )
+      }
     >
-      <Dialog.Portal>
-        <Dialog.Backdrop className="k-backdrop" />
-        <Dialog.Popup className="k-dialog subs-first-run">
-          <div className="subs-first-run-head">
-            <Dialog.Title className="k-title">{t("firstRun.title")}</Dialog.Title>
-            <UnofficialMark />
-          </div>
-          <Dialog.Description className="k-dialog-desc">{t("firstRun.lead")}</Dialog.Description>
-          <ul className="subs-first-run-points">
-            {points.map((p) => (
-              <li key={p.title} className={p.warn ? "is-warn" : undefined}>
-                <span className="subs-first-run-icon" aria-hidden="true">
-                  {p.icon}
-                </span>
-                <div>
-                  <p className="subs-first-run-title">{p.title}</p>
-                  {p.body && <p className="subs-first-run-body">{p.body}</p>}
-                </div>
-              </li>
-            ))}
-          </ul>
-          <div className="k-dialog-foot">
-            {signedIn ? (
-              <button type="button" className="k-btn is-primary" onClick={onClose}>
-                <span className="k-label">{t("firstRun.close")}</span>
-              </button>
-            ) : (
-              <>
-                <button type="button" className="k-btn" onClick={onClose}>
-                  <span className="k-label">{t("firstRun.later")}</span>
-                </button>
-                <button type="button" className="k-btn is-primary" onClick={onSignIn}>
-                  <span className="k-label">{t("firstRun.signIn")}</span>
-                </button>
-              </>
-            )}
-          </div>
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
+      <span className="sr-only">{t("unofficial")}</span>
+      <ul className="subs-first-run-points">
+        {points.map((p) => (
+          <li key={p.title} className={p.warn ? "is-warn" : undefined}>
+            <span className="subs-first-run-icon" aria-hidden="true">
+              {p.icon}
+            </span>
+            <div>
+              <p className="subs-first-run-title">{p.title}</p>
+              {p.body && <p className="subs-first-run-body">{p.body}</p>}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </DialogShell>
   );
 }

@@ -16,16 +16,12 @@ const sheets = import.meta.glob<string>("../**/*.css", { query: "?raw", import: 
 // 也不能手写关闭叉或底部操作区；迁移一个就从这里删一个，删完保留空表作为护栏。
 const DIRECT_DIALOG_ALLOWLIST = new Set([
   "../App.tsx",
-  "../library/CreateLibrary.tsx",
   "../library/ImportBar.tsx",
   "../library/ImportBarParts.tsx",
   "../library/LegacyNameMigrationPanel.tsx",
   "../library/LibraryPicker.tsx",
   "../library/PermanentDeleteBatch.tsx",
   "../library/SealedImportPreview.tsx",
-  "../subscriptions/ArtistDialog.tsx",
-  "../subscriptions/FirstRunDialog.tsx",
-  "../subscriptions/FollowingDialog.tsx",
   "../workspace/TagGroupsDialog.tsx",
 ]);
 const MANUAL_CLOSE_ALLOWLIST = new Set([
@@ -35,14 +31,10 @@ const MANUAL_CLOSE_ALLOWLIST = new Set([
   "../workspace/TagGroupsDialog.tsx",
 ]);
 const MANUAL_FOOTER_ALLOWLIST = new Set([
-  "../library/CreateLibrary.tsx",
   "../library/ImportBarParts.tsx",
   "../library/LegacyNameMigrationPanel.tsx",
   "../library/LibraryPicker.tsx",
   "../library/PermanentDeleteBatch.tsx",
-  "../subscriptions/ArtistDialog.tsx",
-  "../subscriptions/FirstRunDialog.tsx",
-  "../subscriptions/FollowingDialog.tsx",
   "../workspace/TagGroupsDialog.tsx",
 ]);
 // 主墙仍是未迁移的遗留实现；新墙与浏览页统一走 MediaCardFrame。

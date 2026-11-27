@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from "react";
-import { Dialog } from "@base-ui/react/dialog";
+import { DialogShell } from "../ui/DialogShell";
 import { ChevronLeft, FolderOpen } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { createLibrary, createLibraryUnopened, errorText, pickFolder, picturesFolder } from "../ipc";
@@ -92,21 +92,18 @@ export function NewLibraryFields({
 }
 
 /**
- * 新建图库的表单：两栏、报错与建立按钮。在所选位置新建同名文件夹并登记到本设备。
- * 位置按 ADR-0016 预填（和已有的图库放在一起 → 系统的「图片」文件夹）；只记画师亲手选的位置，预填的不写进记忆，
- * 免得盖掉暂时读不到的那条。`opens` 时建好后打开它（主窗口新建）；否则只登记不切换（订阅里就地新建）。
- * 有 `onCancel` 时脚部是对话框的「取消／建立」。
+ * 新建图库表单的状态与建立动作：位置按 ADR-0016 预填（和已有的图库放在一起 → 系统的「图片」文件夹）；
+ * 只记画师亲手选的位置，预填的不写进记忆，免得盖掉暂时读不到的那条。
+ * `opens` 时建好后打开它（主窗口新建）；否则只登记不切换（订阅里就地新建）。
  */
-function NewLibraryForm({
+function useNewLibraryForm({
   opens,
   onCreated,
   onBusyChange,
-  onCancel,
 }: {
   opens: boolean;
   onCreated: (library: CreatedLibrary) => void;
   onBusyChange?: (busy: boolean) => void;
-  onCancel?: () => void;
 }) {
   const { t } = useTranslation("library", { keyPrefix: "create" });
   const { providers, memory, rememberNewLibraryParent } = useSaveDestination();
@@ -134,6 +131,11 @@ function NewLibraryForm({
     };
   }, []);
 
+  const changeDraft = (patch: Partial<NewLibraryDraft>) => {
+    if (patch.name !== undefined) setName(patch.name);
+    if (patch.parent) setChosen(patch.parent);
+  };
+
   const create = async () => {
     if (!draft.parent) return;
     setBusy(true);
@@ -151,42 +153,42 @@ function NewLibraryForm({
     }
   };
 
-  const submit = (
-    <button
-      type="button"
-      className={`k-btn is-primary${onCancel ? "" : " is-lg"}`}
-      disabled={!ready}
-      onClick={() => void create()}
-    >
-      <span className="k-label">{t("submit")}</span>
-    </button>
-  );
+  return { draft, busy, ready, error, changeDraft, create };
+}
+
+/**
+ * 新建图库的表单：两栏、报错与建立按钮。在所选位置新建同名文件夹并登记到本设备。
+ * 整页引导的脚部是 `.create-library-foot`。
+ */
+function NewLibraryForm({
+  opens,
+  onCreated,
+  onBusyChange,
+}: {
+  opens: boolean;
+  onCreated: (library: CreatedLibrary) => void;
+  onBusyChange?: (busy: boolean) => void;
+}) {
+  const { t } = useTranslation("library", { keyPrefix: "create" });
+  const form = useNewLibraryForm({ opens, onCreated, onBusyChange });
   return (
     <>
-      <NewLibraryFields
-        value={draft}
-        disabled={busy}
-        onChange={(patch) => {
-          if (patch.name !== undefined) setName(patch.name);
-          if (patch.parent) setChosen(patch.parent);
-        }}
-      />
-      {error && (
+      <NewLibraryFields value={form.draft} disabled={form.busy} onChange={form.changeDraft} />
+      {form.error && (
         <p className="k-error-text" role="alert">
-          {error}
+          {form.error}
         </p>
       )}
-      {onCancel ? (
-        <div className="k-dialog-foot">
-          <span className="k-grow" />
-          <button type="button" className="k-btn" disabled={busy} onClick={onCancel}>
-            <span className="k-label">{t("cancel")}</span>
-          </button>
-          {submit}
-        </div>
-      ) : (
-        <div className="create-library-foot">{submit}</div>
-      )}
+      <div className="create-library-foot">
+        <button
+          type="button"
+          className="k-btn is-primary is-lg"
+          disabled={!form.ready}
+          onClick={() => void form.create()}
+        >
+          <span className="k-label">{t("submit")}</span>
+        </button>
+      </div>
     </>
   );
 }
@@ -247,29 +249,35 @@ export function CreateLibraryDialog({
   onBusyChange?: (busy: boolean) => void;
 }) {
   const { t } = useTranslation("library", { keyPrefix: "create" });
-  const [busy, setBusy] = useState(false);
+  const form = useNewLibraryForm({ opens, onCreated, onBusyChange });
   return (
-    <Dialog.Root
+    <DialogShell
       open
+      purpose="form"
+      busy={form.busy}
+      title={t("title")}
       onOpenChange={(open) => {
-        if (!open && !busy) onClose();
+        if (!open && !form.busy) onClose();
       }}
+      className="create-library-dialog"
+      footer={
+        <>
+          <span className="k-grow" />
+          <button type="button" className="k-btn" disabled={form.busy} onClick={onClose}>
+            <span className="k-label">{t("cancel")}</span>
+          </button>
+          <button type="button" className="k-btn is-primary" disabled={!form.ready} onClick={() => void form.create()}>
+            <span className="k-label">{t("submit")}</span>
+          </button>
+        </>
+      }
     >
-      <Dialog.Portal>
-        <Dialog.Backdrop className="k-backdrop" />
-        <Dialog.Popup className="k-dialog create-library-dialog">
-          <Dialog.Title className="k-title">{t("title")}</Dialog.Title>
-          <NewLibraryForm
-            opens={opens}
-            onCreated={onCreated}
-            onCancel={onClose}
-            onBusyChange={(b) => {
-              setBusy(b);
-              onBusyChange?.(b);
-            }}
-          />
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
+      <NewLibraryFields value={form.draft} disabled={form.busy} onChange={form.changeDraft} />
+      {form.error && (
+        <p className="k-error-text" role="alert">
+          {form.error}
+        </p>
+      )}
+    </DialogShell>
   );
 }
