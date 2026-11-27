@@ -1,9 +1,8 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronRight, FolderInput, Layers, MoreHorizontal, Plus } from "lucide-react";
 import type { DeskLists } from "../bindings/DeskLists";
 import type { GroupSummary } from "../bindings/GroupSummary";
-import type { ReferenceGroupView } from "../bindings/ReferenceGroupView";
 import {
   deleteReferenceGroup,
   deskReferenceGroups,
@@ -14,8 +13,6 @@ import {
   onReferenceGroupsChanged,
   pruneUnpinnedMembers,
   purgeDeletedReferenceGroup,
-  referenceGroup,
-  registeredLibraries,
   removeDeskGroupMember,
   renameReferenceGroup,
   repinAllGroupMembers,
@@ -32,6 +29,7 @@ import { createBackendMirror } from "../ipc/backendMirror";
 import { useBackendMirror } from "../ipc/useBackendMirror";
 import { SaveDestinationDialog } from "../library/SaveDestination";
 import { useIndicatorSlide } from "../library/useIndicatorSlide";
+import { useRegisteredLibraries } from "../library/workspaceDirectoriesMirror";
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { FluidList, FluidRow } from "../ui/FluidList";
 import { Menu, MenuPopup } from "../ui/Menu";
@@ -41,6 +39,7 @@ import { useToast } from "../ui/Toast";
 import { WarnIcon } from "../ui/WarnIcon";
 import { DeskGroupMembers } from "./DeskGroupMembers";
 import { DeskGroupMenuItems } from "./DeskGroupMenu";
+import { useDeskGroupView } from "./desktopMirrors";
 import { GroupNameForm } from "./GroupNameForm";
 import { groupLabel } from "./groupLabel";
 
@@ -100,66 +99,34 @@ export function DeskNewGroupButton() {
 export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
   const { t } = useTranslation("desktop");
   const toast = useToast();
-  const [libraryNames, setLibraryNames] = useState<Map<string, string>>(new Map());
+  const registrations = useRegisteredLibraries();
+  const libraryNames = useMemo(
+    () => new Map((registrations.value ?? []).map((r) => [r.library.id, r.library.name])),
+    [registrations.value],
+  );
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
   const [folded, setFolded] = useState<ReadonlySet<SectionKey>>(() => new Set(["older"]));
   const paneRef = useRef<HTMLElement>(null);
   useIndicatorSlide(paneRef);
   const [importing, setImporting] = useState(false);
-  /** 桌面上那组的成员，按参考组 id 记下。 */
-  const [views, setViews] = useState<Map<string, { at: number; view: ReferenceGroupView }>>(new Map());
 
   const all = [...lists.favorites, ...lists.recent, ...lists.older];
+  const onDeskGroup = all.find((g) => g.id === lists.onDesk) ?? null;
+  const deskGroup = useDeskGroupView(onDeskGroup?.id ?? "", onDeskGroup !== null && !onDeskGroup.problem);
+  const onDeskView = deskGroup.value ?? undefined;
 
+  const libraryError = registrations.error ? errorText(registrations.error) : null;
+  const shownLibraryError = useRef<string | null>(null);
   useEffect(() => {
-    let alive = true;
-    registeredLibraries().then(
-      (list) => {
-        if (alive) setLibraryNames(new Map(list.map((r) => [r.library.id, r.library.name])));
-      },
-      (e) => {
-        if (alive) toast.error(errorText(e));
-      },
-    );
-    return () => {
-      alive = false;
-    };
-  }, [toast]);
-
-  // 桌面上那组的成员：桌面一变就重读（钉回、关掉钉图时更新时间不一定变）；同时清理已不存在的旧组缓存。
-  useEffect(() => {
-    let alive = true;
-    const liveIds = new Set([...lists.favorites, ...lists.recent, ...lists.older].map((g) => g.id));
-    setViews((prev) => {
-      let stale = false;
-      for (const id of prev.keys()) {
-        if (!liveIds.has(id)) {
-          stale = true;
-          break;
-        }
-      }
-      if (!stale) return prev;
-      const next = new Map<string, { at: number; view: ReferenceGroupView }>();
-      for (const [id, entry] of prev) {
-        if (liveIds.has(id)) next.set(id, entry);
-      }
-      return next;
-    });
-    for (const g of [...lists.favorites, ...lists.recent, ...lists.older]) {
-      if (g.problem || g.id !== lists.onDesk) continue;
-      referenceGroup(g.id).then(
-        (view) => {
-          if (alive && view) setViews((prev) => new Map(prev).set(g.id, { at: g.updatedAt, view }));
-        },
-        () => {
-          // 忽略失败：读不到成员时保持折叠行本身可切换。
-        },
-      );
+    if (libraryError === null) {
+      shownLibraryError.current = null;
+      return;
     }
-    return () => {
-      alive = false;
-    };
-  }, [lists]);
+    // 工作区事件会反复触发重读；一直是同一个原因时只报一次。
+    if (shownLibraryError.current === libraryError) return;
+    shownLibraryError.current = libraryError;
+    toast.error(libraryError);
+  }, [libraryError, toast]);
 
   const run = async (action: () => Promise<unknown>, done?: (value: unknown) => string | null) => {
     try {
@@ -250,7 +217,7 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
   const item = (g: GroupSummary, section: SectionKey) => {
     const label = groupLabel(g);
     const onDesk = g.id === lists.onDesk;
-    const view = onDesk ? views.get(g.id)?.view : undefined;
+    const view = onDesk ? onDeskView : undefined;
     const unpinned = !!view?.group.members.some((m) => m.pinned === false);
     const menuItems = (
       <DeskGroupMenuItems
@@ -381,7 +348,7 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
     );
   };
 
-  const deskLayout = `${lists.onDesk ?? ""}:${(lists.onDesk && views.get(lists.onDesk)?.view.group.members.length) || 0}`;
+  const deskLayout = `${lists.onDesk ?? ""}:${onDeskView?.group.members.length ?? 0}`;
 
   const section = (key: SectionKey, groups: GroupSummary[]) =>
     groups.length > 0 && (
