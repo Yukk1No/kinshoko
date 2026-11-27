@@ -1,6 +1,6 @@
 // 标签分组（#607，design/ui-system/main-window-material.md“顶栏”）：查找框尾部的图标按钮，点开挂在查找框下面的面板，
 // 所有分组的标签一次摆出来，可以跨分组连选，面板不关。条件的手势沿用原型的分组条（bd8aea4 TagGroupBar.tsx）。
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { formatNumber } from "../i18n/format";
 import { Popover } from "@base-ui/react/popover";
@@ -9,9 +9,20 @@ import { Tip } from "../ui/Tip";
 import { EmptyState } from "../ui/EmptyState";
 import type { TagGroupView } from "../bindings/TagGroupView";
 import type { SearchInput } from "../bindings/SearchInput";
-import { isLensChanged, tagGroups, workspaceTagGroups } from "../ipc";
+import { isCursorExpired, isLensChanged, tagGroups, workspaceTagGroups } from "../ipc";
+import { createBackendMirror } from "../ipc/backendMirror";
+import { useBackendMirror } from "../ipc/useBackendMirror";
 import { TagMarks, tagName } from "./SearchBox";
 import { useUiLang } from "../i18n";
+
+/** 查找框标签分组的后端镜像：同一浏览透镜共用读取、过期重试与防乱序；安全模式是键的一部分。 */
+const tagGroupPickerMirror = createBackendMirror<string, TagGroupView[]>({
+  read: (key) => {
+    const [libraryId, safe, workspace, lang] = JSON.parse(key) as [string, boolean, boolean | null, string];
+    return workspace ? workspaceTagGroups(libraryId, lang, safe) : tagGroups(libraryId, lang);
+  },
+  stale: (error) => isCursorExpired(error) || isLensChanged(error),
+});
 
 type Props = {
   workspace?: boolean;
@@ -27,31 +38,30 @@ type Props = {
 
 export function TagGroupPicker(p: Props) {
   const { t } = useTranslation("search");
-  const [found, setFound] = useState<{ lens: string; groups: TagGroupView[] }>({ lens: "", groups: [] });
   const lang = useUiLang();
   // A new generation refreshes the same lens, so the old groups stay up (and the popover open) until the
   // new ones arrive. Any other change is a different lens: nothing from the old one may stay on screen.
   const lens = JSON.stringify([p.libraryId, p.safe, p.workspace, lang]);
-  const key = JSON.stringify([lens, p.generation]);
-  const current = useRef(key);
-  current.current = key;
-  const groups = found.lens === lens ? found.groups : [];
+  const mirror = useBackendMirror(tagGroupPickerMirror, lens);
+  const groups = mirror.value ?? [];
   const trigger = useRef<HTMLButtonElement>(null);
   const popup = useRef<HTMLDivElement>(null);
+  const refreshed = useRef({ lens, generation: p.generation });
+  useLayoutEffect(() => {
+    const before = refreshed.current;
+    refreshed.current = { lens, generation: p.generation };
+    if (before.lens === lens && before.generation !== p.generation) tagGroupPickerMirror.invalidate(lens);
+  }, [lens, p.generation]);
+  const reported = useRef<unknown>(null);
   useEffect(() => {
-    let alive = true;
-    (p.workspace ? workspaceTagGroups(p.libraryId, lang, p.safe) : tagGroups(p.libraryId, lang)).then(
-      (next) => {
-        if (alive && current.current === key) setFound({ lens, groups: next });
-      },
-      (error) => {
-        if (alive && current.current === key && !isLensChanged(error)) p.onError(error);
-      },
-    );
-    return () => {
-      alive = false;
-    };
-  }, [key, lens, p.libraryId, p.safe, p.onError, p.workspace, lang]);
+    if (!mirror.error) {
+      reported.current = null;
+      return;
+    }
+    if (reported.current === mirror.error || isLensChanged(mirror.error)) return;
+    reported.current = mirror.error;
+    p.onError(mirror.error);
+  }, [mirror.error, p.onError]);
   const used = (id: string) => p.input.conditions.find((c) => c.any.some((t) => t.kind === "tag" && t.id === id));
   const without = (id: string) =>
     p.input.conditions.flatMap((c) => {
