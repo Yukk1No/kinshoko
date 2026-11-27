@@ -9,10 +9,8 @@ pub(super) async fn shared_personal_approx<R: Runtime>(
     lang: String,
     safe_mode: bool,
 ) -> Result<CatalogApproxView, CommandError> {
-    blocking(move || {
-        with_lens(&app, safe_mode, Hold::Stable, |w, d, c| {
-            w.personal_approx(d, c, &lang, safe_mode)
-        })
+    verbs::lens(app, safe_mode, Hold::Stable, move |w, d, c| {
+        w.personal_approx(d, c, &lang, safe_mode)
     })
     .await
 }
@@ -23,15 +21,12 @@ pub(super) async fn edit_shared_approx<R: Runtime>(
     safe_mode: bool,
 ) -> Result<(), CommandError> {
     blocking(move || {
-        let lens = app
-            .state::<LibraryState>()
-            .safe_mode()
-            .lens_expecting(safe_mode)?;
-        with_lens(&app, safe_mode, Hold::Read, |w, d, c| {
-            w.edit_approx(d, c, &edit, safe_mode)
-        })?;
+        app.state::<LibraryState>()
+            .session
+            .with_lens(safe_mode, Hold::Confirmed, |w, d, c| {
+                w.edit_approx(d, c, &edit, safe_mode)
+            })?;
         publish(&app, AppNotice::PersonalApproxChanged);
-        lens.confirm(app.state::<LibraryState>().safe_mode())?;
         Ok(())
     })
     .await

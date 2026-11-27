@@ -30,74 +30,60 @@ fn view(
 #[tauri::command]
 pub(super) async fn plan_legacy_names<R: Runtime>(
     app: AppHandle<R>,
-    state: State<'_, LibraryState>,
 ) -> Result<LegacyNameMigrationWorkspace, CommandError> {
-    let reader = app.clone();
-    let lens = state.safe_mode().lens();
-    let result = blocking(move || {
-        workspace::with_resources(
-            &reader.state::<LibraryState>(),
-            |workspace, libraries, catalog| view(workspace, catalog, libraries, lens.on()),
-        )
-    })
-    .await?;
-    lens.confirm(state.safe_mode())
-        .map_err(|_| safe_mode_changed())?;
-    Ok(result)
+    verbs::current_lens(
+        app,
+        |_| safe_mode_changed(),
+        |w, d, c, safe| view(w, c, d, safe),
+    )
+    .await
 }
 
 #[tauri::command]
 pub(super) async fn confirm_legacy_names<R: Runtime>(
     app: AppHandle<R>,
-    state: State<'_, LibraryState>,
     revision: i64,
     decisions: Vec<LegacyNameDecision>,
 ) -> Result<LegacyNameMigrationWorkspace, CommandError> {
-    let reader = app.clone();
-    let lens = state.safe_mode().lens();
-    let result = blocking(move || {
-        workspace::with_resources(
-            &reader.state::<LibraryState>(),
-            |workspace, libraries, catalog| {
-                let current = view(workspace, catalog, libraries, lens.on())?;
+    blocking(move || {
+        let state = app.state::<LibraryState>();
+        let grant = state.session.grant();
+        let result = state.session.with_current_lens(
+            |_| safe_mode_changed(),
+            |workspace, libraries, catalog, safe| {
+                let current = view(workspace, catalog, libraries, safe)?;
                 if current.plan.revision != revision {
                     return Err(CatalogError::StaleNameMigration);
                 }
                 catalog.confirm_name_migration(&current.plan, &decisions)?;
-                view(workspace, catalog, libraries, lens.on())
+                view(workspace, catalog, libraries, safe)
             },
-        )
+        )?;
+        names::refresh_labels(&app, &state)?;
+        if !state.session.is_grant_current(&grant) {
+            return Err(safe_mode_changed());
+        }
+        Ok(result)
     })
-    .await?;
-    names::refresh_labels(&app, &state)?;
-    lens.confirm(state.safe_mode())
-        .map_err(|_| safe_mode_changed())?;
-    Ok(result)
+    .await
 }
 
 #[tauri::command]
 pub(super) async fn preview_legacy_names<R: Runtime>(
     app: AppHandle<R>,
-    state: State<'_, LibraryState>,
     revision: i64,
     decisions: Vec<LegacyNameDecision>,
 ) -> Result<LegacyNameMigrationPreview, CommandError> {
-    let reader = app.clone();
-    let lens = state.safe_mode().lens();
-    let result = blocking(move || {
-        workspace::with_resources(
-            &reader.state::<LibraryState>(),
-            |workspace, libraries, catalog| {
-                let current = view(workspace, catalog, libraries, lens.on())?;
-                if current.plan.revision != revision {
-                    return Err(CatalogError::StaleNameMigration);
-                }
-                catalog.preview_name_migration(&current.plan, &decisions)
-            },
-        )
-    })
-    .await?;
-    lens.confirm(state.safe_mode())
-        .map_err(|_| safe_mode_changed())?;
-    Ok(result)
+    verbs::current_lens(
+        app,
+        |_| safe_mode_changed(),
+        move |w, d, c, safe| {
+            let current = view(w, c, d, safe)?;
+            if current.plan.revision != revision {
+                return Err(CatalogError::StaleNameMigration);
+            }
+            c.preview_name_migration(&current.plan, &decisions)
+        },
+    )
+    .await
 }
