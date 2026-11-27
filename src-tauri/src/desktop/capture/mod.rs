@@ -30,7 +30,7 @@ use super::{lock, state};
 use crate::data_dirs::SharedWebview as _;
 use crate::window_events::{self, WindowRequest};
 use kinshoko_core::diagnostics::{LogEvent, WindowKind};
-use kinshoko_core::safe_mode::SafeModeSnapshot;
+use kinshoko_core::session::Grant;
 
 pub const CAPTURE_WINDOW: &str = "capture";
 
@@ -50,7 +50,7 @@ pub struct Pending {
     /// 冻结屏幕的一次性标记，防止页面拿到上一次的图。
     token: String,
     references: Vec<ReferenceSurface>,
-    safe_generation: SafeModeSnapshot,
+    grant: Grant,
 }
 
 pub(super) struct ReferenceSurface {
@@ -156,7 +156,7 @@ fn grab_and_show(app: &AppHandle, token: &str) -> Result<(), CommandError> {
     let cursor = app.cursor_position().map_err(CommandError::system)?;
     let monitor = xcap::Monitor::from_point(cursor.x.floor() as i32, cursor.y.floor() as i32)
         .map_err(CommandError::system)?;
-    let safe_generation = crate::library::capture_generation(app);
+    let grant = crate::library::workspace_session(app).grant();
     let mut frozen = None;
     for _ in 0..5 {
         let geometry_generation = state(app)
@@ -189,7 +189,7 @@ fn grab_and_show(app: &AppHandle, token: &str) -> Result<(), CommandError> {
         {
             continue;
         }
-        if crate::library::capture_generation(app) != safe_generation {
+        if !crate::library::workspace_session(app).is_grant_current(&grant) {
             return Err(safe_mode_changed());
         }
         frozen = Some((image, before_surfaces));
@@ -215,7 +215,7 @@ fn grab_and_show(app: &AppHandle, token: &str) -> Result<(), CommandError> {
     {
         let mut session = lock(&state(app).capture);
         if !matches!(&*session, Session::Grabbing(t) if t == token)
-            || crate::library::capture_generation(app) != safe_generation
+            || !crate::library::workspace_session(app).is_grant_current(&grant)
         {
             return Err(CommandError::new(
                 ErrorKind::CaptureSessionExpired,
@@ -227,7 +227,7 @@ fn grab_and_show(app: &AppHandle, token: &str) -> Result<(), CommandError> {
             origin,
             token: token.to_owned(),
             references,
-            safe_generation,
+            grant,
         });
     }
 

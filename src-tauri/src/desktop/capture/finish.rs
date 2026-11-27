@@ -136,7 +136,7 @@ fn finish_blocking(
         references: &references,
     };
     let at = selection.screen_rect().map_err(CommandError::from)?;
-    if crate::library::capture_generation(app) != pending.safe_generation {
+    if !crate::library::workspace_session(app).is_grant_current(&pending.grant) {
         return Err(super::safe_mode_changed());
     }
     validate_source(app, &pending, at)?;
@@ -171,39 +171,41 @@ fn finish_blocking(
     crate::desktop::timing("finish.prepared");
     // Mode/settings, source edits, providers and automatic ratings share this commit gate.
     // Only history persistence and the actual OS/pin side effect occur within it.
-    let committed = crate::library::with_visibility_commit(app, |permit| {
-        if permit.generation() != pending.safe_generation {
-            return Err(super::safe_mode_changed());
-        }
-        validate_source(app, &pending, at)?;
-        let outcome = draft
-            .commit_with_history(|prepared| lock(&state(app).history).add_prepared(prepared))
-            .map_err(CommandError::from)?;
-        history_changed(app);
-        match outcome {
-            CaptureOutcome::PinReference(pin) => {
-                pins::open_reference_selection(app, pin, at).map(Some)
+    let committed = kinshoko_core::VisibilityPermit::commit_grant(
+        crate::library::workspace_session(app),
+        &pending.grant,
+        |_| super::safe_mode_changed(),
+        |_| {
+            validate_source(app, &pending, at)?;
+            let outcome = draft
+                .commit_with_history(|prepared| lock(&state(app).history).add_prepared(prepared))
+                .map_err(CommandError::from)?;
+            history_changed(app);
+            match outcome {
+                CaptureOutcome::PinReference(pin) => {
+                    pins::open_reference_selection(app, pin, at).map(Some)
+                }
+                CaptureOutcome::CopyReference(_) => clipboard
+                    .expect("copy draft prepared clipboard formats")
+                    .commit(app)
+                    .map(|()| None),
+                CaptureOutcome::PinCapture(entry) => pins::open(
+                    app,
+                    &entry,
+                    ScreenRect {
+                        width: entry.width,
+                        height: entry.height,
+                        ..at
+                    },
+                )
+                .map(Some),
+                CaptureOutcome::CopyCapture(_) => clipboard
+                    .expect("copy draft prepared clipboard formats")
+                    .commit(app)
+                    .map(|()| None),
             }
-            CaptureOutcome::CopyReference(_) => clipboard
-                .expect("copy draft prepared clipboard formats")
-                .commit(app)
-                .map(|()| None),
-            CaptureOutcome::PinCapture(entry) => pins::open(
-                app,
-                &entry,
-                ScreenRect {
-                    width: entry.width,
-                    height: entry.height,
-                    ..at
-                },
-            )
-            .map(Some),
-            CaptureOutcome::CopyCapture(_) => clipboard
-                .expect("copy draft prepared clipboard formats")
-                .commit(app)
-                .map(|()| None),
-        }
-    });
+        },
+    );
     crate::desktop::timing(&format!("finish.end ok={}", committed.is_ok()));
     committed
 }
