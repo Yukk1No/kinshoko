@@ -530,12 +530,13 @@ fn an_import_preview_stops_sending_once_safe_mode_is_committed() {
             },
         )
     });
-    // 提交不一定赶在最后一块之前进门；赶上了就必须停下，不再发送。
+    // 提交不一定赶在最后一块之前进门；赶上了就必须停下，不再发送（回调里的断言守着这一点）。
+    // 字节发完、收尾那一轮之前才进门时，字节已经全部发出，但预览仍以“视角变了”结束，没有收尾。
     match result {
         Ok(()) => assert_eq!(sent, bytes.len()),
         Err(error) => {
             assert_eq!(error.kind, ErrorKind::LensChanged);
-            assert!(sent < bytes.len());
+            assert!(sent <= bytes.len());
         }
     }
     let after = f.session.read_import_preview(
