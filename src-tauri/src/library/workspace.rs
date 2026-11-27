@@ -4,7 +4,7 @@ use super::*;
 use kinshoko_core::CommandError;
 use kinshoko_core::diagnostics::took;
 use kinshoko_core::workspace::{
-    Workspace, WorkspaceCard, WorkspaceDirectories, WorkspacePage, WorkspaceQuery, WorkspaceStatus,
+    WorkspaceCard, WorkspaceDirectories, WorkspacePage, WorkspaceQuery, WorkspaceStatus,
 };
 
 /// 主窗口不可见或最小化时的兜底重检间隔：平时由窗口恢复/聚焦事件即时唤醒，超时仅防漏发。
@@ -130,16 +130,6 @@ fn monitor_step(
     if wake.wait_timeout(wake_seq, backoff.current()) {
         backoff.reset();
     }
-}
-/// Acquire device, catalog, then workspace ([`kinshoko_core::WorkspaceSession::with_resources`]).
-/// Callers retain their lens and visibility guards.
-#[track_caller]
-#[allow(dead_code)] // #795 移除
-pub(super) fn with_resources<T>(
-    state: &LibraryState,
-    f: impl FnOnce(&mut Workspace, &mut DeviceLibraries, &mut TagCatalog) -> Result<T, CatalogError>,
-) -> Result<T, CommandError> {
-    state.session.with_resources_at(Location::caller(), f)
 }
 
 pub(super) fn monitor<R: Runtime>(app: AppHandle<R>) {

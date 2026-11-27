@@ -32,8 +32,6 @@ pub use save_destination::{with_destination, with_destination_published};
 mod access;
 mod lens;
 use lens::Hold;
-#[allow(unused_imports)] // #795 移除
-use lens::with_lens;
 mod workspace;
 pub use access::*;
 mod import_commands;
@@ -70,7 +68,7 @@ use kinshoko_core::library_batch::{
     group_by_library,
 };
 use kinshoko_core::reference_groups::{DetachedLenses, References};
-use kinshoko_core::safe_mode::{SafeModeSnapshot, SafeModeState};
+use kinshoko_core::safe_mode::SafeModeState;
 use kinshoko_core::search::{
     Candidate, CatalogSearch, ConditionTree, RatingCandidate, SearchInput,
 };
@@ -203,17 +201,6 @@ fn with_libraries<T>(
     action: impl FnOnce(&mut DeviceLibraries) -> Result<T, DeviceLibraryError>,
 ) -> Result<T, CommandError> {
     state.session.with_libraries_at(Location::caller(), action)
-}
-
-#[track_caller]
-#[allow(dead_code)] // #795 移除
-fn with_catalog<T>(
-    catalog: &CatalogSearch,
-    action: impl FnOnce(&mut TagCatalog) -> Result<T, CatalogError>,
-) -> Result<T, CommandError> {
-    catalog
-        .with_catalog_at(Location::caller(), action)
-        .map_err(CommandError::from)
 }
 
 /// 登记表的锁，等锁、持锁久了记进运行日志（#337）。

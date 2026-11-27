@@ -1,7 +1,7 @@
 //! 其他模块取资料库句柄、来源与安全模式的入口。
 
 use super::*;
-use kinshoko_core::{CommandError, PublicationGate, VisibilityPermit};
+use kinshoko_core::{CommandError, PublicationGate};
 
 /// 运行日志里的资料库编号（#219）：它在本设备登记表里的位置。登记表还没加载、或正被别处
 /// 持有（例如切换资料库的途中）时为空：只为记日志，不等锁。
@@ -229,13 +229,7 @@ pub fn register_restored<R: Runtime>(
     )
 }
 
-/// Current authority generation for native capture actions.
-#[allow(dead_code)] // #795 移除
-pub fn capture_generation<R: Runtime>(app: &AppHandle<R>) -> SafeModeSnapshot {
-    app.state::<LibraryState>().safe_mode().snapshot()
-}
-
-/// 本设备的工作区会话：取锁顺序与可见性许可（[`VisibilityPermit`]）都在它上面。
+/// 本设备的工作区会话：取锁顺序与可见性许可（[`kinshoko_core::VisibilityPermit`]）都在它上面。
 /// 资料库插件还没装配时调用会 panic（同 `app.state`）。
 pub(crate) fn workspace_session<R: Runtime>(app: &AppHandle<R>) -> &WorkspaceSession {
     &app.state::<LibraryState>().inner().session
@@ -252,22 +246,6 @@ pub fn revoke_import_preview_context<R: Runtime>(app: &AppHandle<R>) {
             .session
             .with_visibility(|permit| permit.revoke_import_preview())
     });
-}
-
-/// Commit a final visibility-authorized side effect atomically with mode/settings,
-/// provider/source edits and background rating publication.
-/// Decode first, outside this closure. Revalidate the caller's capability against the permit's
-/// generation, then perform the actual send/copy/pin before returning. This does not reject
-/// safe mode itself: an explicit, scoped preview capability can be valid while safe mode is on.
-/// New call sites prefer [`kinshoko_core::VisibilityPermit::commit`], which does the revalidation.
-///
-/// 取锁顺序与线程限制见 `kinshoko_core::session` 的模块说明。
-#[allow(dead_code)] // #795 移除
-pub(crate) fn with_visibility_commit<R: Runtime, T>(
-    app: &AppHandle<R>,
-    commit: impl FnOnce(&VisibilityPermit<'_>) -> T,
-) -> T {
-    app.state::<LibraryState>().session.with_visibility(commit)
 }
 
 /// The same pure Rust gate is injected into background result publication.
