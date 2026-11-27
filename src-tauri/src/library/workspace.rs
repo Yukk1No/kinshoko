@@ -165,8 +165,11 @@ pub(super) fn monitor<R: Runtime>(app: AppHandle<R>) {
 }
 
 fn poll<R: Runtime>(app: &AppHandle<R>, previous: &mut Option<String>) -> bool {
-    let safe = saved_safe_mode(app);
-    let Ok(status) = with_lens(app, safe, Hold::Confirmed, |w, d, c| w.status(d, c, safe)) else {
+    let Ok(status) = app
+        .state::<LibraryState>()
+        .session
+        .with_current_lens(CommandError::from, |w, d, c, safe| w.status(d, c, safe))
+    else {
         return false;
     };
     if previous.as_ref() == Some(&status.revision) {
@@ -204,16 +207,16 @@ pub(super) async fn workspace_browse<R: Runtime>(
         let state = app.state::<LibraryState>();
         let browse = || -> Result<WorkspacePage, CommandError> {
             let lens = state.safe_mode().lens();
-            let mut pending = with_lens(&app, safe_mode, Hold::Read, |w, d, c| {
+            let mut pending = state.session.with_lens(safe_mode, Hold::Read, |w, d, c| {
                 took("浏览：等资源锁", started, None);
                 w.browse_rows(d, c, &query, safe_mode)
             })?;
             let reading = std::time::Instant::now();
             pending.fill_placeholders(state.session.gate());
             took("浏览：读占位图", reading, None);
-            let page = with_lens(&app, safe_mode, Hold::Read, |w, d, c| {
-                w.confirm(d, c, pending)
-            })?;
+            let page = state
+                .session
+                .with_lens(safe_mode, Hold::Read, |w, d, c| w.confirm(d, c, pending))?;
             lens.confirm(state.safe_mode())?;
             Ok(page)
         };
@@ -244,11 +247,9 @@ pub(super) async fn workspace_resolve<R: Runtime>(
     crate::run_log::record(LogEvent::SearchResolved {
         terms: input.conditions.len().min(u32::MAX as usize) as u32,
     });
-    blocking(move || {
-        let catalog = app.state::<LibraryState>().search().clone();
-        with_lens(&app, safe_mode, Hold::Stable, |w, d, c| {
-            w.resolve(d, c, &input, &lang, safe_mode, catalog.builtin_approx())
-        })
+    let catalog = app.state::<LibraryState>().search().clone();
+    verbs::lens(app, safe_mode, Hold::Stable, move |w, d, c| {
+        w.resolve(d, c, &input, &lang, safe_mode, catalog.builtin_approx())
     })
     .await
 }
@@ -260,19 +261,17 @@ pub(super) async fn workspace_candidates<R: Runtime>(
     limit: u32,
     safe_mode: bool,
 ) -> Result<Vec<Candidate>, CommandError> {
-    blocking(move || {
-        let catalog = app.state::<LibraryState>().search().clone();
-        with_lens(&app, safe_mode, Hold::Stable, |w, d, c| {
-            w.candidates(
-                d,
-                c,
-                &text,
-                &lang,
-                limit as usize,
-                safe_mode,
-                catalog.builtin_approx(),
-            )
-        })
+    let catalog = app.state::<LibraryState>().search().clone();
+    verbs::lens(app, safe_mode, Hold::Stable, move |w, d, c| {
+        w.candidates(
+            d,
+            c,
+            &text,
+            &lang,
+            limit as usize,
+            safe_mode,
+            catalog.builtin_approx(),
+        )
     })
     .await
 }
@@ -286,20 +285,18 @@ pub(super) async fn workspace_library_candidates<R: Runtime>(
     limit: u32,
     safe_mode: bool,
 ) -> Result<Vec<Candidate>, CommandError> {
-    blocking(move || {
-        let catalog = app.state::<LibraryState>().search().clone();
-        with_lens(&app, safe_mode, Hold::Confirmed, |w, d, c| {
-            w.library_candidates(
-                d,
-                c,
-                &library_id,
-                &text,
-                &lang,
-                limit as usize,
-                safe_mode,
-                catalog.builtin_approx(),
-            )
-        })
+    let catalog = app.state::<LibraryState>().search().clone();
+    verbs::lens(app, safe_mode, Hold::Confirmed, move |w, d, c| {
+        w.library_candidates(
+            d,
+            c,
+            &library_id,
+            &text,
+            &lang,
+            limit as usize,
+            safe_mode,
+            catalog.builtin_approx(),
+        )
     })
     .await
 }
@@ -344,9 +341,11 @@ pub(super) fn read_image<R: Runtime>(
             } else {
                 *slow = true;
                 let safe = saved_safe_mode(app);
-                with_lens(app, safe, Hold::Read, |workspace, device, catalog| {
-                    workspace.image_reader(device, catalog, library_id, image_id, safe)
-                })?
+                state
+                    .session
+                    .with_lens(safe, Hold::Read, |workspace, device, catalog| {
+                        workspace.image_reader(device, catalog, library_id, image_id, safe)
+                    })?
             }
         }
     };
@@ -362,7 +361,7 @@ pub(super) async fn image<R: Runtime>(
 ) -> Result<ImageDetail, CommandError> {
     blocking(move || {
         let state = app.state::<LibraryState>();
-        with_resources(&state, |w, d, c| {
+        state.session.with_resources(|w, d, c| {
             w.image_detail(d, c, state.safe_mode(), &library_id, &image_id)
         })
     })
@@ -379,7 +378,7 @@ pub(super) async fn catalog_image_tags<R: Runtime>(
 ) -> Result<CatalogImageTags, CommandError> {
     blocking(move || {
         let state = app.state::<LibraryState>();
-        with_resources(&state, |w, d, c| {
+        state.session.with_resources(|w, d, c| {
             w.image_tags(d, c, state.safe_mode(), &library_id, &image_id, &lang)
         })
     })
