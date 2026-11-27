@@ -5,20 +5,19 @@
 //! （[`SafeModeState`]）与导入预览的授权代次。应用壳只持有一个会话，按命令转发。
 //!
 //! 取锁顺序固定为：切换（[`WorkspaceSession::transition`]）→ 可见性许可
-//! （[`VisibilityPermit`]）→ 资源（登记表 → 统一标签目录 → 工作区）。持锁期间不能 await、
-//! 不能重入；持许可或资源时不能再等切换，持资源时不能再等许可。开发构建里违反顺序立即 panic，
-//! 不会静默死锁。
+//! （[`VisibilityPermit`]）→ 登记表 → 统一标签目录 → 工作区。持锁期间不能 await。
+//! 阻塞取锁必须按顺序前进，开发构建里违反顺序立即 panic。
 //!
 //! 安全模式只能经 [`VisibilityPermit`] 改动：提交与最后的对外动作（发送、复制、钉图）互斥。
 //! “锁外准备 → 进门复核 → 门内生效”由 [`VisibilityPermit::commit`] 与
 //! [`VisibilityPermit::stream`] 完成，调用方不接触裸锁、不手工复核代次。
 
 mod import_preview;
-mod order;
+pub(crate) mod order;
 mod permit;
 
 pub use import_preview::IMPORT_PREVIEW_CHUNK_BYTES;
-pub use permit::{Grant, VisibilityPermit};
+pub use permit::{Grant, PublicationGate, PublicationGuard, VisibilityPermit};
 
 use std::panic::Location;
 use std::path::{Path, PathBuf};
@@ -52,7 +51,7 @@ pub struct WorkspaceSession {
     /// 切换、恢复和取消登记串行完成，包括旧库打标退出。
     transition: Mutex<()>,
     /// 可见性许可的门：安全模式提交、来源与分级发布、最后的对外动作在它里面串行。
-    visibility: Arc<Mutex<()>>,
+    visibility: PublicationGate,
     safe_mode: SafeModeState,
     /// 本设备登记表与活动资料库；第一次用到时读取登记表。
     libraries: Mutex<Option<DeviceLibraries>>,
@@ -102,7 +101,7 @@ impl WorkspaceSession {
         Self {
             device_dir,
             transition: Mutex::default(),
-            visibility: Arc::default(),
+            visibility: PublicationGate::default(),
             safe_mode: SafeModeState::new(safe_mode),
             libraries: Mutex::default(),
             search: Arc::new(search),
@@ -155,7 +154,7 @@ impl WorkspaceSession {
 
     /// 后台打标发布分级时用的门，与可见性许可是同一个。只给打标调度器的配置用：发布在调度器的
     /// 工作线程上，停下或等它退出之前要放开。
-    pub fn tagging_publication_gate(&self) -> Arc<Mutex<()>> {
+    pub fn tagging_publication_gate(&self) -> PublicationGate {
         self.visibility.clone()
     }
 
@@ -166,7 +165,7 @@ impl WorkspaceSession {
     }
 
     pub fn lock_libraries_at(&self, site: &'static Location<'static>) -> LibrariesGuard<'_> {
-        let order = order::Held::resources();
+        let order = order::Held::libraries();
         let waiting = std::time::Instant::now();
         let guard = lock(&self.libraries);
         LibrariesGuard {
@@ -182,6 +181,7 @@ impl WorkspaceSession {
         f: impl FnOnce(Option<&DeviceLibraries>) -> T,
     ) -> Option<T> {
         let guard = self.libraries.try_lock().ok()?;
+        let _order = order::Held::try_libraries();
         Some(f(guard.as_ref()))
     }
 
@@ -204,6 +204,31 @@ impl WorkspaceSession {
         action(device).map_err(CommandError::from)
     }
 
+    /// 依次持有切换锁、可见性许可与登记表锁来执行 `commit`。提交成功后只持切换锁执行
+    /// `after_commit`，供装配句柄、停止打标等需要等发布门或重新取资源的动作使用。
+    #[track_caller]
+    pub fn with_transition_commit<P, T>(
+        &self,
+        commit: impl FnOnce(&mut DeviceLibraries) -> Result<P, DeviceLibraryError>,
+        after_commit: impl FnOnce(P) -> Result<T, CommandError>,
+    ) -> Result<T, CommandError> {
+        self.with_transition_commit_at(Location::caller(), commit, after_commit)
+    }
+
+    pub fn with_transition_commit_at<P, T>(
+        &self,
+        site: &'static Location<'static>,
+        commit: impl FnOnce(&mut DeviceLibraries) -> Result<P, DeviceLibraryError>,
+        after_commit: impl FnOnce(P) -> Result<T, CommandError>,
+    ) -> Result<T, CommandError> {
+        let _transition = self.transition();
+        let committed = {
+            let _permit = self.visibility();
+            self.with_libraries_at(site, commit)?
+        };
+        after_commit(committed)
+    }
+
     fn opened<'g>(
         &self,
         libraries: &'g mut LibrariesGuard<'_>,
@@ -215,6 +240,25 @@ impl WorkspaceSession {
             **libraries = Some(opened);
         }
         Ok(libraries.as_mut().expect("登记表已打开"))
+    }
+
+    /// 只取统一标签目录的锁，在锁里调用 `action`。
+    #[track_caller]
+    pub fn with_catalog<T>(
+        &self,
+        action: impl FnOnce(&mut TagCatalog) -> Result<T, CatalogError>,
+    ) -> Result<T, CommandError> {
+        self.with_catalog_at(Location::caller(), action)
+    }
+
+    pub fn with_catalog_at<T>(
+        &self,
+        site: &'static Location<'static>,
+        action: impl FnOnce(&mut TagCatalog) -> Result<T, CatalogError>,
+    ) -> Result<T, CommandError> {
+        self.search
+            .with_catalog_at(site, action)
+            .map_err(CommandError::from)
     }
 
     /// 依次取登记表、统一标签目录与工作区，在锁里调用 `f`。调用方自己负责视角与许可。
@@ -234,26 +278,59 @@ impl WorkspaceSession {
         // 三把锁都记在调用方的位置上（#337）：日志里看得出是哪个命令占着它们。
         let mut libraries = self.lock_libraries_at(site);
         let device = self.opened(&mut libraries).map_err(CommandError::from)?;
-        self.search
-            .with_catalog_at(site, |catalog| {
-                let waiting = std::time::Instant::now();
-                let mut slot = lock(&self.workspace);
-                let _held = HeldLock::acquired("工作区", site, waiting);
-                if slot.is_none() {
-                    *slot = Some(Workspace::open_with_gate(
-                        &self.device_dir,
-                        self.gate.clone(),
-                    )?);
-                }
-                f(slot.as_mut().expect("工作区已打开"), device, catalog)
-            })
-            .map_err(CommandError::from)
+        self.with_catalog_at(site, |catalog| {
+            let _order = order::Held::workspace();
+            let waiting = std::time::Instant::now();
+            let mut slot = lock(&self.workspace);
+            let _held = HeldLock::acquired("工作区", site, waiting);
+            if slot.is_none() {
+                *slot = Some(Workspace::open_with_gate(
+                    &self.device_dir,
+                    self.gate.clone(),
+                )?);
+            }
+            f(slot.as_mut().expect("工作区已打开"), device, catalog)
+        })
     }
 
     /// 关掉工作区，下次用到时重新打开（例如设置整份替换后）。
     pub fn reset_workspace(&self) {
-        let _order = order::Held::resources();
+        let _order = order::Held::workspace();
         *lock(&self.workspace) = None;
+    }
+
+    /// 按设置取安全模式视角，持资源锁调用 `f`，再复核代次。视角失效时返回 `stale` 映射的错误。
+    #[track_caller]
+    pub fn with_current_lens<T>(
+        &self,
+        stale: impl FnOnce(LensStale) -> CommandError,
+        f: impl FnOnce(
+            &mut Workspace,
+            &mut DeviceLibraries,
+            &mut TagCatalog,
+            bool,
+        ) -> Result<T, CatalogError>,
+    ) -> Result<T, CommandError> {
+        self.with_current_lens_at(Location::caller(), stale, f)
+    }
+
+    pub fn with_current_lens_at<T>(
+        &self,
+        site: &'static Location<'static>,
+        stale: impl FnOnce(LensStale) -> CommandError,
+        f: impl FnOnce(
+            &mut Workspace,
+            &mut DeviceLibraries,
+            &mut TagCatalog,
+            bool,
+        ) -> Result<T, CatalogError>,
+    ) -> Result<T, CommandError> {
+        let lens = self.safe_mode.lens();
+        let value = self.with_resources_at(site, |workspace, device, catalog| {
+            f(workspace, device, catalog, lens.on())
+        })?;
+        lens.confirm(&self.safe_mode).map_err(stale)?;
+        Ok(value)
     }
 
     /// 按 `hold` 取资源锁并核对安全模式，在锁里调用 `f`。开关 `safe` 与设置不一致、或按 `hold`
@@ -340,6 +417,11 @@ impl WorkspaceSession {
     /// 按设置里的开关记下这次操作的授权。
     pub fn grant(&self) -> Grant {
         Grant::new(self.safe_mode.lens(), None)
+    }
+
+    /// 在门外预检授权。生效前仍要在门内复核。
+    pub fn is_grant_current(&self, grant: &Grant) -> bool {
+        grant.confirm(self).is_ok()
     }
 
     /// 同 [`Self::grant`]，界面传来的开关 `on` 与设置不一致时直接失败。

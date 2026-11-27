@@ -15,6 +15,7 @@ use super::{Search, SearchCache};
 use crate::Library;
 use crate::approx::BuiltinApproxTable;
 use crate::library::TagTranslations;
+use crate::session::order;
 use crate::tag_catalog::{CatalogError, TagCatalog};
 
 /// 统一标签目录上的查找组装，见模块说明。
@@ -84,6 +85,7 @@ impl CatalogSearch {
         site: &'static std::panic::Location<'static>,
         action: impl FnOnce(&mut TagCatalog) -> Result<T, CatalogError>,
     ) -> Result<T, CatalogError> {
+        let _order = order::Held::catalog();
         let waiting = std::time::Instant::now();
         let mut slot = self.catalog.lock().unwrap_or_else(|e| e.into_inner());
         let _held = crate::diagnostics::HeldLock::acquired("统一标签目录", site, waiting);

@@ -73,6 +73,8 @@ use std::sync::{Arc, Mutex, RwLock};
 
 use rusqlite::{OptionalExtension, params};
 
+use crate::session::PublicationGate;
+
 pub use crate::fidelity::{
     Cicp, ColourDeclaration, ColourDescription, ColourModel, HdrKind, IccKind, IccSummary,
 };
@@ -150,7 +152,7 @@ pub(crate) struct Inner {
     hub: Hub,
     recovery: RecoveryReport,
     translations: RwLock<Arc<tags::TranslationIndex>>,
-    package_publication_gate: RwLock<Arc<Mutex<()>>>,
+    package_publication_gate: RwLock<PublicationGate>,
     /// 安全模式的开关与范围（[`SafeMode::encode`]）；打开资料库时默认开启、默认范围。
     safe_mode: AtomicU8,
     /// 参考视角的句柄是否已经交出。
@@ -311,7 +313,7 @@ impl Library {
     /// Share the app's visibility gate with import publication, not preparation or staging.
     /// Configure before exposing the writer. Never wait for an import under the gate unless
     /// cancelling the task first.
-    pub fn use_package_publication_gate(&self, gate: Arc<Mutex<()>>) {
+    pub fn use_package_publication_gate(&self, gate: PublicationGate) {
         *self
             .inner
             .package_publication_gate

@@ -1,6 +1,7 @@
 //! 打标调度：按模型来源写入建议与分级、新图随到随打、暂停与崩溃恢复、写入闸门。
 
 use super::*;
+use kinshoko_core::PublicationGate;
 
 #[test]
 fn new_images_get_model_suggestions_and_rating_after_the_model_is_downloaded() {
@@ -379,11 +380,11 @@ fn inference_runs_outside_the_publication_gate_and_rating_commits_after_release(
     let spec = f
         .server
         .publish("gpu", Device::DirectMl, b"publication gate model");
-    let gate = Arc::new(std::sync::Mutex::new(()));
+    let gate = PublicationGate::default();
     let mut config = f.config(vec![spec]);
     config.publication_gate = Some(gate.clone());
     let tagging = f.start(config);
-    let held = gate.lock().unwrap();
+    let held = gate.lock();
     tagging.download();
     let deadline = Instant::now() + Duration::from_secs(10);
     while f.fake.tagged().is_empty() && Instant::now() < deadline {
@@ -424,11 +425,11 @@ fn pausing_discards_inference_waiting_for_publication_then_resume_can_retag() {
     let spec = f
         .server
         .publish("gpu", Device::DirectMl, b"pause before publication model");
-    let gate = Arc::new(std::sync::Mutex::new(()));
+    let gate = PublicationGate::default();
     let mut config = f.config(vec![spec]);
     config.publication_gate = Some(gate.clone());
     let tagging = f.start(config);
-    let held = gate.lock().unwrap();
+    let held = gate.lock();
     tagging.download();
     let deadline = Instant::now() + Duration::from_secs(10);
     while f.fake.tagged().is_empty() && Instant::now() < deadline {

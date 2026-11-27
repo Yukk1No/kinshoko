@@ -1,8 +1,7 @@
 //! 其他模块取资料库句柄、来源与安全模式的入口。
 
 use super::*;
-use kinshoko_core::CommandError;
-use kinshoko_core::VisibilityPermit;
+use kinshoko_core::{CommandError, PublicationGate, VisibilityPermit};
 
 /// 运行日志里的资料库编号（#219）：它在本设备登记表里的位置。登记表还没加载、或正被别处
 /// 持有（例如切换资料库的途中）时为空：只为记日志，不等锁。
@@ -110,8 +109,8 @@ pub fn current_or_last<R: Runtime>(app: &AppHandle<R>) -> Result<Arc<Library>, C
     restore(app)?.ok_or_else(|| CommandError::new(ErrorKind::NoLibrary, "还没有资料库"))
 }
 
-/// 画师要整理的资料库（ADR-0008）：后端只为一个库持有可写句柄，整理哪个库就按需切过去并装配它
-/// （安全模式、打标、事件转发），不改“上次打开”。该库或当前持有者有导入在收尾时，推送一次
+/// 画师要整理的资料库（ADR-0008）：多个库可以同时可写，每个库只有一个可写句柄。按需切换活动库
+/// 并装配后端（安全模式、打标、事件转发），不改“上次打开”。目标库或活动库有导入在收尾时，推送一次
 /// `organize-waiting` 轻提示，等收尾结束后再取，请求不丢失、只执行一次；等到 [`ORGANIZE_LIMIT`]
 /// 仍在收尾时报错给界面（这次整理没有执行）。会阻塞，只在阻塞任务里调用。
 pub fn writable<R: Runtime>(
@@ -273,7 +272,7 @@ pub(crate) fn with_visibility_commit<R: Runtime, T>(
 
 /// The same pure Rust gate is injected into background result publication.
 /// Lifecycle code must release it before stopping/joining a scheduler worker.
-pub(crate) fn visibility_publication_gate<R: Runtime>(app: &AppHandle<R>) -> Arc<Mutex<()>> {
+pub(crate) fn visibility_publication_gate<R: Runtime>(app: &AppHandle<R>) -> PublicationGate {
     app.state::<LibraryState>()
         .session
         .tagging_publication_gate()
