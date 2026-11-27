@@ -1,7 +1,7 @@
 import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from "react";
 import type { ImageCard } from "../bindings/ImageCard";
 import type { Region } from "../bindings/Region";
-import { copyReferenceImage, workspaceImage, isUnknownImage, pinReference, revealReferenceImage } from "../ipc";
+import { copyReferenceImage, isUnknownImage, pinReference, revealReferenceImage } from "../ipc";
 import type { KeyboardEvent } from "react";
 import { captureImage, useCaptureSources } from "../desktop/captureSources";
 import { cropOnScreen, toScreenRect, type CssRect, type Point } from "./crop";
@@ -19,6 +19,8 @@ import { stagePointerHandlers } from "./stagePointer";
 import { useViewerSource } from "./useViewerSource";
 import type { ViewerFlightAttr, ViewerPlaced } from "./ViewerFlight";
 import { errorText } from "../ipc/commandError";
+import { useBackendMirror } from "../ipc/useBackendMirror";
+import { imageDetailKey, imageDetailMirror } from "../library/imageDetailMirror";
 
 type Props = {
   libraryId: string;
@@ -86,7 +88,6 @@ export function Viewer({
   const select = useRef<{ id: number; start: Point } | null>(null);
   const [dragging, setDragging] = useState(false);
   const toast = useToast();
-  const [name, setName] = useState<string | null>(null);
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
   const activeCardRef = useRef({ libraryId, id: card.id });
@@ -190,23 +191,22 @@ export function Viewer({
     const reference = captureImage(image, stage.current!, libraryId, card.id, card.width, card.height);
     return reference ? [reference] : [];
   }, 100);
-  // 这张图已不在（被删除，或安全模式下被封印，查询返回 UnknownImage）时回到图片墙。
-  // biome-ignore lint/correctness/useExhaustiveDependencies(reloadKey): 资料库有变动时重新核对
-  // biome-ignore lint/correctness/useExhaustiveDependencies(failedSrc): 图读不出来时核对它是否还在
+  // 单图详情与详情侧栏共用同一份后端镜像（#794）：文件名直接读镜像；这张图已不在
+  // （被删除，或安全模式下被封印，查询返回 UnknownImage）时回到图片墙。
+  const detailKey = imageDetailKey(libraryId, card.id);
+  const detail = useBackendMirror(imageDetailMirror, detailKey);
+  const name = detail.value?.originalName ?? null;
+  const detailCheck = useRef({ key: detailKey, reloadKey, failedSrc });
+  useLayoutEffect(() => {
+    const before = detailCheck.current;
+    detailCheck.current = { key: detailKey, reloadKey, failedSrc };
+    if (before.key === detailKey && (before.reloadKey !== reloadKey || before.failedSrc !== failedSrc))
+      imageDetailMirror.invalidate(detailKey);
+  }, [detailKey, reloadKey, failedSrc]);
   useEffect(() => {
-    let alive = true;
-    workspaceImage(libraryId, card.id).then(
-      (detail) => {
-        if (alive) setName(detail?.originalName ?? null);
-      },
-      (e) => {
-        if (alive && isUnknownImage(e)) closeRef.current();
-      },
-    );
-    return () => {
-      alive = false;
-    };
-  }, [libraryId, card.id, reloadKey, failedSrc]);
+    if (detail.error === null || !isUnknownImage(detail.error)) return;
+    if (activeCardRef.current.libraryId === libraryId && activeCardRef.current.id === card.id) closeRef.current();
+  }, [detail.error, libraryId, card.id]);
   const settled = ready || failed;
   const manual = mode !== "fit" || offset.x !== 0 || offset.y !== 0;
   useLayoutEffect(() => {

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import { Viewer } from "./Viewer";
 import { fakeBackend } from "../test/backend";
@@ -68,5 +68,56 @@ describe("查看器生命周期（#716）", () => {
       await Promise.resolve();
     });
     expect(await screen.findByText("无法钉住：写不进")).toBeTruthy();
+  });
+
+  it("当前图详情读出 unknownImage 时关闭查看器（#794）", async () => {
+    fakeBackend({ image: () => Promise.reject({ code: "unknownImage" }) });
+    const close = vi.fn();
+    render(
+      <Viewer
+        libraryId="L1"
+        card={{ id: "a", width: 2400, height: 1600, thumbnail: "", adult: false }}
+        onClose={close}
+      />,
+    );
+
+    await waitFor(() => expect(close).toHaveBeenCalledOnce());
+  });
+
+  it("切到下一张后，上一张详情迟到的 unknownImage 不关闭当前查看器（#794）", async () => {
+    let rejectFirst: (reason?: unknown) => void = () => {};
+    const backend = fakeBackend({
+      image: (args) => {
+        if (args.imageId === "a")
+          return new Promise((_, reject) => {
+            rejectFirst = reject;
+          });
+        return { originalName: "b.png" };
+      },
+    });
+    const close = vi.fn();
+    const view = render(
+      <Viewer
+        libraryId="L1"
+        card={{ id: "a", width: 2400, height: 1600, thumbnail: "", adult: false }}
+        onClose={close}
+      />,
+    );
+    await waitFor(() => expect(backend.calls("image")).toHaveLength(1));
+
+    view.rerender(
+      <Viewer
+        libraryId="L1"
+        card={{ id: "b", width: 2400, height: 1600, thumbnail: "", adult: false }}
+        onClose={close}
+      />,
+    );
+    await waitFor(() => expect(backend.calls("image")).toHaveLength(2));
+    await act(async () => {
+      rejectFirst({ code: "unknownImage" });
+      await Promise.resolve();
+    });
+
+    expect(close).not.toHaveBeenCalled();
   });
 });

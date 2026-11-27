@@ -273,6 +273,25 @@ describe("订阅画师", () => {
     });
   });
 
+  it("关掉关注导入再打开时重新读取最新关注名单（#794）", async () => {
+    backend();
+    page(status());
+    let dialog = await openArtistDialog();
+    fireEvent.click(within(dialog).getByRole("button", { name: "从 pixiv 关注导入…" }));
+    let follows = await screen.findByRole("dialog", { name: "从 pixiv 关注导入" });
+    await within(follows).findByText("Akira");
+    expect(sent("subscription_following")).toHaveLength(1);
+
+    fireEvent.click(within(follows).getByRole("button", { name: "取消" }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "从 pixiv 关注导入" })).toBeNull());
+
+    dialog = await openArtistDialog();
+    fireEvent.click(within(dialog).getByRole("button", { name: "从 pixiv 关注导入…" }));
+    follows = await screen.findByRole("dialog", { name: "从 pixiv 关注导入" });
+    await within(follows).findByText("Akira");
+    expect(sent("subscription_following")).toHaveLength(2);
+  });
+
   it("收取范围只改漫画与 R-18", async () => {
     backend();
     page(status());

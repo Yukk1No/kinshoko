@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { i18n } from "../i18n";
 import type { Region } from "../bindings/Region";
 import { changeSetting, shellSettings } from "../ipc";
+import { createBackendMirror } from "../ipc/backendMirror";
+import { useBackendMirror } from "../ipc/useBackendMirror";
 import { cachedViewerBackground, rememberViewerBackground } from "./background";
 import {
   Copy,
@@ -44,35 +46,26 @@ export const OneToOne = ({ size = 19 }: { size?: number }) => (
   </svg>
 );
 
+const VIEWER_BACKGROUND_KEY = "viewer-background";
+
+/** 查看器背景的本机设置镜像（#794）：读取共享；画师选背景时立即接受新值，写入失败也保留本机缓存语义。 */
+const viewerBackgroundMirror = createBackendMirror<typeof VIEWER_BACKGROUND_KEY, Background>({
+  read: () => shellSettings().then((view) => view.viewerBackground ?? "mid"),
+});
+
 /** 查看器的背景：本设备设置，读到之前沿用本机缓存。只在画师选背景时写核心设置。 */
 export function useViewerBackground() {
-  const [background, setBackground] = useState<Background>(cachedViewerBackground);
+  const mirror = useBackendMirror(viewerBackgroundMirror, VIEWER_BACKGROUND_KEY);
   useEffect(() => {
-    let alive = true;
-    shellSettings()
-      .then((view) => view.viewerBackground ?? "mid")
-      .then(
-        (value) => {
-          if (alive) {
-            setBackground(value);
-            rememberViewerBackground(value);
-          }
-        },
-        () => {
-          /* 读取失败不往核心写任何东西。 */
-        },
-      );
-    return () => {
-      alive = false;
-    };
-  }, []);
+    if (mirror.value !== null) rememberViewerBackground(mirror.value);
+  }, [mirror.value]);
   const choose = useCallback((next: Background) => {
-    setBackground(next);
+    viewerBackgroundMirror.accept(VIEWER_BACKGROUND_KEY, next);
     rememberViewerBackground(next);
     // 忽略失败：本机缓存已记下；写不进核心设置时只是下次启动不记得背景。
     void changeSetting({ kind: "viewerBackground", background: next }).catch(() => {});
   }, []);
-  return [background, choose] as const;
+  return [mirror.value ?? cachedViewerBackground(), choose] as const;
 }
 
 /** 查看器 dock 的工具。 */
