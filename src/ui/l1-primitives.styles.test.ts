@@ -16,19 +16,13 @@ const sheets = import.meta.glob<string>("../**/*.css", { query: "?raw", import: 
 // 也不能手写关闭叉或底部操作区；迁移一个就从这里删一个，删完保留空表作为护栏。
 const DIRECT_DIALOG_ALLOWLIST = new Set([
   "../library/CreateLibrary.tsx",
-  "../library/ImportBar.tsx",
-  "../library/ImportBarParts.tsx",
-  "../library/PermanentDeleteBatch.tsx",
-  "../library/SealedImportPreview.tsx",
   "../subscriptions/ArtistDialog.tsx",
   "../subscriptions/FirstRunDialog.tsx",
   "../subscriptions/FollowingDialog.tsx",
 ]);
-const MANUAL_CLOSE_ALLOWLIST = new Set(["../library/SealedImportPreview.tsx"]);
+const MANUAL_CLOSE_ALLOWLIST = new Set<string>([]);
 const MANUAL_FOOTER_ALLOWLIST = new Set([
   "../library/CreateLibrary.tsx",
-  "../library/ImportBarParts.tsx",
-  "../library/PermanentDeleteBatch.tsx",
   "../subscriptions/ArtistDialog.tsx",
   "../subscriptions/FirstRunDialog.tsx",
   "../subscriptions/FollowingDialog.tsx",

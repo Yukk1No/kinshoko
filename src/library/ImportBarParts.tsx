@@ -1,6 +1,5 @@
 import type { SaveDestination } from "../bindings/SaveDestination";
 import { useId, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
-import { Dialog } from "@base-ui/react/dialog";
 import { ChevronRight, CircleCheck, CircleSlash, FolderOpen, Images, Library, X } from "lucide-react";
 import type { ImportOptions } from "../bindings/ImportOptions";
 import type { ImportOutcome } from "../bindings/ImportOutcome";
@@ -8,7 +7,7 @@ import type { ImportReport } from "../bindings/ImportReport";
 import type { EagleLibraryCandidate } from "../bindings/EagleLibraryCandidate";
 import { describeCommandError } from "../ipc/commandError";
 import type { FinishedImport, RunningImport } from "./ImportBar";
-import { DialogHeight } from "../ui/DialogHeight";
+import { DialogShell } from "../ui/DialogShell";
 import { WarnIcon } from "../ui/WarnIcon";
 import type { ToastOptions } from "../ui/Toast";
 import { useTranslation } from "react-i18next";
@@ -302,90 +301,91 @@ export function ImportPlanDialog({
   // 关闭动画期间内容留着，缩回按钮的是整个对话框而不是空壳。
   const plan = useLingering(current);
   return (
-    <Dialog.Root
+    <DialogShell
       open={current !== null}
+      purpose="form"
+      busy={preparing}
+      autoHeight
+      title={plan?.eagle ? t("eagleTitle") : t("title")}
       onOpenChange={(open) => {
         if (!open && !preparing) setPlan(null);
       }}
+      className="k-import-dialog"
+      footer={
+        plan ? (
+          <>
+            <span className="k-grow" />
+            <button type="button" className="k-btn" disabled={preparing} onClick={() => setPlan(null)}>
+              <span className="k-label">{t("cancel")}</span>
+            </button>
+            <button
+              type="button"
+              className="k-btn is-primary"
+              disabled={preparing || !!running || !destinationReady}
+              onClick={() => void startPlan()}
+            >
+              <span className="k-label">{t("start")}</span>
+            </button>
+          </>
+        ) : undefined
+      }
     >
-      <Dialog.Portal>
-        <Dialog.Backdrop className="k-backdrop" />
-        {/* Popup 留在 Root 下，只让内容随状态出现：卸下 Popup 会让关闭动画等不到结束，遮罩留下盖住窗口（#98 本机 r12）。 */}
-        <Dialog.Popup className="k-dialog k-import-dialog">
-          {plan && (
-            <>
-              <Dialog.Title className="k-title">{plan.eagle ? t("eagleTitle") : t("title")}</Dialog.Title>
-              <DialogHeight>
-                <div className="k-import-summary">
-                  <span className="k-big-tag-icon" aria-hidden="true">
-                    {plan.eagle ? <Library size={18} /> : <Images size={18} />}
-                  </span>
-                  <div className="k-list-text">
-                    <div className="k-list-title">
-                      {plan.paths.length === 1 ? baseName(plan.paths[0]) : t("paths", { count: plan.paths.length })}
-                    </div>
-                    <details className="k-task-more">
-                      <summary>{t("from")}</summary>
-                      <ul>
-                        {plan.paths.map((path) => (
-                          <li key={path}>
-                            <span className="import-report-path">{path}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </details>
-                  </div>
-                </div>
-                {picker}
-                {plan.eagle && (
-                  <fieldset className="k-fieldset" disabled={preparing || !!running}>
-                    <legend className="k-section-label">{t("deleted")}</legend>
-                    <div className="k-radio-cards">
-                      {(
-                        [
-                          ["skipDeleted", t("skipDeleted"), t("skipDeletedHint")],
-                          ["allowThisImport", t("allowThisImport"), t("allowThisImportHint")],
-                        ] as const
-                      ).map(([value, title, desc]) => (
-                        <label
-                          key={value}
-                          className={`k-radio-card${plan.options.eagleDeletedContent === value ? " is-on" : ""}`}
-                        >
-                          <input
-                            type="radio"
-                            name="eagle-deleted-content"
-                            checked={plan.options.eagleDeletedContent === value}
-                            onChange={() => setPlan({ ...plan, options: { eagleDeletedContent: value } })}
-                          />
-                          <span>
-                            <span className="k-radio-title">{title}</span>
-                            <span className="k-radio-desc">{desc}</span>
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                  </fieldset>
-                )}
-              </DialogHeight>
-              <div className="k-dialog-foot">
-                <span className="k-grow" />
-                <button type="button" className="k-btn" disabled={preparing} onClick={() => setPlan(null)}>
-                  <span className="k-label">{t("cancel")}</span>
-                </button>
-                <button
-                  type="button"
-                  className="k-btn is-primary"
-                  disabled={preparing || !!running || !destinationReady}
-                  onClick={() => void startPlan()}
-                >
-                  <span className="k-label">{t("start")}</span>
-                </button>
+      {/* Popup 留在 Root 下，只让内容随状态出现：卸下 Popup 会让关闭动画等不到结束，遮罩留下盖住窗口（#98 本机 r12）。 */}
+      {plan && (
+        <>
+          <div className="k-import-summary">
+            <span className="k-big-tag-icon" aria-hidden="true">
+              {plan.eagle ? <Library size={18} /> : <Images size={18} />}
+            </span>
+            <div className="k-list-text">
+              <div className="k-list-title">
+                {plan.paths.length === 1 ? baseName(plan.paths[0]) : t("paths", { count: plan.paths.length })}
               </div>
-            </>
+              <details className="k-task-more">
+                <summary>{t("from")}</summary>
+                <ul>
+                  {plan.paths.map((path) => (
+                    <li key={path}>
+                      <span className="import-report-path">{path}</span>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            </div>
+          </div>
+          {picker}
+          {plan.eagle && (
+            <fieldset className="k-fieldset" disabled={preparing || !!running}>
+              <legend className="k-section-label">{t("deleted")}</legend>
+              <div className="k-radio-cards">
+                {(
+                  [
+                    ["skipDeleted", t("skipDeleted"), t("skipDeletedHint")],
+                    ["allowThisImport", t("allowThisImport"), t("allowThisImportHint")],
+                  ] as const
+                ).map(([value, title, desc]) => (
+                  <label
+                    key={value}
+                    className={`k-radio-card${plan.options.eagleDeletedContent === value ? " is-on" : ""}`}
+                  >
+                    <input
+                      type="radio"
+                      name="eagle-deleted-content"
+                      checked={plan.options.eagleDeletedContent === value}
+                      onChange={() => setPlan({ ...plan, options: { eagleDeletedContent: value } })}
+                    />
+                    <span>
+                      <span className="k-radio-title">{title}</span>
+                      <span className="k-radio-desc">{desc}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
           )}
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
+        </>
+      )}
+    </DialogShell>
   );
 }
 
@@ -406,82 +406,79 @@ export function EagleLibrariesDialog({
   const { t } = useTranslation("importing", { keyPrefix: "eagle" });
   const eagleLibraries = useLingering(current);
   return (
-    <Dialog.Root
+    <DialogShell
       open={current !== null}
+      purpose="form"
+      autoHeight
+      title={t("title")}
       onOpenChange={(open) => {
         if (!open) setEagleLibraries(null);
       }}
+      className="k-import-dialog"
+      footer={
+        eagleLibraries ? (
+          <>
+            <button
+              type="button"
+              className="k-btn"
+              disabled={busy}
+              onClick={() => {
+                setEagleLibraries(null);
+                void importFolder(true);
+              }}
+            >
+              <FolderOpen size={14} aria-hidden="true" />
+              <span className="k-label">{t("manual")}</span>
+            </button>
+            <span className="k-grow" />
+            <button type="button" className="k-btn" onClick={() => setEagleLibraries(null)}>
+              <span className="k-label">{t("cancel")}</span>
+            </button>
+          </>
+        ) : undefined
+      }
     >
-      <Dialog.Portal>
-        <Dialog.Backdrop className="k-backdrop" />
-        <Dialog.Popup className="k-dialog k-import-dialog">
-          {eagleLibraries && (
-            <>
-              <Dialog.Title className="k-title">{t("title")}</Dialog.Title>
-              <DialogHeight>
-                {eagleLibraries.length ? (
-                  <ul className="k-list" aria-label={t("found")}>
-                    {eagleLibraries.map((candidate) => (
-                      <li key={candidate.path} className="k-list-row">
-                        <span className="k-list-icon" aria-hidden="true">
-                          <Library size={16} />
-                        </span>
-                        <div className="k-list-text">
-                          <div className="k-list-title">{candidate.name}</div>
-                          <Tip label={candidate.path} align="start">
-                            <p className="k-list-desc k-parts">
-                              <span>{t("items", { count: candidate.items })}</span>
-                              {candidate.version && <span>{t("version", { version: candidate.version })}</span>}
-                              <span>{candidate.path}</span>
-                            </p>
-                          </Tip>
-                        </div>
-                        <div className="k-list-end">
-                          <button
-                            type="button"
-                            className="k-btn is-sm"
-                            aria-label={t("importLabel", { name: candidate.name })}
-                            disabled={busy}
-                            onClick={() => {
-                              setEagleLibraries(null);
-                              void begin([candidate.path], true);
-                            }}
-                          >
-                            <span className="k-label">{t("import")}</span>
-                          </button>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="k-description is-spaced" role="status">
-                    {t("none")}
-                  </p>
-                )}
-              </DialogHeight>
-              <div className="k-dialog-foot">
-                <button
-                  type="button"
-                  className="k-btn"
-                  disabled={busy}
-                  onClick={() => {
-                    setEagleLibraries(null);
-                    void importFolder(true);
-                  }}
-                >
-                  <FolderOpen size={14} aria-hidden="true" />
-                  <span className="k-label">{t("manual")}</span>
-                </button>
-                <span className="k-grow" />
-                <button type="button" className="k-btn" onClick={() => setEagleLibraries(null)}>
-                  <span className="k-label">{t("cancel")}</span>
-                </button>
-              </div>
-            </>
-          )}
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
+      {eagleLibraries &&
+        (eagleLibraries.length ? (
+          <ul className="k-list" aria-label={t("found")}>
+            {eagleLibraries.map((candidate) => (
+              <li key={candidate.path} className="k-list-row">
+                <span className="k-list-icon" aria-hidden="true">
+                  <Library size={16} />
+                </span>
+                <div className="k-list-text">
+                  <div className="k-list-title">{candidate.name}</div>
+                  <Tip label={candidate.path} align="start">
+                    <p className="k-list-desc k-parts">
+                      <span>{t("items", { count: candidate.items })}</span>
+                      {candidate.version && <span>{t("version", { version: candidate.version })}</span>}
+                      <span>{candidate.path}</span>
+                    </p>
+                  </Tip>
+                </div>
+                <div className="k-list-end">
+                  <button
+                    type="button"
+                    className="k-btn is-sm"
+                    aria-label={t("importLabel", { name: candidate.name })}
+                    disabled={busy}
+                    onClick={() => {
+                      setEagleLibraries(null);
+                      void begin([candidate.path], true);
+                    }}
+                  >
+                    <span className="k-label">{t("import")}</span>
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="k-description is-spaced" role="status">
+            {t("none")}
+          </p>
+        ))}
+    </DialogShell>
   );
 }
 

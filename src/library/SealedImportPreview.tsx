@@ -1,7 +1,6 @@
 import { useEffect, useEffectEvent, useState } from "react";
-import { Dialog } from "@base-ui/react/dialog";
-import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { DialogShell } from "../ui/DialogShell";
 import {
   closeImportPreview,
   onSafeModeSetting,
@@ -85,38 +84,33 @@ export function SealedImportPreview({
   // Esc 与关闭按钮经 onOpenChange 关闭；与原来的原生模态框一样，点遮罩不关闭（只在明确关闭或上下文变化时结束）。
   // 卸载时上面的清理结束预览会话并撤销图片。
   return (
-    <Dialog.Root
+    <DialogShell
       open
-      disablePointerDismissal
+      purpose="form"
+      showClose
+      closeLabel={t("close")}
+      title={t("title")}
       onOpenChange={(open) => {
         if (!open) onClose();
       }}
+      className="sealed-import-preview"
     >
-      <Dialog.Portal>
-        <Dialog.Backdrop className="k-backdrop" />
-        <Dialog.Popup className="k-dialog sealed-import-preview">
-          <Dialog.Close className="k-icon-btn k-dialog-x" aria-label={t("close")}>
-            <X size={16} aria-hidden="true" />
-          </Dialog.Close>
-          <Dialog.Title className="k-title">{t("title")}</Dialog.Title>
-          {problem ? (
-            <p className="k-error-text is-boxed" role="alert">
-              {t("stopped", { problem })}
-            </p>
-          ) : (
-            images.length === 0 && (
-              <p className="k-description is-spaced" role="status">
-                {t("loading")}
-              </p>
-            )
-          )}
-          <div className="sealed-import-preview-images">
-            {images.map((image) => (
-              <img key={image.id} src={image.url} alt={t("alt")} />
-            ))}
-          </div>
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
+      {problem ? (
+        <p className="k-error-text is-boxed" role="alert">
+          {t("stopped", { problem })}
+        </p>
+      ) : (
+        images.length === 0 && (
+          <p className="k-description is-spaced" role="status">
+            {t("loading")}
+          </p>
+        )
+      )}
+      <div className="sealed-import-preview-images">
+        {images.map((image) => (
+          <img key={image.id} src={image.url} alt={t("alt")} />
+        ))}
+      </div>
+    </DialogShell>
   );
 }
