@@ -4,6 +4,8 @@ use super::*;
 use kinshoko_core::CommandError;
 use kinshoko_core::desktop::PinNotice;
 
+use crate::blocking::blocking;
+
 pub(super) const ACTION_FLIP_H: &str = "flipH";
 pub(super) const ACTION_FLIP_V: &str = "flipV";
 pub(super) const ACTION_ROTATE_CW: &str = "rotateCw";
@@ -71,15 +73,14 @@ pub async fn pin_menu_action(
     if super::super::menu::close(&app, generation).as_deref() != Some(pin.as_str()) {
         return Ok(None);
     }
-    tauri::async_runtime::spawn_blocking(move || {
+    blocking(move || {
         if action == ACTION_CLOSE {
             close(&app, &pin);
-            return None;
+            return Ok(None);
         }
-        menu_action(&app, &pin, &action)
+        Ok(menu_action(&app, &pin, &action))
     })
     .await
-    .map_err(CommandError::system)
 }
 
 /// 在钉图上提示一句话（[`pin_menu_action`] 返回的提示，按界面语言写好）。钉图已关时不提示。
