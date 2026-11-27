@@ -14,14 +14,9 @@ const sheets = import.meta.glob<string>("../**/*.css", { query: "?raw", import: 
 
 // #743/#763 之后仍待迁移的既有对话框。新对话框不能直接从 Base UI 导入底层对话框原语，
 // 也不能手写关闭叉或底部操作区；迁移一个就从这里删一个，删完保留空表作为护栏。
-const DIRECT_DIALOG_ALLOWLIST = new Set([
-  "../library/ImportBar.tsx",
-  "../library/ImportBarParts.tsx",
-  "../library/PermanentDeleteBatch.tsx",
-  "../library/SealedImportPreview.tsx",
-]);
-const MANUAL_CLOSE_ALLOWLIST = new Set(["../library/SealedImportPreview.tsx"]);
-const MANUAL_FOOTER_ALLOWLIST = new Set(["../library/ImportBarParts.tsx", "../library/PermanentDeleteBatch.tsx"]);
+const DIRECT_DIALOG_ALLOWLIST = new Set<string>([]);
+const MANUAL_CLOSE_ALLOWLIST = new Set<string>([]);
+const MANUAL_FOOTER_ALLOWLIST = new Set<string>([]);
 // 主墙仍是未迁移的遗留实现；新墙与浏览页统一走 MediaCardFrame。
 const LEGACY_CARD_CSS = new Set(["../wall/wall.css"]);
 

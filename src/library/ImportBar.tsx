@@ -5,9 +5,8 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { formatNumber, percentOf } from "../i18n/format";
 import { useToast } from "../ui/Toast";
-import { Dialog } from "@base-ui/react/dialog";
+import { DialogShell } from "../ui/DialogShell";
 import { Download } from "lucide-react";
-import { DialogHeight } from "../ui/DialogHeight";
 import { SealLock } from "../ui/SealLock";
 import type { ImportOptions } from "../bindings/ImportOptions";
 import type { ImportProgress } from "../bindings/ImportProgress";
@@ -479,22 +478,19 @@ export function ImportBar({
           onClose={() => setPreview(null)}
         />
       )}
-      <Dialog.Root
+      <DialogShell
         open={tagStep}
+        purpose="form"
+        aria-label={t("tagStepLabel")}
         onOpenChange={(open) => {
           if (!open) setTagStep(false);
         }}
+        className="k-import-dialog is-wide"
+        autoHeight
       >
-        <Dialog.Portal>
-          <Dialog.Backdrop className="k-backdrop" />
-          <Dialog.Popup className="k-dialog k-import-dialog is-wide" aria-label={t("tagStepLabel")}>
-            {/* 关上后 Popup 自己卸下；不跟 tagStep 一起清掉内容，关闭动画缩回去的才是整个对话框（#448）。 */}
-            <DialogHeight>
-              <EagleTagStep libraryId={finished?.libraryId ?? libraryId} onClose={() => setTagStep(false)} />
-            </DialogHeight>
-          </Dialog.Popup>
-        </Dialog.Portal>
-      </Dialog.Root>
+        {/* 关上后 Popup 自己卸下；不跟 tagStep 一起清掉内容，关闭动画缩回去的才是整个对话框（#448）。 */}
+        <EagleTagStep libraryId={finished?.libraryId ?? libraryId} onClose={() => setTagStep(false)} />
+      </DialogShell>
     </div>
   );
 }
