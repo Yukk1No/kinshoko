@@ -34,7 +34,7 @@ function viewOf(state: BrowseResultsState): BrowseView {
 }
 
 describe("浏览结果原子交付", () => {
-  it("旧页与新通知同批到达：旧页被拒绝，最终显示重读页、关闭查看器并修剪选择", () => {
+  it("旧页与新通知同批到达：旧页被拒绝，最终显示重读页、查看器留着并修剪选择", () => {
     let state = accepted();
     const old = beginBrowse(state);
     state = old.state;
@@ -45,7 +45,7 @@ describe("浏览结果原子交付", () => {
       { selected: new Set(["keep", "drop"]), viewerOpen: true },
     );
     state = notice.state;
-    expect(notice.decision).toMatchObject({ revokeWall: true, closeViewer: true, reload: true });
+    expect(notice.decision).toMatchObject({ revokeWall: true, closeViewer: false, reload: true });
 
     const stale = acceptBrowsePage(
       state,
@@ -67,7 +67,7 @@ describe("浏览结果原子交付", () => {
     expect(ids(fresh.state.cards)).toEqual(["keep"]);
     expect(fresh.state.total).toBe(1);
     expect([...fresh.state.selected]).toEqual(["keep"]);
-    expect(fresh.state.viewerOpen).toBe(false);
+    expect(fresh.state.viewerOpen).toBe(true);
   });
 
   it("旧页先落、通知紧随其后：最终仍只显示通知后的重读页", () => {
@@ -89,7 +89,7 @@ describe("浏览结果原子交付", () => {
       opened,
     );
     state = notice.state;
-    expect(state.viewerOpen).toBe(false);
+    expect(state.viewerOpen).toBe(true);
 
     const reread = beginBrowse(state);
     const fresh = acceptBrowsePage(
@@ -101,10 +101,10 @@ describe("浏览结果原子交付", () => {
     expect(ids(fresh.state.cards)).toEqual(["keep"]);
     expect(fresh.state.total).toBe(1);
     expect([...fresh.state.selected]).toEqual(["keep"]);
-    expect(fresh.state.viewerOpen).toBe(false);
+    expect(fresh.state.viewerOpen).toBe(true);
   });
 
-  it("游标过期触发重读；带回新修订的页原子完成换页、关查看器与选择修剪", () => {
+  it("游标过期触发重读；带回新修订的页原子完成换页、选择修剪，查看器留着", () => {
     let state = accepted();
     const first = beginBrowse(state);
     const initial = acceptBrowsePage(
@@ -125,12 +125,12 @@ describe("浏览结果原子交付", () => {
       viewOf(state),
     );
     expect(fresh.acceptedPage).toBe(true);
-    expect(fresh.decision.closeViewer).toBe(true);
+    expect(fresh.decision.closeViewer).toBe(false);
     expect(fresh.decision.pruneSelection).toBe(true);
     expect(fresh.state.status?.revision).toBe("r2");
     expect(ids(fresh.state.cards)).toEqual(["keep"]);
     expect(fresh.state.total).toBe(1);
     expect([...fresh.state.selected]).toEqual(["keep"]);
-    expect(fresh.state.viewerOpen).toBe(false);
+    expect(fresh.state.viewerOpen).toBe(true);
   });
 });

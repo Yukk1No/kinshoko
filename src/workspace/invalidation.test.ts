@@ -28,13 +28,13 @@ describe("工作区失效决策", () => {
     expect(last).toMatchObject({ acceptStatus: true, closeViewer: false, reload: false, revokeWall: false });
   });
 
-  it("这个视角的第一份快照若是变更通知，仍按内容变化整套失效", () => {
+  it("这个视角的第一份快照若是变更通知，仍按内容变化整套失效，但不关查看器（#807）", () => {
     const { state: reading } = run([{ kind: "statusRead" }]);
     const { last } = run([{ kind: "statusObserved", revision: "r1", origin: "notification" }], reading);
     expect(last).toMatchObject({
       acceptStatus: true,
       revokeWall: true,
-      closeViewer: true,
+      closeViewer: false,
       reload: true,
       refreshVocabulary: true,
     });
@@ -51,7 +51,7 @@ describe("工作区失效决策", () => {
     expect(decisions[0]).toMatchObject({
       acceptStatus: true,
       revokeWall: true,
-      closeViewer: true,
+      closeViewer: false,
       reload: true,
       refreshVocabulary: true,
     });
@@ -97,7 +97,7 @@ describe("工作区失效决策", () => {
     expect(second.last).toMatchObject({
       acceptStatus: true,
       revokeWall: true,
-      closeViewer: true,
+      closeViewer: false,
       reload: true,
       refreshVocabulary: true,
     });
@@ -125,7 +125,7 @@ describe("工作区失效决策", () => {
     expect(noticeFirst.decisions.filter((d) => d.reload)).toHaveLength(1);
   });
 
-  it("页带回的新修订先于通知到达：同样撤销查看器并重读，之后的同修订通知只消重", () => {
+  it("页带回的新修订先于通知到达：同样重读（查看器留给它自己的检查，#807），之后的同修订通知只消重", () => {
     const { decisions } = run(
       [
         { kind: "statusObserved", revision: "r2", origin: "page" },
@@ -133,7 +133,7 @@ describe("工作区失效决策", () => {
       ],
       accepted(),
     );
-    expect(decisions[0]).toMatchObject({ acceptStatus: true, revokeWall: false, closeViewer: true, reload: true });
+    expect(decisions[0]).toMatchObject({ acceptStatus: true, revokeWall: false, closeViewer: false, reload: true });
     expect(decisions[1].closeViewer).toBe(false);
   });
 
@@ -154,7 +154,7 @@ describe("工作区失效决策", () => {
       [{ kind: "statusObserved", revision: "r2", origin: "recheck", startedAt: base.observations }],
       base,
     );
-    expect(moved.last).toMatchObject({ acceptStatus: true, revokeWall: true, closeViewer: true, reload: true });
+    expect(moved.last).toMatchObject({ acceptStatus: true, revokeWall: true, closeViewer: false, reload: true });
     const late = run(
       [
         { kind: "listInvalidated" },
