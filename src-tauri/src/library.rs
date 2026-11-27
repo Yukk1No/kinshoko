@@ -31,7 +31,9 @@ mod source_actions;
 pub use save_destination::{with_destination, with_destination_published};
 mod access;
 mod lens;
-use lens::{Hold, with_lens};
+use lens::Hold;
+#[allow(unused_imports)] // #795 移除
+use lens::with_lens;
 mod workspace;
 pub use access::*;
 mod import_commands;
@@ -204,6 +206,7 @@ fn with_libraries<T>(
 }
 
 #[track_caller]
+#[allow(dead_code)] // #795 移除
 fn with_catalog<T>(
     catalog: &CatalogSearch,
     action: impl FnOnce(&mut TagCatalog) -> Result<T, CatalogError>,

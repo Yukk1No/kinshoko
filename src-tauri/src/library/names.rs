@@ -9,11 +9,10 @@ use kinshoko_core::tag_catalog::CatalogTag;
 #[tauri::command]
 pub(super) async fn tag_name_conflict_tags<R: Runtime>(
     app: AppHandle<R>,
-    state: State<'_, LibraryState>,
     library_id: String,
     tag_id: String,
 ) -> Result<Vec<CatalogTag>, CommandError> {
-    let workspace = super::tag_commands::inspect_tag_catalog(app, state).await?;
+    let workspace = super::tag_commands::inspect_tag_catalog(app).await?;
     Ok(workspace.catalog.name_conflict_tags(&library_id, &tag_id)?)
 }
 
@@ -61,21 +60,27 @@ pub(crate) fn refresh_search_on_notice<R: Runtime>(app: &AppHandle<R>, notice: &
     }
 }
 
+fn tag_names_safe_mode_changed() -> CommandError {
+    CommandError::new(
+        ErrorKind::TagNamesSafeModeChanged,
+        "安全模式已变化，请重新读取标签名称",
+    )
+}
+
 #[tauri::command]
 pub(super) async fn edit_tag_name<R: Runtime>(
     app: AppHandle<R>,
-    state: State<'_, LibraryState>,
     catalog_id: String,
     edit: CatalogNameEdit,
 ) -> Result<TagCatalogWorkspace, CommandError> {
-    let reader = app.clone();
-    let lens = state.safe_mode().lens();
-    // 经共享的工作区读可见目录（#337）：复用它的快照。
-    let result = blocking(move || {
-        workspace::with_resources(
-            &reader.state::<LibraryState>(),
-            |workspace, libraries, catalog| {
-                let visible = workspace.inspect_catalog(libraries, catalog, lens.on())?;
+    blocking(move || {
+        let state = app.state::<LibraryState>();
+        let grant = state.session.grant();
+        // 经共享的工作区读可见目录（#337）：复用它的快照。
+        let result = match state.session.with_current_lens(
+            |_| tag_names_safe_mode_changed(),
+            |workspace, libraries, catalog, safe| {
+                let visible = workspace.inspect_catalog(libraries, catalog, safe)?;
                 if !visible.catalog.tags.iter().any(|tag| tag.id == catalog_id) {
                     return Err(CatalogError::UnknownTag);
                 }
@@ -93,19 +98,23 @@ pub(super) async fn edit_tag_name<R: Runtime>(
                         catalog.remove_alias(&catalog_id, &alias)?;
                     }
                 }
-                workspace.inspect_catalog(libraries, catalog, lens.on())
+                workspace.inspect_catalog(libraries, catalog, safe)
             },
-        )
+        ) {
+            Ok(result) => Some(result),
+            Err(error) if error.kind == ErrorKind::TagNamesSafeModeChanged => None,
+            Err(error) => return Err(error),
+        };
+        refresh_labels(&app, &state)?;
+        if !state.session.is_grant_current(&grant) {
+            return Err(tag_names_safe_mode_changed());
+        }
+        let Some(result) = result else {
+            return Err(tag_names_safe_mode_changed());
+        };
+        Ok(result)
     })
-    .await?;
-    refresh_labels(&app, &state)?;
-    lens.confirm(state.safe_mode()).map_err(|_| {
-        CommandError::new(
-            ErrorKind::TagNamesSafeModeChanged,
-            "安全模式已变化，请重新读取标签名称",
-        )
-    })?;
-    Ok(result)
+    .await
 }
 
 pub(super) enum LocalAliasEdit {
@@ -115,17 +124,15 @@ pub(super) enum LocalAliasEdit {
 
 pub(super) async fn edit_local_alias<R: Runtime>(
     app: AppHandle<R>,
-    state: &LibraryState,
     library_id: String,
     local_id: String,
     edit: LocalAliasEdit,
 ) -> Result<(), CommandError> {
-    let catalog = state.search().clone();
-    let reader = app.clone();
     blocking(move || {
         // 别名记在本设备的统一目录里，资料库只读核对：不必是可写库（ADR-0008）。
-        let library = readable(&reader, &library_id)?;
-        with_catalog(&catalog, |catalog| {
+        let library = readable(&app, &library_id)?;
+        let state = app.state::<LibraryState>();
+        state.session.with_catalog(|catalog| {
             let snapshot = catalog.synchronize(&library)?;
             let mapping = snapshot
                 .mappings
@@ -159,8 +166,8 @@ pub(super) async fn edit_local_alias<R: Runtime>(
                 }
             }
             Ok(())
-        })
+        })?;
+        refresh_labels(&app, &state)
     })
-    .await?;
-    refresh_labels(&app, state)
+    .await
 }

@@ -10,16 +10,14 @@ pub(super) async fn shared_tag_groups<R: Runtime>(
     lang: String,
     safe_mode: bool,
 ) -> Result<Vec<CatalogGroupView>, CommandError> {
-    blocking(move || {
-        with_lens(
-            &app,
-            safe_mode,
-            Hold::Stable,
-            |workspace, device, catalog| {
-                workspace.shared_tag_groups(device, catalog, &lang, safe_mode)
-            },
-        )
-    })
+    verbs::lens(
+        app,
+        safe_mode,
+        Hold::Stable,
+        move |workspace, device, catalog| {
+            workspace.shared_tag_groups(device, catalog, &lang, safe_mode)
+        },
+    )
     .await
 }
 
@@ -30,12 +28,27 @@ pub(super) async fn create_shared_tag_group<R: Runtime>(
     namespace: Option<TagNamespace>,
 ) -> Result<String, CommandError> {
     blocking(move || {
-        let safe = saved_safe_mode(&app);
-        let id = with_lens(&app, safe, Hold::Read, |workspace, device, catalog| {
-            // Existing source groups enroll before a new group is appended.
-            workspace.status(device, catalog, safe)?;
-            catalog.create_group(&name, namespace)
-        })?;
+        let mut created = None;
+        let outcome = app.state::<LibraryState>().session.with_current_lens(
+            CommandError::from,
+            |workspace, device, catalog, safe| {
+                // Existing source groups enroll before a new group is appended.
+                workspace.status(device, catalog, safe)?;
+                let id = catalog.create_group(&name, namespace)?;
+                created = Some(id.clone());
+                Ok(id)
+            },
+        );
+        let id = match outcome {
+            Ok(id) => id,
+            Err(error) if error.kind == ErrorKind::LensChanged => {
+                let Some(id) = created else {
+                    return Err(error);
+                };
+                id
+            }
+            Err(error) => return Err(error),
+        };
         publish(&app, AppNotice::TagGroupsChanged);
         Ok(id)
     })
@@ -49,15 +62,21 @@ pub(super) async fn edit_shared_tag_group<R: Runtime>(
     safe_mode: bool,
 ) -> Result<(), CommandError> {
     blocking(move || {
-        let lens = app
-            .state::<LibraryState>()
-            .safe_mode()
-            .lens_expecting(safe_mode)?;
-        with_lens(&app, safe_mode, Hold::Read, |workspace, device, catalog| {
-            workspace.edit_group(device, catalog, &edit, safe_mode)
-        })?;
-        publish(&app, AppNotice::TagGroupsChanged);
-        Ok(lens.confirm(app.state::<LibraryState>().safe_mode())?)
+        let mut committed = false;
+        let outcome = app.state::<LibraryState>().session.with_lens(
+            safe_mode,
+            Hold::Confirmed,
+            |workspace, device, catalog| {
+                workspace.edit_group(device, catalog, &edit, safe_mode)?;
+                committed = true;
+                Ok(())
+            },
+        );
+        if committed {
+            publish(&app, AppNotice::TagGroupsChanged);
+        }
+        outcome?;
+        Ok(())
     })
     .await
 }
@@ -70,13 +89,12 @@ pub(super) async fn delete_shared_tag_group<R: Runtime>(
     safe_mode: bool,
 ) -> Result<DeletedCatalogGroup, CommandError> {
     blocking(move || {
-        app.state::<LibraryState>()
-            .safe_mode()
-            .lens_expecting(safe_mode)?;
         // 删除一提交就把快照交回界面：这之后即使安全模式变了也不再报错，否则撤销就丢了。
-        let deleted = with_lens(&app, safe_mode, Hold::Read, |_, _, catalog| {
-            catalog.delete_group(&group_id)
-        })?;
+        let deleted = app.state::<LibraryState>().session.with_lens(
+            safe_mode,
+            Hold::Read,
+            |_, _, catalog| catalog.delete_group(&group_id),
+        )?;
         publish(&app, AppNotice::TagGroupsChanged);
         Ok(deleted)
     })
@@ -91,10 +109,9 @@ pub(super) async fn restore_shared_tag_group<R: Runtime>(
 ) -> Result<(), CommandError> {
     blocking(move || {
         // 撤销只放回配置，不看哪种显示范围；提示出现后安全模式变了也照样能撤销。
-        let safe = saved_safe_mode(&app);
-        with_lens(&app, safe, Hold::Read, |_, _, catalog| {
-            catalog.restore_group(deleted)
-        })?;
+        app.state::<LibraryState>()
+            .session
+            .with_catalog(|catalog| catalog.restore_group(deleted))?;
         publish(&app, AppNotice::TagGroupsChanged);
         Ok(())
     })

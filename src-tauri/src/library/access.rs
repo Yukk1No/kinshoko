@@ -262,6 +262,7 @@ pub fn revoke_import_preview_context<R: Runtime>(app: &AppHandle<R>) {
 /// New call sites prefer [`kinshoko_core::VisibilityPermit::commit`], which does the revalidation.
 ///
 /// 取锁顺序与线程限制见 `kinshoko_core::session` 的模块说明。
+#[allow(dead_code)] // #795 移除
 pub(crate) fn with_visibility_commit<R: Runtime, T>(
     app: &AppHandle<R>,
     commit: impl FnOnce(&VisibilityPermit<'_>) -> T,
