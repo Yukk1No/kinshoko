@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { i18n } from "../i18n";
-import { AlertDialog } from "@base-ui/react/alert-dialog";
+import { AlertDialog } from "../ui/DialogShell";
 import type { LibraryDeletePreview } from "../bindings/LibraryDeletePreview";
 import type { LibraryTarget } from "../bindings/LibraryTarget";
 import {
@@ -124,68 +124,67 @@ export function PermanentDeleteBatchConfirm({
     );
   };
 
+  const cancelButton = useRef<HTMLButtonElement>(null);
   return (
-    <AlertDialog.Root
+    <AlertDialog
       open
+      busy={busy}
       onOpenChange={(open) => {
         if (!open && !busy) cancel();
       }}
+      title={t("title")}
+      description={previews ? (total > 0 ? t("confirmCount", { count: total }) : t("nothing")) : undefined}
+      className="permanent-delete"
+      cancelRef={cancelButton}
+      footer={
+        <>
+          <span className="k-grow" />
+          <button ref={cancelButton} type="button" className="k-btn" disabled={busy} onClick={cancel}>
+            <span className="k-label">{t("cancel")}</span>
+          </button>
+          <button
+            type="button"
+            className="k-btn is-danger"
+            disabled={busy || !previews || total === 0}
+            onClick={confirm}
+          >
+            <span className="k-label">{t("confirm")}</span>
+          </button>
+        </>
+      }
     >
-      <AlertDialog.Portal>
-        <AlertDialog.Backdrop className="k-backdrop" />
-        <AlertDialog.Popup className="k-dialog is-alert permanent-delete" aria-label={t("title")}>
-          <AlertDialog.Title className="k-title">{t("title")}</AlertDialog.Title>
-          {!previews ? (
-            <p className="k-dialog-desc" role="status">
-              {t("checking")}
+      {!previews ? (
+        <p className="k-dialog-desc" role="status">
+          {t("checking")}
+        </p>
+      ) : (
+        <>
+          {changed && (
+            <p className="k-description is-spaced" role="status">
+              {t("changed")}
             </p>
-          ) : (
+          )}
+          {unavailable.map((p) => (
+            <p key={p.libraryId} className="k-description is-spaced" role="status">
+              {t("libraryUnavailable", {
+                library: libraryName(p.libraryId),
+                count: count(p.libraryId),
+                reason: p.error ? describeCommandError(p.error) : "",
+              })}
+            </p>
+          ))}
+          {groups.length > 0 && (
             <>
-              {changed && (
-                <p className="k-description is-spaced" role="status">
-                  {t("changed")}
-                </p>
-              )}
-              <AlertDialog.Description className="k-dialog-desc">
-                {total > 0 ? t("confirmCount", { count: total }) : t("nothing")}
-              </AlertDialog.Description>
-              {unavailable.map((p) => (
-                <p key={p.libraryId} className="k-description is-spaced" role="status">
-                  {t("libraryUnavailable", {
-                    library: libraryName(p.libraryId),
-                    count: count(p.libraryId),
-                    reason: p.error ? describeCommandError(p.error) : "",
-                  })}
-                </p>
-              ))}
-              {groups.length > 0 && (
-                <>
-                  <p className="k-dialog-desc">{t("groupsIntro")}</p>
-                  <ul className="permanent-delete-groups" aria-label={t("groupsLabel")}>
-                    {groups.map((g) => (
-                      <li key={g.groupId}>{t("groupCount", { name: g.name, count: g.count })}</li>
-                    ))}
-                  </ul>
-                </>
-              )}
+              <p className="k-dialog-desc">{t("groupsIntro")}</p>
+              <ul className="permanent-delete-groups" aria-label={t("groupsLabel")}>
+                {groups.map((g) => (
+                  <li key={g.groupId}>{t("groupCount", { name: g.name, count: g.count })}</li>
+                ))}
+              </ul>
             </>
           )}
-          <div className="k-dialog-foot">
-            <span className="k-grow" />
-            <AlertDialog.Close className="k-btn" disabled={busy}>
-              <span className="k-label">{t("cancel")}</span>
-            </AlertDialog.Close>
-            <button
-              type="button"
-              className="k-btn is-danger"
-              disabled={busy || !previews || total === 0}
-              onClick={confirm}
-            >
-              <span className="k-label">{t("confirm")}</span>
-            </button>
-          </div>
-        </AlertDialog.Popup>
-      </AlertDialog.Portal>
-    </AlertDialog.Root>
+        </>
+      )}
+    </AlertDialog>
   );
 }

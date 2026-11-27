@@ -17,12 +17,8 @@ const sheets = import.meta.glob<string>("../**/*.css", { query: "?raw", import: 
 const DIRECT_DIALOG_ALLOWLIST = new Set([
   "../App.tsx",
   "../library/CreateLibrary.tsx",
-  "../library/ImportBar.tsx",
-  "../library/ImportBarParts.tsx",
   "../library/LegacyNameMigrationPanel.tsx",
   "../library/LibraryPicker.tsx",
-  "../library/PermanentDeleteBatch.tsx",
-  "../library/SealedImportPreview.tsx",
   "../subscriptions/ArtistDialog.tsx",
   "../subscriptions/FirstRunDialog.tsx",
   "../subscriptions/FollowingDialog.tsx",
@@ -31,15 +27,12 @@ const DIRECT_DIALOG_ALLOWLIST = new Set([
 const MANUAL_CLOSE_ALLOWLIST = new Set([
   "../App.tsx",
   "../library/LegacyNameMigrationPanel.tsx",
-  "../library/SealedImportPreview.tsx",
   "../workspace/TagGroupsDialog.tsx",
 ]);
 const MANUAL_FOOTER_ALLOWLIST = new Set([
   "../library/CreateLibrary.tsx",
-  "../library/ImportBarParts.tsx",
   "../library/LegacyNameMigrationPanel.tsx",
   "../library/LibraryPicker.tsx",
-  "../library/PermanentDeleteBatch.tsx",
   "../subscriptions/ArtistDialog.tsx",
   "../subscriptions/FirstRunDialog.tsx",
   "../subscriptions/FollowingDialog.tsx",
