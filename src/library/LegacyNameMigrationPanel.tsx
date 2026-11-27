@@ -4,16 +4,15 @@ import { formatNumber } from "../i18n/format";
 import { Tag } from "lucide-react";
 import type { LegacyNameGroup } from "../bindings/LegacyNameGroup";
 import type { LegacyNameMigrationWorkspace } from "../bindings/LegacyNameMigrationWorkspace";
-import type { LegacyNameMigrationPreview } from "../bindings/LegacyNameMigrationPreview";
 import type { LegacyNameResolution } from "../bindings/LegacyNameResolution";
 import { describeCommandError, errorText } from "../ipc/commandError";
-import { confirmLegacyNames, onSafeModeSetting, planLegacyNames, previewLegacyNames } from "../ipc";
+import { confirmLegacyNames, onSafeModeSetting, planLegacyNames } from "../ipc";
 import { languageName } from "../tags/languages";
 import { DialogSwap } from "../ui/DialogHeight";
 import { DialogShell } from "../ui/DialogShell";
 import { WarnIcon } from "../ui/WarnIcon";
 
-import { CHANGED } from "./LegacyNameNotice";
+import { acceptLegacyNamesPlan, invalidateTagCatalog, useLegacyNamesPreview } from "./tagCatalogMirrors";
 
 export { LegacyNameEntry, LegacyNameMigrationNotice } from "./LegacyNameNotice";
 const PREVIEW_PAGE = 20;
@@ -42,9 +41,6 @@ export function LegacyNameWizard({ open, onOpenChange }: { open: boolean; onOpen
   const [view, setView] = useState<LegacyNameMigrationWorkspace | null>(null);
   const [selected, setSelected] = useState<Record<string, string>>({});
   const [page, setPage] = useState(0);
-  const [preview, setPreview] = useState<LegacyNameMigrationPreview | null>(null);
-  const [previewBusy, setPreviewBusy] = useState(false);
-  const [previewChoiceKey, setPreviewChoiceKey] = useState("");
   const [previewPage, setPreviewPage] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,12 +57,8 @@ export function LegacyNameWizard({ open, onOpenChange }: { open: boolean; onOpen
   }
   // biome-ignore lint/correctness/useExhaustiveDependencies(reset): 监听只装一次；reset 每次渲染都是新函数，只调 setState 与 ref
   useEffect(() => {
-    let alive = true;
-    const stop = onSafeModeSetting(() => {
-      if (alive) reset();
-    });
+    const stop = onSafeModeSetting(() => reset());
     return () => {
-      alive = false;
       generation.current++;
       // 忽略失败：收尾时取消监听；之后的事件不再处理。
       void stop.then((unlisten) => unlisten()).catch(() => {});
@@ -84,7 +76,10 @@ export function LegacyNameWizard({ open, onOpenChange }: { open: boolean; onOpen
       setSaved(confirming);
       setSelected({});
       setPage(0);
-      if (confirming) window.dispatchEvent(new Event(CHANGED));
+      if (confirming) {
+        acceptLegacyNamesPlan(next);
+        invalidateTagCatalog();
+      }
     } catch (reason) {
       if (request === generation.current) setError(errorText(reason));
     } finally {
@@ -112,8 +107,17 @@ export function LegacyNameWizard({ open, onOpenChange }: { open: boolean; onOpen
         resolution: choice(entry, selected[key(entry)]),
       }))
     : [];
-  const choiceKey = complete ? JSON.stringify(decisions) : "";
-  const validPreview = preview !== null && previewChoiceKey === choiceKey && preview.revision === view?.plan.revision;
+  const previewResult = useLegacyNamesPreview(view?.plan.revision ?? 0, decisions, open && view !== null && complete);
+  const preview = previewResult.value;
+  const previewBusy = open && view !== null && complete && previewResult.refreshing;
+  const validPreview = preview !== null && preview.revision === view?.plan.revision;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 计划或选择变化就是另一份预览，页码回到第一页；回调只重置局部页码
+  useEffect(() => {
+    setPreviewPage(0);
+  }, [view, selected]);
+  useEffect(() => {
+    if (previewResult.error !== null) setError(errorText(previewResult.error));
+  }, [previewResult.error]);
   const bulk = groups.filter((entry) => followsDefaultInBulk(entry, selected));
   const firstUnchosen = (from: Record<string, string>) => groups.findIndex((entry) => !from[key(entry)]);
   function bulkFollow() {
@@ -132,33 +136,6 @@ export function LegacyNameWizard({ open, onOpenChange }: { open: boolean; onOpen
     const left = firstUnchosen(selected);
     setPage(left >= 0 ? left : groups.length);
   }
-  // biome-ignore lint/correctness/useExhaustiveDependencies: complete、decisions、choiceKey 都由 view 与 selected 算出，decisions 每次渲染都是新数组
-  useEffect(() => {
-    let alive = true;
-    const request = generation.current;
-    setPreview(null);
-    setPreviewChoiceKey("");
-    setPreviewPage(0);
-    setPreviewBusy(false);
-    if (!view || !complete) return;
-    setPreviewBusy(true);
-    void previewLegacyNames(view.plan.revision, decisions)
-      .then((next) => {
-        if (alive && request === generation.current) {
-          setPreview(next);
-          setPreviewChoiceKey(choiceKey);
-        }
-      })
-      .catch((reason) => {
-        if (alive && request === generation.current) setError(errorText(reason));
-      })
-      .finally(() => {
-        if (alive && request === generation.current) setPreviewBusy(false);
-      });
-    return () => {
-      alive = false;
-    };
-  }, [view, selected]);
 
   const options = group
     ? [

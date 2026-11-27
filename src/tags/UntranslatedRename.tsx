@@ -1,17 +1,16 @@
-import { useEffect, useState, type SyntheticEvent } from "react";
+import { useState, type SyntheticEvent } from "react";
 import { Popover } from "@base-ui/react/popover";
 import { Languages } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Tip } from "../ui/Tip";
-import type { CatalogTag } from "../bindings/CatalogTag";
-import type { LibraryTagMapping } from "../bindings/LibraryTagMapping";
 import type { TagLabel } from "../bindings/TagLabel";
-import { editTagName, inspectTagCatalog } from "../ipc";
+import { editTagName } from "../ipc";
 import { useUiLang } from "../i18n";
 import { nameConflict } from "./nameConflict";
 import { NameConflictWarning } from "./NameConflictWarning";
 import { useOpenTagNameSettings } from "./TagNameSettings";
 import { errorText } from "../ipc/commandError";
+import { invalidateTagCatalog, useTagCatalog } from "../library/tagCatalogMirrors";
 
 // 改名框在 portal 里，React 事件仍沿组件树冒泡到外层的标签（它本身是出处浮层的触发器）：在这里截住。
 const stop = (event: SyntheticEvent) => event.stopPropagation();
@@ -36,8 +35,7 @@ export function UntranslatedRename({ tag, catalogId, onSaved, onOpenChange }: Pr
   const openSettings = useOpenTagNameSettings();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState("");
-  const [others, setOthers] = useState<CatalogTag[]>([]);
-  const [mappings, setMappings] = useState<LibraryTagMapping[]>([]);
+  const catalog = useTagCatalog(open);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const name = tag.name;
@@ -50,23 +48,9 @@ export function UntranslatedRename({ tag, catalogId, onSaved, onOpenChange }: Pr
       setError(null);
     }
   };
-  useEffect(() => {
-    if (!open) return;
-    let alive = true;
-    // 只为重名提示读一次目录；读不到时不提示，照样能保存。
-    inspectTagCatalog().then(
-      (workspace) => {
-        if (alive) {
-          setOthers(workspace.catalog.tags.filter((entry) => entry.id !== catalogId));
-          setMappings(workspace.catalog.mappings);
-        }
-      },
-      () => {},
-    );
-    return () => {
-      alive = false;
-    };
-  }, [open, catalogId]);
+  // 只为重名提示读目录；读不到时不提示，照样能保存。弹窗关闭就不订阅。
+  const others = open ? (catalog.value?.catalog.tags.filter((entry) => entry.id !== catalogId) ?? []) : [];
+  const mappings = open ? (catalog.value?.catalog.mappings ?? []) : [];
   const text = draft.trim();
   const duplicate = nameConflict(others, { id: catalogId, namespace: tag.namespace }, text, mappings);
   const save = () => {
@@ -75,6 +59,7 @@ export function UntranslatedRename({ tag, catalogId, onSaved, onOpenChange }: Pr
     setError(null);
     editTagName(catalogId, { kind: "prefer", name: { lang, name: text } }).then(
       () => {
+        invalidateTagCatalog();
         setBusy(false);
         setOpen(false);
         onOpenChange?.(false);

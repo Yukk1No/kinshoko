@@ -26,6 +26,7 @@ import type { TagNamespace } from "../bindings/TagNamespace";
 import { Tip } from "../ui/Tip";
 import { nameConflict } from "../tags/nameConflict";
 import { NameConflictWarning } from "../tags/NameConflictWarning";
+import { acceptTagCatalog, invalidateTagCatalog, useTagCatalog } from "./tagCatalogMirrors";
 
 const LIMIT = 80;
 /** 行描述里的类别名；一般标签不写。 */
@@ -40,7 +41,7 @@ const namespaceName = (namespace: TagNamespace) =>
  * `focus`：从别处（例如详情面板的改名框，#182）打开时要定位的统一标签，排在最前并展开。
  */
 export function TagNamePanel({ focus }: { focus?: string } = {}) {
-  const [workspace, setWorkspace] = useState<TagCatalogWorkspace | null>(null);
+  const catalog = useTagCatalog(true);
   const uiLang = useUiLang();
   const { t } = useTranslation("tagSettings");
   const [lang, setLang] = useState<string>(uiLang);
@@ -48,41 +49,52 @@ export function TagNamePanel({ focus }: { focus?: string } = {}) {
   const [editing, setEditing] = useState<string | null>(focus ?? null);
   const [preferencesOnly, setPreferencesOnly] = useState(false);
   const [unmappedOnly, setUnmappedOnly] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [writeBusy, setWriteBusy] = useState(false);
+  // 安全模式切换后先把旧视角藏起来，等画师亲手重新读取；镜像自己的后台重读不能把它放回来。
+  const [withheld, setWithheld] = useState(false);
+  const [reloading, setReloading] = useState(false);
   const generation = useRef(0);
   const run = async (action: () => Promise<TagCatalogWorkspace>) => {
     const request = ++generation.current;
-    setBusy(true);
-    setError(null);
+    setWriteBusy(true);
+    setActionError(null);
     try {
       const result = await action();
-      if (request === generation.current) setWorkspace(result);
+      if (request === generation.current) acceptTagCatalog(result);
     } catch (reason) {
-      if (request === generation.current) setError(errorText(reason));
+      if (request === generation.current) setActionError(errorText(reason));
     } finally {
-      if (request === generation.current) setBusy(false);
+      if (request === generation.current) setWriteBusy(false);
     }
   };
-  // biome-ignore lint/correctness/useExhaustiveDependencies(run): 只在打开时读一次并装上监听；run 每次渲染都是新函数
   useEffect(() => {
-    let alive = true;
-    void run(inspectTagCatalog);
     const unlisten = onSafeModeSetting(() => {
-      if (!alive) return;
       generation.current++;
-      setWorkspace(null);
-      setError(null);
-      setBusy(false);
+      setWithheld(true);
+      setReloading(false);
+      setActionError(null);
+      setWriteBusy(false);
       setEditing(null);
     });
     return () => {
-      alive = false;
       generation.current++;
       // 忽略失败：收尾时取消监听；之后的事件不再处理。
       void unlisten.then((stop) => stop()).catch(() => {});
     };
   }, []);
+  useEffect(() => {
+    if (!reloading || catalog.refreshing) return;
+    setReloading(false);
+    // 只有这次当前视角读成功才解除隐藏；失败时旧快照仍不能露出来。
+    if (catalog.error === null) setWithheld(false);
+    else setActionError(errorText(catalog.error));
+  }, [reloading, catalog.refreshing, catalog.error]);
+  const workspace = withheld || reloading ? null : catalog.value;
+  const busy = writeBusy || reloading || (!withheld && catalog.refreshing);
+  const mirrorError =
+    !withheld && !reloading && !catalog.refreshing && catalog.error !== null ? errorText(catalog.error) : null;
+  const error = actionError ?? mirrorError;
   const language = lang.trim();
   const needle = filter.trim().toLocaleLowerCase();
   const pending = new Set(
@@ -151,7 +163,15 @@ export function TagNamePanel({ focus }: { focus?: string } = {}) {
         </p>
       )}
       {!workspace && !busy && (
-        <button type="button" className="k-btn is-sm" onClick={() => void run(inspectTagCatalog)}>
+        <button
+          type="button"
+          className="k-btn is-sm"
+          onClick={() => {
+            setReloading(true);
+            setActionError(null);
+            invalidateTagCatalog();
+          }}
+        >
           <span className="k-label">{t("names.load")}</span>
         </button>
       )}

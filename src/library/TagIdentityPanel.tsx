@@ -4,9 +4,10 @@ import type { LibraryTagMapping } from "../bindings/LibraryTagMapping";
 import type { TagCatalogWorkspace } from "../bindings/TagCatalogWorkspace";
 import type { TagNamespace } from "../bindings/TagNamespace";
 import { describeCommandError, errorText } from "../ipc/commandError";
-import { correctTagMapping, inspectTagCatalog, onLibraryEvent, onSafeModeSetting, publishTagDefinitions } from "../ipc";
+import { correctTagMapping, onSafeModeSetting, publishTagDefinitions } from "../ipc";
 
 import { libraryPathHint } from "./library-path";
+import { acceptTagCatalog, invalidateTagCatalog, useTagCatalog } from "./tagCatalogMirrors";
 import { Select } from "../ui/Select";
 import { useToast } from "../ui/Toast";
 import { useUiLang } from "../i18n";
@@ -29,75 +30,59 @@ const localName = (mapping: LibraryTagMapping, lang: string) =>
 /** Settings fieldset and explicit row actions follow the approved reference-browser SettingsDialog. */
 export function TagIdentityPanel() {
   const { t } = useTranslation("tagSettings");
-  const [workspace, setWorkspace] = useState<TagCatalogWorkspace | null>(null);
+  const [inspected, setInspected] = useState(false);
+  const catalog = useTagCatalog(inspected);
   const [error, setError] = useState<string | null>(null);
   const toast = useToast();
-  const [busy, setBusy] = useState(false);
+  const [actionBusy, setActionBusy] = useState(false);
   const generation = useRef(0);
-  const inspected = useRef(false);
-  const running = useRef(false);
-  const dirty = useRef(false);
-  // biome-ignore lint/correctness/useExhaustiveDependencies(run): 监听只装一次；run 每次渲染都是新函数，靠 ref 判断状态
   useEffect(() => {
-    let alive = true;
     const unlisten = onSafeModeSetting(() => {
-      if (!alive) return;
       generation.current++;
-      inspected.current = false;
-      running.current = false;
-      dirty.current = false;
-      setWorkspace(null);
+      setInspected(false);
       setError(null);
-      setBusy(false);
-    });
-    const vocabulary = onLibraryEvent((event) => {
-      if (!alive || event.kind !== "vocabularyChanged" || !inspected.current) return;
-      if (running.current) dirty.current = true;
-      else void run(inspectTagCatalog, undefined, true);
+      setActionBusy(false);
     });
     return () => {
-      alive = false;
-      inspected.current = false;
-      dirty.current = false;
       generation.current++;
       // 忽略失败：收尾时取消监听；之后的事件不再处理。
-      for (const stop of [unlisten, vocabulary]) void stop.then((off) => off()).catch(() => {});
+      void unlisten.then((stop) => stop()).catch(() => {});
     };
   }, []);
-  const run = async (action: () => Promise<TagCatalogWorkspace>, success?: string, automatic = false) => {
+  const run = async (action: () => Promise<TagCatalogWorkspace>, success?: string) => {
     const request = ++generation.current;
-    inspected.current = true;
-    running.current = true;
-    setBusy(true);
-    // Vocabulary refreshes update rows without dismissing an unresolved publication failure.
-    if (!automatic) setError(null);
+    setActionBusy(true);
+    setError(null);
     try {
       const next = await action();
       if (request === generation.current) {
-        setWorkspace(next);
-        if (!automatic && success) toast.show({ title: success, tone: "success" });
+        acceptTagCatalog(next);
+        if (success) toast.show({ title: success, tone: "success" });
       }
     } catch (reason) {
-      if (request === generation.current)
-        setError((previous) => (automatic && previous !== null ? previous : errorText(reason)));
+      if (request === generation.current) setError(errorText(reason));
     } finally {
-      if (request === generation.current) {
-        setBusy(false);
-        running.current = false;
-        if (dirty.current) {
-          dirty.current = false;
-          void run(inspectTagCatalog, undefined, true);
-        }
-      }
+      if (request === generation.current) setActionBusy(false);
     }
   };
+  const inspect = () => {
+    setError(null);
+    setInspected(true);
+    // 已经订阅过时手动让镜像重读；第一次点击时订阅本身会开始读，没在订阅时这句自然落空。
+    invalidateTagCatalog();
+  };
+  const workspace = inspected ? catalog.value : null;
+  const busy = actionBusy || (inspected && catalog.refreshing);
+  const mirrorError = inspected && !catalog.refreshing && catalog.error !== null ? errorText(catalog.error) : null;
+  // 自动重读不改写本地操作错误：未解决的发布失败要留到画师显式重试。
+  const shownError = error ?? mirrorError;
   return (
     <section className="tag-identity" aria-label={t("identity.label")}>
-      <button type="button" className="k-btn is-sm" disabled={busy} onClick={() => void run(inspectTagCatalog)}>
+      <button type="button" className="k-btn is-sm" disabled={busy} onClick={inspect}>
         <span className="k-label">{t("identity.inspect")}</span>
       </button>
       {busy && <p role="status">{t("identity.loading")}</p>}
-      {error && <p role="alert">{error}</p>}
+      {shownError && <p role="alert">{shownError}</p>}
       {workspace && (
         <>
           {workspace.libraries.map(({ library, unavailable }) => (
