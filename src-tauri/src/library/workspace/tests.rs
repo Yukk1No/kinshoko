@@ -33,10 +33,10 @@ fn tag_group_and_personal_approx_writes_wake_the_same_revision_publisher() {
         .unwrap();
     let app = app.handle();
     let state = app.state::<LibraryState>();
-    let library = with_libraries(&state, |device| {
-        device.create(&dir.path().join("library"), "Library")
-    })
-    .unwrap();
+    let library = state
+        .session
+        .with_libraries(|device| device.create(&dir.path().join("library"), "Library"))
+        .unwrap();
     let path = dir.path().join("reference.png");
     image::RgbaImage::from_pixel(4, 3, image::Rgba([10, 20, 30, 255]))
         .save(&path)
@@ -59,18 +59,20 @@ fn tag_group_and_personal_approx_writes_wake_the_same_revision_publisher() {
 
     let mut previous = None;
     assert!(poll(app, &mut previous));
-    let (a, b) = with_catalog(state.search(), |catalog| {
-        let tags = catalog.inspect()?.tags;
-        let id = |name| {
-            tags.iter()
-                .find(|tag| tag.external.iter().any(|external| external.name == name))
-                .unwrap()
-                .id
-                .clone()
-        };
-        Ok((id("blue_eyes"), id("aqua_eyes")))
-    })
-    .unwrap();
+    let (a, b) = state
+        .session
+        .with_catalog(|catalog| {
+            let tags = catalog.inspect()?.tags;
+            let id = |name| {
+                tags.iter()
+                    .find(|tag| tag.external.iter().any(|external| external.name == name))
+                    .unwrap()
+                    .id
+                    .clone()
+            };
+            Ok((id("blue_eyes"), id("aqua_eyes")))
+        })
+        .unwrap();
     let wake = &state.workspace_wake;
     let mut seen = wake.snapshot();
     tauri::async_runtime::block_on(super::super::groups::create_shared_tag_group(

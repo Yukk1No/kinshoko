@@ -13,8 +13,8 @@ pub(super) fn write_visible<R: Runtime, T>(
     let writer = writable(app, library_id)?;
     let state = app.state::<LibraryState>();
     let _transition = state.session.transition();
-    with_visibility_commit(app, |_| {
-        let value = workspace::with_resources(&state, |w, d, c| {
+    state.session.with_visibility(|_| {
+        let value = state.session.with_resources(|w, d, c| {
             w.write_visible_images(d, c, state.safe_mode(), &writer, image_ids, action)
         })?;
         state.search().invalidate();
@@ -85,7 +85,7 @@ pub(super) async fn permanent_delete<R: Runtime>(
 ) -> Result<(), CommandError> {
     blocking(move || {
         let library = writable(&app, &library_id)?;
-        with_visibility_commit(&app, |_| {
+        app.state::<LibraryState>().session.with_visibility(|_| {
             crate::desktop::with_groups(&app, |groups| {
                 library.permanent_delete(&ids, &token, groups)
             })
@@ -144,7 +144,7 @@ pub(super) async fn permanent_delete_batch<R: Runtime>(
     blocking(move || {
         let results = each_library(groups, |group| {
             let library = writable(&app, &group.library_id)?;
-            with_visibility_commit(&app, |_| {
+            app.state::<LibraryState>().session.with_visibility(|_| {
                 crate::desktop::with_groups(&app, |usage| {
                     library.permanent_delete(&group.image_ids, &group.token, usage)
                 })
