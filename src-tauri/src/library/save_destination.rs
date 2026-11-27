@@ -71,9 +71,9 @@ pub(super) fn publish_saved<R: Runtime>(
             )
         });
     let publication = validated.and_then(|()| {
-        with_catalog(state.search(), |catalog| {
-            catalog.publish_library_definitions(library)
-        })
+        state
+            .session
+            .with_catalog(|catalog| catalog.publish_library_definitions(library))
         .map_err(|error| {
             CommandError::caused_by(
                 error,
@@ -161,12 +161,12 @@ pub(super) async fn dismiss_import<R: Runtime>(
     task_id: String,
 ) -> Result<(), CommandError> {
     blocking(move || {
-        with_visibility_commit(&app, |permit| {
+        let state = app.state::<LibraryState>();
+        state.session.with_visibility(|permit| {
             permit.revoke_import_preview();
-            let state = app.state::<LibraryState>();
-            with_libraries(&state, |device| {
-                device.dismiss_import(&library_id, &task_id)
-            })
+            state
+                .session
+                .with_libraries(|device| device.dismiss_import(&library_id, &task_id))
         })
     })
     .await
