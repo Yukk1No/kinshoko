@@ -28,14 +28,27 @@ pub(super) async fn create_shared_tag_group<R: Runtime>(
     namespace: Option<TagNamespace>,
 ) -> Result<String, CommandError> {
     blocking(move || {
-        let id = app.state::<LibraryState>().session.with_current_lens(
+        let mut created = None;
+        let outcome = app.state::<LibraryState>().session.with_current_lens(
             CommandError::from,
             |workspace, device, catalog, safe| {
                 // Existing source groups enroll before a new group is appended.
                 workspace.status(device, catalog, safe)?;
-                catalog.create_group(&name, namespace)
+                let id = catalog.create_group(&name, namespace)?;
+                created = Some(id.clone());
+                Ok(id)
             },
-        )?;
+        );
+        let id = match outcome {
+            Ok(id) => id,
+            Err(error) if error.kind == ErrorKind::LensChanged => {
+                let Some(id) = created else {
+                    return Err(error);
+                };
+                id
+            }
+            Err(error) => return Err(error),
+        };
         publish(&app, AppNotice::TagGroupsChanged);
         Ok(id)
     })

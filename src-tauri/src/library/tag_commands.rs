@@ -26,7 +26,7 @@ pub(super) async fn correct_tag_mapping<R: Runtime>(
     blocking(move || {
         let state = app.state::<LibraryState>();
         let grant = state.session.grant();
-        let result = state.session.with_current_lens(
+        let result = match state.session.with_current_lens(
             |_| mapping_safe_mode_changed(),
             |workspace, libraries, catalog, safe| {
                 let library = libraries
@@ -36,7 +36,11 @@ pub(super) async fn correct_tag_mapping<R: Runtime>(
                 catalog.correct(&library, &local_tag_id, correction)?;
                 workspace.inspect_catalog(libraries, catalog, safe)
             },
-        )?;
+        ) {
+            Ok(result) => Some(result),
+            Err(error) if error.kind == ErrorKind::TagMappingSafeModeChanged => None,
+            Err(error) => return Err(error),
+        };
         let publication = publish_definition_dependencies(&app, &library_id);
         names::refresh_labels(&app, &state)?;
         if !state.session.is_grant_current(&grant) {
@@ -49,6 +53,9 @@ pub(super) async fn correct_tag_mapping<R: Runtime>(
                 |error| format!("标签对应已保存在程序中，但资料库定义尚未更新：{error}。请在统一标签目录中重试保存标签定义。"),
             )
         })?;
+        let Some(result) = result else {
+            return Err(mapping_safe_mode_changed());
+        };
         Ok(result)
     })
     .await
