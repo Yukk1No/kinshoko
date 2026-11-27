@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Name } from "../ui/Name";
 import { DialogShell } from "../ui/DialogShell";
 import { ChevronLeft, CircleAlert, LoaderCircle, Search } from "lucide-react";
@@ -8,6 +8,8 @@ import type { Subscription } from "../bindings/Subscription";
 import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
 import { errorText } from "../ipc";
 import { subscriptionAdd, subscriptionFollowing } from "../ipc/subscriptions";
+import { createBackendMirror } from "../ipc/backendMirror";
+import { useBackendMirror } from "../ipc/useBackendMirror";
 import { subscribedArtists } from "./ArtistDialog";
 import {
   ArtistOptionFields,
@@ -19,6 +21,13 @@ import {
 } from "./artistOptions";
 
 type Follows = { kind: "loading" } | { kind: "loaded"; artists: Artist[] } | { kind: "failed"; message: string };
+
+const FOLLOWING_KEY = "pixiv-following";
+
+/** pixiv 关注名单的后端镜像（#794）：弹窗关闭后最后一个订阅者离开，下次打开重新读取最新名单。 */
+const followingMirror = createBackendMirror<typeof FOLLOWING_KEY, Artist[]>({
+  read: () => subscriptionFollowing(),
+});
 
 /**
  * 从 pixiv 关注导入（#369，草图 B）：一次性读出登录账号的关注，勾选要订阅的画师，用同一套设置订阅。
@@ -41,7 +50,6 @@ export function FollowingDialog({
   const { t: ta } = useTranslation("subscriptions", { keyPrefix: "artist" });
   const libraries = useLibraryOptions();
   const fallback = libraries.options[0]?.value ?? "";
-  const [follows, setFollows] = useState<Follows>({ kind: "loading" });
   const [filter, setFilter] = useState("");
   const [picked, setPicked] = useState<ReadonlySet<string>>(new Set());
   const [choices, setChoices] = useState<ArtistChoices>(() => initialChoices(""));
@@ -51,16 +59,13 @@ export function FollowingDialog({
   const showExplicit = explicitChoice(status);
   const subscribed = useMemo(() => subscribedArtists(list), [list]);
 
-  useEffect(() => {
-    let alive = true;
-    subscriptionFollowing().then(
-      (artists) => alive && setFollows({ kind: "loaded", artists }),
-      (e) => alive && setFollows({ kind: "failed", message: t("loadFailed", { error: errorText(e) }) }),
-    );
-    return () => {
-      alive = false;
-    };
-  }, [t]);
+  const following = useBackendMirror(followingMirror, FOLLOWING_KEY);
+  const follows: Follows =
+    following.value !== null
+      ? { kind: "loaded", artists: following.value }
+      : following.error !== null
+        ? { kind: "failed", message: t("loadFailed", { error: errorText(following.error) }) }
+        : { kind: "loading" };
 
   const artists = follows.kind === "loaded" ? follows.artists : [];
   const needle = filter.trim().toLowerCase();
