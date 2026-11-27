@@ -1,7 +1,6 @@
-import { Dialog } from "@base-ui/react/dialog";
-import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { TagGroupsPane } from "../library/TagGroupsPane";
+import { DialogShell } from "../ui/DialogShell";
 
 /** 分组编辑器从侧栏移到标签栏的“编辑分组”（#98）。 */
 export function TagGroupsDialog({
@@ -21,23 +20,23 @@ export function TagGroupsDialog({
 }) {
   const { t } = useTranslation("search", { keyPrefix: "groups" });
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Portal>
-        <Dialog.Backdrop className="k-backdrop" />
-        <Dialog.Popup className="k-dialog k-groups-dialog">
-          <Dialog.Close className="k-icon-btn k-dialog-x" aria-label={t("close")}>
-            <X size={16} aria-hidden="true" />
-          </Dialog.Close>
-          <Dialog.Title className="k-title">{t("dialogTitle")}</Dialog.Title>
-          <TagGroupsPane safe={safe} generation={generation} onBrowse={onBrowse} onError={onError} />
-          <div className="k-dialog-foot">
-            <span className="k-grow" />
-            <Dialog.Close className="k-btn is-primary">
-              <span className="k-label">{t("done")}</span>
-            </Dialog.Close>
-          </div>
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
+    <DialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      purpose="info"
+      title={t("dialogTitle")}
+      closeLabel={t("close")}
+      className="k-groups-dialog"
+      footer={
+        <>
+          <span className="k-grow" />
+          <button type="button" className="k-btn is-primary" onClick={() => onOpenChange(false)}>
+            <span className="k-label">{t("done")}</span>
+          </button>
+        </>
+      }
+    >
+      <TagGroupsPane safe={safe} generation={generation} onBrowse={onBrowse} onError={onError} />
+    </DialogShell>
   );
 }
