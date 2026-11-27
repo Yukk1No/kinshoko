@@ -2,6 +2,7 @@
 use super::*;
 use crate::CommandError;
 use crate::command_error::ErrorKind;
+use crate::session::{PublicationGate, PublicationGuard};
 
 /// pending 记录 → 发布原文件 → 提交参考图；任一步失败都撤回这一项。
 pub(super) fn publish_and_commit(
@@ -212,7 +213,7 @@ pub(super) struct Record {
     pub(super) cancel: Option<Arc<AtomicBool>>,
 }
 
-fn publication_gate(inner: &Inner) -> Arc<Mutex<()>> {
+fn publication_gate(inner: &Inner) -> PublicationGate {
     inner
         .package_publication_gate
         .read()
@@ -223,32 +224,16 @@ fn publication_gate(inner: &Inner) -> Arc<Mutex<()>> {
 impl Record {
     fn lock_publication<'a>(
         &self,
-        gate: &'a Mutex<()>,
-    ) -> Result<std::sync::MutexGuard<'a, ()>, Error> {
+        gate: &'a PublicationGate,
+    ) -> Result<PublicationGuard<'a>, Error> {
         // Enter before queuing a writer job to preserve the app's gate -> writer ordering.
         // Unregister holds the gate while cancelling and settling import tasks.
         match &self.cancel {
-            Some(cancel) => lock_unless_cancelled(gate, cancel).ok_or(Error::DestinationRevoked),
-            None => Ok(gate.lock().unwrap_or_else(|e| e.into_inner())),
+            Some(cancel) => gate
+                .lock_unless_cancelled(cancel)
+                .ok_or(Error::DestinationRevoked),
+            None => Ok(gate.lock()),
         }
-    }
-}
-
-/// 等发布锁，任务取消时放弃。
-fn lock_unless_cancelled<'a>(
-    gate: &'a Mutex<()>,
-    cancel: &AtomicBool,
-) -> Option<std::sync::MutexGuard<'a, ()>> {
-    loop {
-        match gate.try_lock() {
-            Ok(guard) => return Some(guard),
-            Err(std::sync::TryLockError::Poisoned(e)) => return Some(e.into_inner()),
-            Err(std::sync::TryLockError::WouldBlock) => {}
-        }
-        if cancel.load(std::sync::atomic::Ordering::SeqCst) {
-            return None;
-        }
-        std::thread::sleep(std::time::Duration::from_millis(2));
     }
 }
 

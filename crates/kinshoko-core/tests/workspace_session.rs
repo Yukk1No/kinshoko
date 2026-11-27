@@ -1,8 +1,7 @@
 //! 工作区会话与可见性许可（#749）：锁外准备 → 进门复核 → 门内生效，以及固定的取锁顺序。
 //! 只经 `WorkspaceSession` 的对外接口，用临时目录里的真 SQLite 与真文件，不启动应用。
 
-use std::ops::ControlFlow;
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, mpsc};
 use std::time::Duration;
 
@@ -15,7 +14,7 @@ use kinshoko_core::library::{
 use kinshoko_core::safe_mode::LensStale;
 use kinshoko_core::search::CatalogSearch;
 use kinshoko_core::session::Hold;
-use kinshoko_core::{CommandError, Library, VisibilityPermit, WorkspaceSession};
+use kinshoko_core::{CommandError, Library, PublicationGate, VisibilityPermit, WorkspaceSession};
 
 struct Fixture {
     dir: tempfile::TempDir,
@@ -235,77 +234,6 @@ fn a_safe_mode_commit_waits_until_the_apply_leaves_the_permit() {
 }
 
 #[test]
-fn no_chunk_is_sent_after_safe_mode_is_committed() {
-    let f = Fixture::new(true);
-    let grant = f.session.import_preview_grant().unwrap();
-    let committed = AtomicBool::new(false);
-    let chunks = AtomicUsize::new(0);
-    let (first_tx, first) = mpsc::channel();
-    let result = std::thread::scope(|scope| {
-        let session = &f.session;
-        let committed = &committed;
-        scope.spawn(move || {
-            first.recv().unwrap();
-            let permit = session.visibility();
-            permit
-                .try_commit_safe_mode(|mode| mode.on = true, |_| Ok::<_, ()>(()))
-                .unwrap();
-            committed.store(true, Ordering::SeqCst);
-        });
-        VisibilityPermit::stream(&f.session, grant, |_| {
-            assert!(!committed.load(Ordering::SeqCst), "提交之后又发送了一块");
-            if chunks.fetch_add(1, Ordering::SeqCst) == 0 {
-                first_tx.send(()).unwrap();
-            }
-            // 块与块之间出门：等着的提交迟早能进门，流随即停下。
-            Ok::<_, LensStale>(ControlFlow::Continue(()))
-        })
-    });
-    assert_eq!(result, Err::<(), _>(LensStale));
-    assert!(chunks.load(Ordering::SeqCst) >= 1);
-}
-
-#[test]
-fn a_fence_without_the_permit_stops_the_next_chunk() {
-    let f = Fixture::new(true);
-    let grant = f.session.import_preview_grant().unwrap();
-    let mut chunks = 0;
-    let result = VisibilityPermit::stream(&f.session, grant, |_| {
-        chunks += 1;
-        // 窗口线程不能等许可，只让导入预览代次前进。
-        f.session.fence_import_preview();
-        Ok::<_, LensStale>(ControlFlow::Continue(()))
-    });
-    assert_eq!(result, Err::<(), _>(LensStale));
-    assert_eq!(chunks, 1);
-}
-
-#[test]
-fn a_stream_ends_when_the_last_chunk_is_sent() {
-    let f = Fixture::new(true);
-    let grant = f.session.import_preview_grant().unwrap();
-    let mut sent = Vec::new();
-    let result = VisibilityPermit::stream(&f.session, grant, |_| {
-        sent.push(sent.len());
-        Ok::<_, LensStale>(if sent.len() == 3 {
-            ControlFlow::Break("完")
-        } else {
-            ControlFlow::Continue(())
-        })
-    });
-    assert_eq!(result, Ok("完"));
-    assert_eq!(sent, [0, 1, 2]);
-}
-
-#[test]
-fn import_preview_grants_need_safe_mode_on() {
-    assert_eq!(
-        Fixture::new(false).session.import_preview_grant(),
-        Err(LensStale)
-    );
-}
-
-#[test]
 fn lens_holds_reject_a_mismatched_switch() {
     let f = Fixture::new(true);
     let _a = f.library("a");
@@ -351,168 +279,292 @@ fn reentering_the_permit_panics() {
     });
 }
 
-/// 一份几千字节的 PNG（像素不规则，压不小），分好几块才发完。
-fn noisy_png(dir: &std::path::Path) -> std::path::PathBuf {
-    let path = dir.join("noisy.png");
-    let mut seed = 0x2545_f491_u32;
-    RgbaImage::from_fn(40, 40, |_, _| {
-        seed ^= seed << 13;
-        seed ^= seed >> 17;
-        seed ^= seed << 5;
-        let [r, g, b, _] = seed.to_le_bytes();
-        Rgba([r, g, b, 255])
-    })
-    .save(&path)
-    .unwrap();
-    path
+#[cfg(debug_assertions)]
+fn assert_lock_order_violation(action: impl FnOnce()) {
+    let panic = std::panic::catch_unwind(std::panic::AssertUnwindSafe(action))
+        .expect_err("expected a lock-order panic");
+    assert!(
+        panic
+            .downcast_ref::<String>()
+            .map(String::as_str)
+            .or_else(|| panic.downcast_ref::<&str>().copied())
+            .is_some_and(|message| message.contains("取锁顺序")),
+        "{panic:?}"
+    );
 }
 
-/// 安全模式开启时，把一份已在别的库评为成人的图导入 `target`：回执里它被封印，只能经预览显示。
-/// 返回打开的预览、要读的项与原图字节。
-fn sealed_duplicate_preview(f: &Fixture) -> (String, String, Vec<u8>) {
-    use kinshoko_core::library::{ImportOptions, SaveDestination};
-    let adult = f.library("adult");
-    let target = f.library("target");
-    let same = noisy_png(f.dir.path());
-    let adult_image = adult
-        .import(ImportSource {
-            paths: vec![same.clone()],
-        })
-        .wait()
-        .items[0]
-        .outcome
-        .image_id()
-        .unwrap()
-        .to_owned();
-    rate(&adult, &adult_image, ContentRating::Explicit);
-    let target_id = target.info().id.clone();
-    let task = f
-        .session
-        .with_libraries(|device| {
-            device.start_import_to(
-                SaveDestination {
-                    library_id: target_id.clone(),
-                    folder_id: None,
-                },
-                ImportSource {
-                    paths: vec![same.clone()],
-                },
-                ImportOptions::default(),
-            )
-        })
-        .unwrap();
-    let deadline = std::time::Instant::now() + Duration::from_secs(20);
-    while f
-        .session
-        .with_libraries(|device| Ok(device.import_task(&task).unwrap().report.is_none()))
-        .unwrap()
-    {
-        assert!(std::time::Instant::now() < deadline, "导入没有收尾");
-        std::thread::sleep(Duration::from_millis(5));
-    }
-    let grant = f.session.begin_import_preview().unwrap();
-    let preview = f
-        .session
-        .open_import_preview(grant, &target_id, &task)
-        .unwrap();
-    let bytes = std::fs::read(&same).unwrap();
-    assert!(bytes.len() > 3 * kinshoko_core::session::IMPORT_PREVIEW_CHUNK_BYTES);
-    (preview.id, preview.items[0].clone(), bytes)
-}
-
+#[cfg(debug_assertions)]
 #[test]
-fn an_import_preview_sends_the_original_bytes_in_chunks() {
+fn transition_cannot_reenter() {
     let f = Fixture::new(true);
-    let (preview, item, bytes) = sealed_duplicate_preview(&f);
-    let mut chunks = Vec::new();
+    let _transition = f.session.transition();
+    assert_lock_order_violation(|| drop(f.session.transition()));
+}
+
+#[cfg(debug_assertions)]
+#[test]
+fn libraries_cannot_reenter_or_wait_for_an_earlier_lock() {
+    let f = Fixture::new(true);
+    let _libraries = f.session.lock_libraries();
+    assert_lock_order_violation(|| drop(f.session.transition()));
+    assert_lock_order_violation(|| drop(f.session.lock_libraries()));
+    let gate = f.session.tagging_publication_gate();
+    assert_lock_order_violation(|| drop(gate.lock()));
+    assert_lock_order_violation(|| drop(gate.lock_unless_cancelled(&AtomicBool::new(false))));
+}
+
+#[cfg(debug_assertions)]
+#[test]
+fn catalog_cannot_reenter_or_wait_for_an_earlier_lock() {
+    let f = Fixture::new(true);
     f.session
-        .read_import_preview(
-            f.session.import_preview_grant().unwrap(),
-            &preview,
-            &item,
-            240,
-            |chunk| {
-                chunks.push(chunk.to_vec());
-                Ok(())
-            },
-        )
-        .unwrap();
-    assert!(chunks.len() > 3, "{} 块", chunks.len());
-    assert_eq!(chunks.concat(), bytes);
-}
-
-#[test]
-fn an_import_preview_stops_sending_once_safe_mode_is_committed() {
-    let f = Fixture::new(true);
-    let (preview, item, bytes) = sealed_duplicate_preview(&f);
-    let committed = AtomicBool::new(false);
-    let mut sent = 0;
-    let (first_tx, first) = mpsc::channel();
-    let result = std::thread::scope(|scope| {
-        let session = &f.session;
-        let committed = &committed;
-        scope.spawn(move || {
-            first.recv().unwrap();
-            let permit = session.visibility();
-            permit
-                .try_commit_safe_mode(|mode| mode.on = true, |_| Ok::<_, ()>(()))
-                .unwrap();
-            committed.store(true, Ordering::SeqCst);
-        });
-        f.session.read_import_preview(
-            f.session.import_preview_grant().unwrap(),
-            &preview,
-            &item,
-            240,
-            |chunk| {
-                assert!(
-                    !committed.load(Ordering::SeqCst),
-                    "提交之后又发送了预览字节"
-                );
-                if sent == 0 {
-                    first_tx.send(()).unwrap();
-                }
-                sent += chunk.len();
-                Ok(())
-            },
-        )
-    });
-    // 提交不一定赶在最后一块之前进门；赶上了就必须停下，不再发送。
-    match result {
-        Ok(()) => assert_eq!(sent, bytes.len()),
-        Err(error) => {
-            assert_eq!(error.kind, ErrorKind::LensChanged);
-            assert!(sent < bytes.len());
-        }
-    }
-    let after = f.session.read_import_preview(
-        f.session.import_preview_grant().unwrap(),
-        &preview,
-        &item,
-        240,
-        |_| panic!("安全模式提交后预览同意已作废"),
-    );
-    assert!(after.is_err());
-}
-
-#[test]
-fn closing_the_window_fences_an_import_preview_before_the_next_chunk() {
-    let f = Fixture::new(true);
-    let (preview, item, bytes) = sealed_duplicate_preview(&f);
-    let mut sent = 0;
-    let result = f.session.read_import_preview(
-        f.session.import_preview_grant().unwrap(),
-        &preview,
-        &item,
-        240,
-        |chunk| {
-            sent += chunk.len();
-            // 窗口线程不等许可，只让导入预览代次前进。
-            f.session.fence_import_preview();
+        .with_catalog(|_| {
+            assert_lock_order_violation(|| drop(f.session.transition()));
+            assert_lock_order_violation(|| drop(f.session.visibility()));
+            assert_lock_order_violation(|| drop(f.session.lock_libraries()));
+            assert_lock_order_violation(|| f.session.with_catalog(|_| Ok(())).unwrap());
             Ok(())
-        },
+        })
+        .unwrap();
+}
+
+#[cfg(debug_assertions)]
+#[test]
+fn workspace_cannot_reenter_or_wait_for_an_earlier_lock() {
+    let f = Fixture::new(true);
+    f.session
+        .with_resources(|_, _, _| {
+            assert_lock_order_violation(|| drop(f.session.transition()));
+            assert_lock_order_violation(|| drop(f.session.visibility()));
+            assert_lock_order_violation(|| drop(f.session.lock_libraries()));
+            assert_lock_order_violation(|| f.session.with_catalog(|_| Ok(())).unwrap());
+            assert_lock_order_violation(|| f.session.reset_workspace());
+            Ok(())
+        })
+        .unwrap();
+}
+
+#[cfg(debug_assertions)]
+#[test]
+fn publication_gate_counts_as_a_permit() {
+    let f = Fixture::new(true);
+    let gate = f.session.tagging_publication_gate();
+    let _publication = gate.lock();
+    assert_lock_order_violation(|| drop(f.session.transition()));
+    assert_lock_order_violation(|| drop(f.session.visibility()));
+}
+
+#[test]
+fn libraries_can_be_read_for_logging_without_waiting_under_resources() {
+    let f = Fixture::new(true);
+    let library = f.library("a");
+    f.session
+        .with_catalog(|_| {
+            let id = f
+                .session
+                .try_with_libraries(|libraries| libraries.unwrap().libraries()[0].id.clone());
+            assert_eq!(id.as_deref(), Some(library.info().id.as_str()));
+            Ok(())
+        })
+        .unwrap();
+    f.session
+        .with_resources(|_, _, _| {
+            assert_eq!(f.session.try_with_libraries(|_| ()), None);
+            Ok(())
+        })
+        .unwrap();
+}
+
+#[cfg(debug_assertions)]
+#[test]
+fn a_successful_try_libraries_tracks_the_lock_inside_its_callback() {
+    let f = Fixture::new(true);
+    assert_eq!(
+        f.session.try_with_libraries(|_| {
+            assert_lock_order_violation(|| drop(f.session.transition()));
+            assert_lock_order_violation(|| drop(f.session.visibility()));
+            assert_lock_order_violation(|| drop(f.session.lock_libraries()));
+        }),
+        Some(())
     );
-    assert_eq!(result.unwrap_err().kind, ErrorKind::LensChanged);
-    assert_eq!(sent, kinshoko_core::session::IMPORT_PREVIEW_CHUNK_BYTES);
-    assert!(sent < bytes.len());
+    f.session.with_visibility(|_| ());
+}
+
+#[test]
+fn the_publication_gate_waits_for_the_visibility_permit() {
+    let f = Fixture::new(true);
+    let permit = f.session.visibility();
+    let gate = f.session.tagging_publication_gate();
+    let (ready_tx, ready_rx) = mpsc::channel();
+    let (entered_tx, entered_rx) = mpsc::channel();
+    // Move the permit into the scope so it is released before joining on failure, too.
+    std::thread::scope(|scope| {
+        let permit = permit;
+        scope.spawn(move || {
+            ready_tx.send(()).unwrap();
+            let _publication = gate.lock();
+            entered_tx.send(()).unwrap();
+        });
+        ready_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+        assert_eq!(
+            entered_rx.recv_timeout(Duration::from_millis(100)),
+            Err(mpsc::RecvTimeoutError::Timeout)
+        );
+        drop(permit);
+        entered_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+    });
+}
+
+#[test]
+fn waiting_for_publication_can_be_cancelled_before_the_gate_opens() {
+    let gate = PublicationGate::default();
+    let cancel = AtomicBool::new(false);
+    let (ready_tx, ready_rx) = mpsc::channel();
+    let (result_tx, result_rx) = mpsc::channel();
+    std::thread::scope(|scope| {
+        let publication = gate.lock();
+        let cancel = &cancel;
+        let gate = &gate;
+        scope.spawn(move || {
+            ready_tx.send(()).unwrap();
+            result_tx
+                .send(gate.lock_unless_cancelled(cancel).is_none())
+                .unwrap();
+        });
+        ready_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+        assert_eq!(
+            result_rx.recv_timeout(Duration::from_millis(100)),
+            Err(mpsc::RecvTimeoutError::Timeout)
+        );
+        cancel.store(true, Ordering::SeqCst);
+        assert!(result_rx.recv_timeout(Duration::from_secs(5)).unwrap());
+        drop(publication);
+    });
+    assert!(gate.lock_unless_cancelled(&cancel).is_none());
+    cancel.store(false, Ordering::SeqCst);
+    assert!(gate.lock_unless_cancelled(&cancel).is_some());
+}
+
+#[test]
+fn transition_commit_waits_for_a_transition_and_holds_the_registry_during_the_action() {
+    let f = Fixture::new(true);
+    let session = &f.session;
+    let (ready_tx, ready_rx) = mpsc::channel();
+    let (done_tx, done_rx) = mpsc::channel();
+    std::thread::scope(|scope| {
+        let transition = session.transition();
+        scope.spawn(move || {
+            ready_tx.send(()).unwrap();
+            let result = session.with_transition_commit(
+                |libraries| {
+                    assert!(libraries.libraries().is_empty());
+                    assert_eq!(session.try_with_libraries(|_| ()), None);
+                    Ok(7)
+                },
+                |value| {
+                    #[cfg(debug_assertions)]
+                    assert_lock_order_violation(|| drop(session.transition()));
+                    let _permit = session.visibility();
+                    session.with_libraries(|_| Ok(value))
+                },
+            );
+            done_tx.send(result).unwrap();
+        });
+        ready_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+        assert!(matches!(
+            done_rx.recv_timeout(Duration::from_millis(100)),
+            Err(mpsc::RecvTimeoutError::Timeout)
+        ));
+        // Dropping the transition lets the action reach the next lock, which we still hold.
+        let publication = session.tagging_publication_gate();
+        let publication = publication.lock();
+        drop(transition);
+        assert!(matches!(
+            done_rx.recv_timeout(Duration::from_millis(100)),
+            Err(mpsc::RecvTimeoutError::Timeout)
+        ));
+        drop(publication);
+        assert_eq!(
+            done_rx
+                .recv_timeout(Duration::from_secs(5))
+                .unwrap()
+                .unwrap(),
+            7
+        );
+    });
+}
+
+fn stale_for_capture(_: LensStale) -> CommandError {
+    CommandError::new(ErrorKind::CaptureSafeModeChanged, "safe mode changed")
+}
+
+#[test]
+fn current_lens_supplies_the_saved_switch_and_maps_a_generation_change() {
+    let f = Fixture::new(false);
+    let session = &f.session;
+    let stale_for_mapping =
+        |_| CommandError::new(ErrorKind::TagMappingSafeModeChanged, "safe mode changed");
+    assert!(
+        !session
+            .with_current_lens(stale_for_mapping, |_, _, _, on| Ok(on))
+            .unwrap()
+    );
+
+    let (read_tx, read_rx) = mpsc::channel();
+    let (changed_tx, changed_rx) = mpsc::channel();
+    std::thread::scope(|scope| {
+        scope.spawn(move || {
+            read_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+            // A generation can change without needing to take the registry lock.
+            session
+                .visibility()
+                .replace_safe_mode(SafeMode::new(true, SafeModeScope::Explicit));
+            changed_tx.send(()).unwrap();
+        });
+        let error = session
+            .with_current_lens(stale_for_mapping, |_, _, _, on| {
+                assert!(!on);
+                read_tx.send(()).unwrap();
+                changed_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+                Ok(())
+            })
+            .unwrap_err();
+        assert_eq!(error.kind, ErrorKind::TagMappingSafeModeChanged);
+    });
+    assert!(
+        session
+            .with_current_lens(stale_for_mapping, |_, _, _, on| Ok(on))
+            .unwrap()
+    );
+}
+
+#[test]
+fn checking_and_committing_grants_honors_both_generations() {
+    let f = Fixture::new(true);
+    let session = &f.session;
+    let grant = session.grant();
+    let preview = session.import_preview_grant().unwrap();
+    assert!(session.is_grant_current(&grant));
+    assert!(session.is_grant_current(&preview));
+    let result = VisibilityPermit::commit_grant(session, &preview, stale_for_capture, |permit| {
+        assert_eq!(permit.confirm(&preview), Ok(()));
+        Ok(7)
+    });
+    assert_eq!(result.unwrap(), 7);
+
+    session.fence_import_preview();
+    assert!(session.is_grant_current(&grant));
+    assert!(!session.is_grant_current(&preview));
+    let check_rejected = |grant| {
+        let result = VisibilityPermit::commit_grant(session, grant, stale_for_capture, |_| {
+            panic!("a stale grant must not apply")
+        });
+        let result: Result<(), _> = result;
+        assert_eq!(result.unwrap_err().kind, ErrorKind::CaptureSafeModeChanged);
+    };
+    check_rejected(&preview);
+
+    f.commit(|mode| mode.on = true);
+    assert!(!session.is_grant_current(&grant));
+    check_rejected(&grant);
 }

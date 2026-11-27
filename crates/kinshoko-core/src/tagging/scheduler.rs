@@ -20,6 +20,7 @@ use crate::library::{
     CRASHED_REASON, Error as LibraryError, FactSource, FailedTagging, Library, RetryTagging,
     TaggingOutcome,
 };
+use crate::session::PublicationGate;
 
 use super::libraries::TaggingLibraries;
 
@@ -60,7 +61,7 @@ pub struct TaggingConfig {
     pub preferred: Option<Device>,
     /// Optional application publication boundary. Only result writes acquire it;
     /// model loading and inference stay outside. Stop/join callers must release it first.
-    pub publication_gate: Option<Arc<Mutex<()>>>,
+    pub publication_gate: Option<PublicationGate>,
     /// 有全屏程序或演示模式时让出打标（#212）：返回真时结束会话、归还显存，每隔 `poll_interval`
     /// 再看一次，恢复后继续。为空时不检查。
     pub foreground: Option<ForegroundCheck>,

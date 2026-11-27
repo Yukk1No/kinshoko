@@ -311,8 +311,8 @@ impl DeviceLibraries {
         Ok(library)
     }
 
-    /// 画师整理这个库（ADR-0008）：后端只为一个库持有可写句柄，按需切过去。目标库或当前持有者
-    /// 有导入在收尾时不切换、不执行，返回等待；不改画师“上次打开”的库。
+    /// 画师整理这个库（ADR-0008）：多个库可以同时可写，每个库只有一个可写句柄。目标库或活动库
+    /// 有导入在收尾时返回等待，否则按需切换活动库；不改画师“上次打开”的库。
     pub fn organize(&mut self, library_id: &str) -> Result<WriterAccess, DeviceLibraryError> {
         let registration = self
             .libraries()

@@ -367,7 +367,8 @@ fn package_import_uses_the_bound_destination_for_every_member_original() {
 /// The app's final clipboard commit uses the same gate as this real destination library.
 #[test]
 fn package_rating_publication_waits_for_the_final_visibility_commit() {
-    use std::sync::{Arc, Barrier, Mutex, mpsc};
+    use kinshoko_core::PublicationGate;
+    use std::sync::{Arc, Barrier, mpsc};
     use std::time::Duration;
 
     let studio = Studio::new();
@@ -388,11 +389,11 @@ fn package_rating_publication_waits_for_the_final_visibility_commit() {
         None
     );
 
-    let gate = Arc::new(Mutex::new(()));
+    let gate = PublicationGate::default();
     other.library.use_package_publication_gate(gate.clone());
     let ready = Arc::new(Barrier::new(2));
     let (done_tx, done_rx) = mpsc::channel();
-    let permit = gate.lock().unwrap();
+    let permit = gate.lock();
     let (finished_while_held, rating_while_held) = std::thread::scope(|scope| {
         let worker_ready = ready.clone();
         let target = &other;
