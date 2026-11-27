@@ -235,7 +235,7 @@ export function CreateLibrary({
 
 /**
  * 新建图库对话框：已有图库时从图库切换器打开（`opens`，建好后打开它），或叠在订阅对话框上就地新建（只登记不切换）。
- * 建立中不能关掉。放在别的对话框里面渲染时成为它的子对话框，Esc 与点背景只关掉这一层。
+ * 建立中不能关掉。放在别的对话框里面渲染时成为它的子对话框，Esc 只关掉这一层；按 form 规则点背景不关闭。
  */
 export function CreateLibraryDialog({
   opens = false,
