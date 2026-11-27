@@ -1,16 +1,37 @@
-import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from "react";
+import { useEffectEvent, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { motion } from "motion/react";
 import { FolderInput, FolderMinus, RotateCcw, Trash2, X } from "lucide-react";
 import type { BrowseScope } from "../bindings/BrowseScope";
 import type { ImageEdit } from "../bindings/ImageEdit";
-import { editImages, workspaceImage, workspaceSidebar } from "../ipc";
+import type { Sidebar } from "../bindings/Sidebar";
+import {
+  editImages,
+  isCursorExpired,
+  isLensChanged,
+  onWorkspaceChanged,
+  workspaceImage,
+  workspaceSidebar,
+} from "../ipc";
+import { createBackendMirror } from "../ipc/backendMirror";
+import { useBackendMirror } from "../ipc/useBackendMirror";
 import { Dock, type DockItem } from "../ui/Dock";
 import { arcSpring } from "../ui/motion";
 import { MenuItem } from "../ui/Menu";
 import { useReducedMotion } from "../ui/reducedMotion";
 import { flattenFolders, PermanentDeleteConfirm } from "./SelectionPanel";
 import { useToast } from "../ui/Toast";
+
+/** 悬浮栏文件夹菜单的工作区目录镜像：同一资料库与视角共用读取、事件失效、过期重试与防乱序。 */
+const workspaceSidebarMirror = createBackendMirror<string, Sidebar>({
+  read: (key) => {
+    const [libraryId, safeMode] = JSON.parse(key) as [string, boolean];
+    return workspaceSidebar(libraryId, safeMode);
+  },
+  stale: (error) => isCursorExpired(error) || isLensChanged(error),
+  listen: (invalidate) => onWorkspaceChanged(() => invalidate()),
+});
+const workspaceSidebarKey = (libraryId: string | null, safeMode: boolean) => JSON.stringify([libraryId, safeMode]);
 
 /**
  * 多选的悬浮操作栏（#98，#180）：查看器同款 Dock，浮在图片墙底部。读数是“已选 N 张”，每项一格图标：
@@ -50,7 +71,6 @@ export function SelectionBar({
   const { t } = useTranslation("inspector");
   const reduced = useReducedMotion();
   const toast = useToast();
-  const [folders, setFolders] = useState<{ id: string; label: string }[] | null>(null);
   const [purging, setPurging] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const selectionKey = ids.join("\n");
@@ -64,21 +84,17 @@ export function SelectionBar({
   }
 
   const folderLibrary = libraryId ?? acrossLibraries?.folderLibrary ?? null;
-  // biome-ignore lint/correctness/useExhaustiveDependencies(reloadKey): reloadKey 变了要重新读文件夹列表
-  useEffect(() => {
-    if (folderLibrary === null) {
-      setFolders(null);
-      return;
+  const sidebarKey = workspaceSidebarKey(folderLibrary, safeMode);
+  const sidebar = useBackendMirror(workspaceSidebarMirror, sidebarKey, folderLibrary !== null);
+  const folders = sidebar.value ? flattenFolders(sidebar.value.folders) : null;
+  const refreshed = useRef({ key: sidebarKey, reloadKey });
+  useLayoutEffect(() => {
+    const before = refreshed.current;
+    refreshed.current = { key: sidebarKey, reloadKey };
+    if (folderLibrary !== null && before.key === sidebarKey && before.reloadKey !== reloadKey) {
+      workspaceSidebarMirror.invalidate(sidebarKey);
     }
-    let alive = true;
-    workspaceSidebar(folderLibrary, safeMode).then(
-      (s) => alive && setFolders(flattenFolders(s.folders)),
-      () => undefined,
-    );
-    return () => {
-      alive = false;
-    };
-  }, [folderLibrary, reloadKey, safeMode]);
+  }, [folderLibrary, sidebarKey, reloadKey]);
 
   // 观察者只接一次，报告时读这次渲染的 onWidth 与 compact。
   const reportWidth = useEffectEvent((width: number) => onWidth(width, compact));

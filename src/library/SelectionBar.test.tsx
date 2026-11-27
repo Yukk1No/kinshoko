@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { BrowseScope } from "../bindings/BrowseScope";
-import { fakeBackend } from "../test/backend";
+import { fakeBackend, type FakeBackend } from "../test/backend";
 import { SelectionBar } from "./SelectionBar";
 
 const FOLDERS = [{ id: "F1", name: "人物", count: 1, children: [{ id: "F2", name: "发型", count: 0, children: [] }] }];
@@ -12,10 +12,12 @@ function fakeBackendImages(folders: Record<string, string[]>) {
   imageFolders = folders;
 }
 
+let fake: FakeBackend;
+
 function backend(folders: unknown[] = FOLDERS) {
   const edits: unknown[] = [];
   imageFolders = {};
-  fakeBackend({
+  fake = fakeBackend({
     image: (args) => ({
       folders: (imageFolders[args.imageId as string] ?? []).map((id) => ({ id, name: id })),
     }),
@@ -96,6 +98,66 @@ describe("多选悬浮栏（#180）", () => {
     await waitFor(() => expect(put).toHaveProperty("disabled", false));
     rerender(<SelectionBar {...props} reloadKey={1} />);
     expect(put).toHaveProperty("disabled", false);
+  });
+
+  it("workspace_sidebar 遇到游标过期时重试，成功后文件夹可用", async () => {
+    backend();
+    let calls = 0;
+    fake.on("workspace_sidebar", () => {
+      calls++;
+      if (calls === 1) return Promise.reject({ code: "cursorExpired" });
+      return { all: 2, trash: 0, folders: FOLDERS };
+    });
+    const { bar } = renderBar();
+
+    await waitFor(() =>
+      expect(within(bar).getByRole("button", { name: "移到文件夹" })).toHaveProperty("disabled", false),
+    );
+    expect(calls).toBe(2);
+  });
+
+  it("reloadKey 重读时先发的旧目录响应迟到，不覆盖新目录", async () => {
+    backend();
+    const pending: Array<(value: unknown) => void> = [];
+    fake.on(
+      "workspace_sidebar",
+      () =>
+        new Promise<unknown>((resolve) => {
+          pending.push(resolve);
+        }),
+    );
+    const props = {
+      libraryId: "L1",
+      scope: { kind: "all" } as BrowseScope,
+      ids: ["a", "b"],
+      onClear: () => {},
+      onError: () => {},
+      left: 0,
+      onWidth: () => {},
+    };
+    const { rerender } = render(<SelectionBar {...props} reloadKey={0} />);
+    await waitFor(() => expect(pending).toHaveLength(1));
+
+    rerender(<SelectionBar {...props} reloadKey={1} />);
+    await waitFor(() => expect(pending).toHaveLength(2));
+    const oldSidebar = {
+      all: 2,
+      trash: 0,
+      folders: [{ id: "old", name: "旧文件夹", count: 1, children: [] }],
+    };
+    const newSidebar = {
+      all: 2,
+      trash: 0,
+      folders: [{ id: "new", name: "新文件夹", count: 1, children: [] }],
+    };
+    await act(async () => pending[1](newSidebar));
+    await act(async () => pending[0](oldSidebar));
+
+    const put = screen.getByRole("button", { name: "移到文件夹" });
+    await waitFor(() => expect(put).toHaveProperty("disabled", false));
+    fireEvent.click(put);
+    expect(await screen.findByRole("menuitem", { name: /新文件夹/ })).toBeTruthy();
+    expect(screen.queryByRole("menuitem", { name: /旧文件夹/ })).toBeNull();
   });
 
   it("没有文件夹时“放入文件夹”禁用", async () => {
