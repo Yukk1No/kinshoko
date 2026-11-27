@@ -28,7 +28,7 @@ pub(super) fn forward_events<R: Runtime>(
     library.set_safe_mode(saved_safe_mode(app));
     took("装配：安全模式", started, None);
     let started = std::time::Instant::now();
-    if let Err(error) = with_catalog(state.search(), |catalog| {
+    if let Err(error) = state.session.with_catalog(|catalog| {
         took("装配：等统一标签目录", started, None);
         catalog.synchronize(&library)
     }) {

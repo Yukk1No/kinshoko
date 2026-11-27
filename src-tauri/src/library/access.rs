@@ -65,42 +65,36 @@ pub(super) fn restore<R: Runtime>(
     use kinshoko_core::diagnostics::took;
     let started = std::time::Instant::now();
     let state = app.state::<LibraryState>();
-    let _transition = state.session.transition();
-    let first = state
-        .session
-        .try_with_libraries(|libraries| libraries.is_none_or(|l| l.current().is_none()))
-        .unwrap_or(true);
-    if first {
-        took("打开资料库：等切换锁", started, None);
-    }
-    let opening = std::time::Instant::now();
-    let opened = with_visibility_commit(app, |_| {
-        with_libraries(&state, |libraries| {
+    state.session.with_transition_commit(
+        |libraries| {
+            let first = libraries.current().is_none();
             if first {
-                took("打开资料库：等登记表", opening, None);
+                took("打开资料库：等切换锁、可见性许可与登记表", started, None);
             }
-            let switching = std::time::Instant::now();
+            let opening = std::time::Instant::now();
             let opened = libraries.restore_last_opened();
             if first {
-                took("打开资料库：打开上次的库", switching, None);
+                took("打开资料库：打开上次的库", opening, None);
             }
-            opened
-        })
-    })?;
-    if first {
-        took("打开资料库：打开并核对可见性", opening, None);
-    }
-    if let Some(library) = &opened {
-        let forwarding = std::time::Instant::now();
-        forward_events(app, &state, library.clone());
-        if first {
-            took("打开资料库：装配（安全模式、打标、事件）", forwarding, None);
-        }
-    }
-    if first {
-        took("打开资料库：合计", started, None);
-    }
-    Ok(opened)
+            opened.map(|library| (library, first, opening))
+        },
+        |(opened, first, opening)| {
+            if first {
+                took("打开资料库：打开并核对可见性", opening, None);
+            }
+            if let Some(library) = &opened {
+                let forwarding = std::time::Instant::now();
+                forward_events(app, &state, library.clone());
+                if first {
+                    took("打开资料库：装配（安全模式、打标、事件）", forwarding, None);
+                }
+            }
+            if first {
+                took("打开资料库：合计", started, None);
+            }
+            Ok(opened)
+        },
+    )
 }
 
 /// 活动资料库，还没打开时打开本设备上次打开的资料库。供其他模块（例如收藏截图）使用；
@@ -120,19 +114,20 @@ pub fn writable<R: Runtime>(
     let state = app.state::<LibraryState>();
     wait_for_writer(
         || {
-            let _transition = state.session.transition();
-            let access = with_visibility_commit(app, |_| {
-                with_libraries(&state, |libraries| libraries.organize(library_id))
-            })?;
-            if let WriterAccess::Ready {
-                library,
-                switched: true,
-            } = &access
-            {
-                let info = forward_events(app, &state, library.clone());
-                publish(app, AppNotice::WritableLibraryChanged(info));
-            }
-            Ok::<_, CommandError>(access)
+            state.session.with_transition_commit(
+                |libraries| libraries.organize(library_id),
+                |access| {
+                    if let WriterAccess::Ready {
+                        library,
+                        switched: true,
+                    } = &access
+                    {
+                        let info = forward_events(app, &state, library.clone());
+                        publish(app, AppNotice::WritableLibraryChanged(info));
+                    }
+                    Ok(access)
+                },
+            )
         },
         |notice| {
             publish(app, AppNotice::OrganizeWaiting(notice.clone()));
@@ -219,18 +214,19 @@ pub fn register_restored<R: Runtime>(
     roots: &[PathBuf],
 ) -> Result<(), CommandError> {
     let state = app.state::<LibraryState>();
-    let _transition = state.session.transition();
-    with_visibility_commit(app, |_| {
-        with_libraries(&state, |libraries| {
+    state.session.with_transition_commit(
+        |libraries| {
             for root in roots {
                 libraries.add_registration(root)?;
             }
             Ok(())
-        })
-    })?;
-    state.release_readers();
-    publish(app, AppNotice::RegistryChanged);
-    Ok(())
+        },
+        |()| {
+            state.release_readers();
+            publish(app, AppNotice::RegistryChanged);
+            Ok(())
+        },
+    )
 }
 
 /// Current authority generation for native capture actions.
@@ -251,7 +247,9 @@ pub fn revoke_import_preview_context<R: Runtime>(app: &AppHandle<R>) {
     app.state::<LibraryState>().session.fence_import_preview();
     let app = app.clone();
     tauri::async_runtime::spawn_blocking(move || {
-        with_visibility_commit(&app, |permit| permit.revoke_import_preview())
+        app.state::<LibraryState>()
+            .session
+            .with_visibility(|permit| permit.revoke_import_preview())
     });
 }
 
