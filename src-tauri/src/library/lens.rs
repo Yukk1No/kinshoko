@@ -1,37 +1,10 @@
-//! 命令取资源锁、核对安全模式的入口（#526）：[`with_lens`] 按 [`Hold`] 取锁并复核，
-//! [`commit_safe_mode`] 是提交安全模式的一方。两者都转发给 [`kinshoko_core::WorkspaceSession`]，
-//! 取锁顺序与复核规则在那里（`kinshoko_core::session` 的模块说明）。
+//! 命令取资源锁、核对安全模式的入口（#526）：[`commit_safe_mode`] 是提交安全模式的一方。
+//! 取锁顺序与复核规则在 [`kinshoko_core::WorkspaceSession`]（`kinshoko_core::session` 的模块说明）。
 //! 主线程回调不能等可见性许可或 ShellState：登记与原生窗口创建可能同步派发到主线程。
 
 use super::*;
 use kinshoko_core::CommandError;
 pub(super) use kinshoko_core::session::Hold;
-use kinshoko_core::workspace::Workspace;
-
-/// 按 `hold` 取资源锁并核对安全模式，在锁里调用 `f`。开关 `safe` 与设置不一致、或按 `hold`
-/// 复核时安全模式变过，得到 [`kinshoko_core::library::Error::LensChanged`]。
-#[track_caller]
-#[allow(dead_code)] // #795 移除
-pub(super) fn with_lens<R: Runtime, T>(
-    app: &AppHandle<R>,
-    safe: bool,
-    hold: Hold,
-    f: impl FnOnce(&mut Workspace, &mut DeviceLibraries, &mut TagCatalog) -> Result<T, CatalogError>,
-) -> Result<T, CommandError> {
-    with_lens_at(app, safe, hold, Location::caller(), f)
-}
-
-pub(super) fn with_lens_at<R: Runtime, T>(
-    app: &AppHandle<R>,
-    safe: bool,
-    hold: Hold,
-    site: &'static Location<'static>,
-    f: impl FnOnce(&mut Workspace, &mut DeviceLibraries, &mut TagCatalog) -> Result<T, CatalogError>,
-) -> Result<T, CommandError> {
-    app.state::<LibraryState>()
-        .session
-        .with_lens_at(safe, hold, site, f)
-}
 
 /// 提交一次安全模式改动（开关或范围）：在可见性许可里经
 /// [`kinshoko_core::VisibilityPermit::try_commit_safe_mode`] 先作废进行中的视角与导入预览，再调用
