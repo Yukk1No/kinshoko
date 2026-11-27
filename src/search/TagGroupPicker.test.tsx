@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TagGroupPicker } from "./TagGroupPicker";
-import { fakeBackend } from "../test/backend";
+import { fakeBackend, type FakeBackend } from "../test/backend";
 
 const tag = (id: string, name: string) => ({
   tag: { id, name, namespace: "general", untranslated: false, hasExternal: false },
@@ -29,9 +29,11 @@ const settle = () =>
     await new Promise((r) => setTimeout(r, 0));
   });
 
+let backend: FakeBackend;
+
 beforeEach(() => {
   groups = [hair, eyes];
-  fakeBackend({ tag_groups: () => groups });
+  backend = fakeBackend({ tag_groups: () => groups });
 });
 
 const open = async () => {
@@ -174,5 +176,41 @@ describe("标签分组面板（#607）", () => {
     view.rerender(bar({ safe: true }));
     expect(screen.queryByRole("button", { name: /蓝发/ })).toBeNull();
     expect(popup()).toBeNull();
+  });
+
+  it("workspace_tag_groups 遇到游标过期时重试，成功后显示分组", async () => {
+    let calls = 0;
+    backend.on("workspace_tag_groups", () => {
+      calls++;
+      if (calls === 1) return Promise.reject({ code: "cursorExpired" });
+      return groups;
+    });
+    render(bar({ workspace: true }));
+
+    await waitFor(() => expect(calls).toBe(2));
+    await open();
+    expect(await screen.findByRole("button", { name: /蓝发/ })).toBeTruthy();
+  });
+
+  it("词表重读时先发的旧分组响应迟到，不覆盖新分组", async () => {
+    const pending: Array<(value: unknown) => void> = [];
+    backend.on(
+      "workspace_tag_groups",
+      () =>
+        new Promise<unknown>((resolve) => {
+          pending.push(resolve);
+        }),
+    );
+    const view = render(bar({ workspace: true, generation: 0 }));
+    await waitFor(() => expect(pending).toHaveLength(1));
+
+    view.rerender(bar({ workspace: true, generation: 1 }));
+    await waitFor(() => expect(pending).toHaveLength(2));
+    await act(async () => pending[1]([eyes]));
+    await act(async () => pending[0]([hair]));
+
+    await open();
+    expect(await screen.findByRole("button", { name: /红瞳/ })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /蓝发/ })).toBeNull();
   });
 });

@@ -132,7 +132,9 @@ describe("订阅画师", () => {
     const dialog = await openArtistDialog();
     const subscribe = within(dialog).getByRole("button", { name: "订阅" }) as HTMLButtonElement;
     expect(subscribe.disabled).toBe(true);
-    fireEvent.change(within(dialog).getByRole("textbox", { name: "画师主页链接或 ID" }), {
+    const input = within(dialog).getByRole("textbox", { name: "画师主页链接或 ID" });
+    await waitFor(() => expect(document.activeElement).toBe(input));
+    fireEvent.change(input, {
       target: { value: "https://www.pixiv.net/users/777" },
     });
     expect(within(dialog).getByRole("status", { name: "正在查找" })).toBeTruthy();

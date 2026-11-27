@@ -45,8 +45,9 @@ fn files(dir: &std::path::Path, libraries: &[&Library], red: u8) -> Vec<String> 
 
 #[test]
 fn browse_can_read_a_page_while_file_import_waits_to_publish() {
+    use kinshoko_core::PublicationGate;
     use kinshoko_core::library::LibraryEvent;
-    use std::sync::{Arc, Mutex, mpsc::RecvTimeoutError};
+    use std::sync::mpsc::RecvTimeoutError;
     use std::time::Duration;
 
     let dir = tempfile::tempdir().unwrap();
@@ -66,10 +67,10 @@ fn browse_can_read_a_page_while_file_import_waits_to_publish() {
     RgbaImage::from_pixel(4, 3, Rgba([22, 34, 56, 255]))
         .save(&path)
         .unwrap();
-    let gate = Arc::new(Mutex::new(()));
+    let gate = PublicationGate::default();
     library.use_package_publication_gate(gate.clone());
     let events = library.events();
-    let browse_guard = gate.lock().unwrap();
+    let browse_guard = gate.lock();
     let task = library.import(ImportSource { paths: vec![path] });
     assert!(matches!(
         events.recv_timeout(Duration::from_secs(5)).unwrap(),

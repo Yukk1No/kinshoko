@@ -391,9 +391,7 @@ impl Worker {
                 // Only publication joins the application's final side-effect boundary.
                 // Inference and model loading above must never hold it.
                 let gate = self.config.publication_gate.clone();
-                let publication = gate
-                    .as_ref()
-                    .map(|gate| gate.lock().unwrap_or_else(|error| error.into_inner()));
+                let publication = gate.as_ref().map(PublicationGate::lock);
                 // 资料库取消登记与写入都在闸门里：取消之后不再写进它。
                 let registered = self.libraries.library_ids().contains(&library.info().id);
                 if self.shared.interrupted() || !registered {

@@ -7,13 +7,54 @@
 //! 把这三步封在一起，调用方只写准备与生效。
 
 use std::ops::ControlFlow;
-use std::sync::atomic::Ordering;
-use std::sync::{Arc, MutexGuard};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex, MutexGuard, TryLockError};
+use std::time::Duration;
 
 use super::{WorkspaceSession, lock, order};
 use crate::library::SafeMode;
 use crate::safe_mode::{Lens, LensStale, SafeModeSnapshot};
 use crate::{CommandError, Library};
+
+/// 导入、打标与可见性许可共用的发布门。克隆后仍是同一扇门。
+#[derive(Debug, Clone, Default)]
+pub struct PublicationGate(Arc<Mutex<()>>);
+
+/// 持有发布门，放下即出门。门内可以取更高一级的锁。
+pub struct PublicationGuard<'a> {
+    _guard: MutexGuard<'a, ()>,
+    _order: order::Held,
+}
+
+impl PublicationGate {
+    pub fn lock(&self) -> PublicationGuard<'_> {
+        let order = order::Held::permit();
+        PublicationGuard {
+            _guard: lock(&self.0),
+            _order: order,
+        }
+    }
+
+    /// 等发布门时检查取消标记。取消时放弃发布，返回 `None`。
+    pub fn lock_unless_cancelled(&self, cancel: &AtomicBool) -> Option<PublicationGuard<'_>> {
+        let order = order::Held::permit();
+        while !cancel.load(Ordering::SeqCst) {
+            let guard = match self.0.try_lock() {
+                Ok(guard) => guard,
+                Err(TryLockError::Poisoned(error)) => error.into_inner(),
+                Err(TryLockError::WouldBlock) => {
+                    std::thread::sleep(Duration::from_millis(2));
+                    continue;
+                }
+            };
+            return (!cancel.load(Ordering::SeqCst)).then_some(PublicationGuard {
+                _guard: guard,
+                _order: order,
+            });
+        }
+        None
+    }
+}
 
 /// 一次操作开始时记下的授权：安全模式视角，需要时还有导入预览代次。进门后经
 /// [`VisibilityPermit::confirm`] 复核；其间有过任何一次安全模式提交（包括重复设成同一值）或
@@ -40,23 +81,28 @@ impl Grant {
     pub fn lens(&self) -> Lens {
         self.lens
     }
+
+    pub(super) fn confirm(&self, session: &WorkspaceSession) -> Result<(), LensStale> {
+        self.lens.confirm(&session.safe_mode)?;
+        match self.import_preview {
+            Some(taken) if session.import_preview.load(Ordering::SeqCst) != taken => Err(LensStale),
+            _ => Ok(()),
+        }
+    }
 }
 
 /// 在可见性许可的门内，见模块说明。经 [`WorkspaceSession::visibility`] 取得，放下即出门。
 /// 门内可以取资源锁，不能再进门或等切换锁。
 pub struct VisibilityPermit<'a> {
     session: &'a WorkspaceSession,
-    _guard: MutexGuard<'a, ()>,
-    _order: order::Held,
+    _guard: PublicationGuard<'a>,
 }
 
 impl<'a> VisibilityPermit<'a> {
     pub(super) fn enter(session: &'a WorkspaceSession) -> Self {
-        let order = order::Held::permit();
         Self {
-            _guard: lock(&session.visibility),
+            _guard: session.visibility.lock(),
             session,
-            _order: order,
         }
     }
 
@@ -67,13 +113,7 @@ impl<'a> VisibilityPermit<'a> {
 
     /// 复核 `grant` 仍然有效：安全模式没有提交过，需要时导入预览也没有作废过。
     pub fn confirm(&self, grant: &Grant) -> Result<(), LensStale> {
-        grant.lens.confirm(&self.session.safe_mode)?;
-        match grant.import_preview {
-            Some(taken) if self.session.import_preview.load(Ordering::SeqCst) != taken => {
-                Err(LensStale)
-            }
-            _ => Ok(()),
-        }
+        grant.confirm(self.session)
     }
 
     /// 作废进行中的视角与导入预览，设置不变（例如整份设置即将被替换时）。
@@ -160,9 +200,19 @@ impl<'a> VisibilityPermit<'a> {
         prepared: P,
         apply: impl FnOnce(&VisibilityPermit<'_>, P) -> Result<T, E>,
     ) -> Result<T, E> {
+        Self::commit_grant(session, grant, E::from, |permit| apply(permit, prepared))
+    }
+
+    /// 准备已在门外完成。在门内复核授权并生效，授权失效时由调用方指定错误。
+    pub fn commit_grant<T, E>(
+        session: &'a WorkspaceSession,
+        grant: &Grant,
+        stale: impl FnOnce(LensStale) -> E,
+        apply: impl FnOnce(&VisibilityPermit<'_>) -> Result<T, E>,
+    ) -> Result<T, E> {
         let permit = session.visibility();
-        permit.confirm(grant)?;
-        apply(&permit, prepared)
+        permit.confirm(grant).map_err(stale)?;
+        apply(&permit)
     }
 
     /// 对一张图做对外动作：门外经 [`WorkspaceSession::visible_source`] 取到它的资料库并调用

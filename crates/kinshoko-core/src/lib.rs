@@ -41,7 +41,7 @@ pub use device_libraries::{
     OrganizeWaiting, WriterAccess, WriterWaitError, wait_for_writer,
 };
 pub use library::Library;
-pub use session::{VisibilityPermit, WorkspaceSession};
+pub use session::{PublicationGate, VisibilityPermit, WorkspaceSession};
 pub use settings::{
     AppSettings, SettingChange, SettingsError, SettingsSnapshot, ShortcutAction, TagDisplay,
     TagStyle, ViewerBackground,
