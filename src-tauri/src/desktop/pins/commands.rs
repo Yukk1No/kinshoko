@@ -3,6 +3,8 @@
 use super::*;
 use kinshoko_core::CommandError;
 
+use crate::blocking::blocking;
+
 /// 光标处的一个点，作为钉剪贴板和从历史钉住时的“原位置”。
 pub(super) fn at_cursor(
     app: &AppHandle,
@@ -70,25 +72,24 @@ pub fn copy_to_clipboard(app: &AppHandle, image: &RgbaImage) -> Result<(), Comma
 
 #[tauri::command]
 pub async fn pin_clipboard(app: AppHandle) -> Result<(), CommandError> {
-    tauri::async_runtime::spawn_blocking(move || {
-        logged(PinSource::Clipboard, || pin_from_clipboard(&app))
-    })
-    .await
-    .map_err(CommandError::system)?
+    blocking(move || logged(PinSource::Clipboard, || pin_from_clipboard(&app))).await
 }
 
 /// 从截图历史钉住一张截图，放在光标旁。
 #[tauri::command]
 pub async fn pin_capture(app: AppHandle, id: String) -> Result<(), CommandError> {
-    logged(PinSource::Capture, || {
-        let entry = lock(&state(&app).history)
-            .entries()
-            .into_iter()
-            .find(|e| e.id == id)
-            .ok_or_else(pin_capture_gone)?;
-        let at = at_cursor(&app, entry.width, entry.height)?;
-        open(&app, &entry, at).map(|_| ())
+    blocking(move || {
+        logged(PinSource::Capture, || {
+            let entry = lock(&state(&app).history)
+                .entries()
+                .into_iter()
+                .find(|e| e.id == id)
+                .ok_or_else(pin_capture_gone)?;
+            let at = at_cursor(&app, entry.width, entry.height)?;
+            open(&app, &entry, at).map(|_| ())
+        })
     })
+    .await
 }
 
 /// 钉住一张图；成功时在运行日志里记下用了多久（#219）。
@@ -117,13 +118,12 @@ pub async fn pin_reference(
     crop: Option<Region>,
     shown: ScreenRect,
 ) -> Result<(), CommandError> {
-    tauri::async_runtime::spawn_blocking(move || {
+    blocking(move || {
         logged(PinSource::Reference, || {
             pin_reference_here(&app, &window, &library_id, &image_id, crop, shown)
         })
     })
     .await
-    .map_err(CommandError::system)?
 }
 
 /// 画师确认显示这一张被遮蔽的参考图：遮蔽淡出，直到安全模式再次开启或钉图关闭。
