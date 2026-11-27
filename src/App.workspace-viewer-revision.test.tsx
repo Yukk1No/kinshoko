@@ -159,6 +159,21 @@ it("新工作区快照上的图片已双击打开，迟到的同一修订通知�
   expect(viewer.querySelector("img")?.getAttribute("src")).toBe("http://thumb.localhost/A/a/full");
 });
 
+it("后台收进新图让修订前进，正在看的图还在：查看器留着，不退回图片墙（#807）", async () => {
+  const state = workspace();
+  const viewer = await open();
+  Object.assign(state, { initialRevision: "r3", wallRevision: "r3" });
+  const browsed = fake.calls("workspace_browse").length;
+  const detailed = fake.calls("image").length;
+  await act(() => emit("workspace-changed", status("r3")));
+  // 图片墙按新修订重读，查看器也重新查过这张图，之后仍开着。
+  await waitFor(() => expect(fake.calls("workspace_browse").length).toBeGreaterThan(browsed));
+  await waitFor(() => expect(fake.calls("image").length).toBeGreaterThan(detailed));
+  await act(async () => {});
+  expect(screen.getByRole("region", { name: "原图查看器" })).toBe(viewer);
+  expect(viewer.querySelector("img")?.getAttribute("src")).toBe("http://thumb.localhost/A/a/full");
+});
+
 it("真正的新修订撤销正在查看的旧图片，重读后不再显示已失效的内容", async () => {
   const state = workspace();
   await open();

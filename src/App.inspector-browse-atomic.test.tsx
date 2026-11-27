@@ -6,7 +6,7 @@ import { doubleClick } from "./App.fixtures";
 import type { WorkspaceCard } from "./bindings/WorkspaceCard";
 import { card, libraries, source, start, tile, viewed, viewer } from "./App.inspector.fixtures";
 
-it("新修订的原子交付换掉叠放封面时，关查看器的同一帧按新卡片把选择收回到新封面", async () => {
+it("新修订的原子交付换掉叠放封面时，正在看的那页还在就接着看（#807），回到图片墙时选择落在新封面", async () => {
   const page = (id: string) => card(id, source("L1", `i-${id}`));
   const stack = (pages: WorkspaceCard[]) => ({ ...pages[0], set: { key: "pixiv:1", pages } }) as WorkspaceCard;
   let current = {
@@ -36,6 +36,8 @@ it("新修订的原子交付换掉叠放封面时，关查看器的同一帧按�
   };
   await act(() => emit("library-event", { kind: "listStale", libraryId: "L1" }));
   await waitFor(() => expect(tile("b0")).toBeTruthy());
-  expect(screen.queryByRole("region", { name: "原图查看器" })).toBeNull();
+  await viewed("L1/i-s1");
+  fireEvent.keyDown(viewer(), { key: "Escape" });
+  await waitFor(() => expect(screen.queryByRole("region", { name: "原图查看器" })).toBeNull());
   expect(tile("b0").getAttribute("aria-selected")).toBe("true");
 });

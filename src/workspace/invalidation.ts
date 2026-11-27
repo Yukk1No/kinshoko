@@ -84,8 +84,11 @@ const act = (state: InvalidationState, decision: Partial<Decision>): Outcome => 
   decision: { ...NOTHING, ...decision },
 });
 
-/** 修订前进后的整套动作：撤销旧内容、关查看器、读完后修剪、重读、刷新词表。 */
-const REVISION_ADVANCED: Partial<Decision> = { closeViewer: true, reload: true, refreshVocabulary: true };
+/**
+ * 修订前进后的整套动作：撤销旧内容、读完后修剪、重读、刷新词表。查看器不在这里关：后台收图也会让修订
+ * 前进（#807）。重读推进 reloadKey，查看器借此重新查正在看的图，查不到（删除、封印）才自己回到图片墙。
+ */
+const REVISION_ADVANCED: Partial<Decision> = { reload: true, refreshVocabulary: true };
 
 export function decide(state: InvalidationState, event: InvalidationEvent): Outcome {
   switch (event.kind) {
