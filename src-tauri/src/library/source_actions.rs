@@ -16,11 +16,18 @@ pub(super) async fn workspace_edit_sources<R: Runtime>(
     blocking(move || {
         let results = each_library(group_sources(&targets), |batch| {
             let writer = writable(&app, &batch.library_id)?;
-            with_lens(&app, safe_mode, Hold::Commit, |w, d, c| {
-                w.write_sources_with(d, c, &batch.targets, safe_mode, &writer, |library, ids| {
-                    library.edit(ids, &edits).map(|_| ())
+            app.state::<LibraryState>()
+                .session
+                .with_lens(safe_mode, Hold::Commit, |w, d, c| {
+                    w.write_sources_with(
+                        d,
+                        c,
+                        &batch.targets,
+                        safe_mode,
+                        &writer,
+                        |library, ids| library.edit(ids, &edits).map(|_| ()),
+                    )
                 })
-            })
         });
         if results.iter().any(|(_, result)| result.is_ok()) {
             app.state::<LibraryState>().search().invalidate();
@@ -58,9 +65,12 @@ pub(super) async fn workspace_source_group<R: Runtime>(
         ))
     });
     blocking(move || {
-        let pin = with_lens(&app, safe_mode, Hold::Commit, |w, d, c| {
-            w.source_reference(d, c, &target, safe_mode)
-        })?;
+        let pin =
+            app.state::<LibraryState>()
+                .session
+                .with_lens(safe_mode, Hold::Commit, |w, d, c| {
+                    w.source_reference(d, c, &target, safe_mode)
+                })?;
         crate::desktop::add_to_reference_group(&app, &group_id, pin, centre)
             .ok_or_else(groups_not_ready)?
     })

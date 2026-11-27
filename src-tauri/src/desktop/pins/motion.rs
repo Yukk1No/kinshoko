@@ -96,7 +96,7 @@ pub(super) fn mark_closing(app: &AppHandle, pin: &str) {
 /// 关闭钉图（Esc、菜单、Alt+F4）：先把关闭意图写进桌面上的参考组，窗口动作交给对齐模块。
 /// 在别的线程上调用。
 pub(super) fn close(app: &AppHandle, pin: &str) {
-    let history_updated = crate::library::with_visibility_commit(app, |_| {
+    let history_updated = crate::library::workspace_session(app).with_visibility(|_| {
         mark_closing(app, pin);
         let updated = lock(&state(app).store).close(pin, &mut lock(&state(app).history));
         state(app).dirty.store(true, Ordering::Relaxed);
@@ -110,7 +110,7 @@ pub(super) fn close(app: &AppHandle, pin: &str) {
 
 /// 收掉本次运行的钉图记录（窗口可能已经关了，也可能关闭还在路上）。
 fn retire(app: &AppHandle, pin: &str) {
-    crate::library::with_visibility_commit(app, |_| {
+    crate::library::workspace_session(app).with_visibility(|_| {
         lock(&state(app).pins).remove(pin);
         lock(&state(app).veils).forget(pin);
         lock(&state(app).edge).release(pin);

@@ -59,9 +59,9 @@ pub(super) async fn read_import_preview<R: Runtime>(
 pub(super) fn receipts<R: Runtime>(
     app: &AppHandle<R>,
 ) -> Result<Vec<kinshoko_core::ImportTaskSnapshot>, CommandError> {
-    let state = app.state::<LibraryState>();
-    let lens = state.safe_mode().lens();
-    let receipts = workspace::with_resources(&state, |w, d, c| w.import_receipts(d, c, lens.on()))?;
-    lens.confirm(state.safe_mode())?;
-    Ok(receipts)
+    app.state::<LibraryState>()
+        .session
+        .with_current_lens(CommandError::from, |w, d, c, safe| {
+            w.import_receipts(d, c, safe)
+        })
 }
