@@ -87,6 +87,22 @@ export function fakeBackend(replies: Replies = {}): FakeBackend {
       const reply = table.get(name);
       const result = await (typeof reply === "function" ? reply(given) : reply);
       if (isSettingsView(result)) settings = result;
+      // 浏览与目录的回应嵌着完整工作区状态快照（useBrowseResults 会把它接受进状态镜像）。用例写页时
+      // 往往只关心修订号、把登记列表留空；后端不会在有登记时回报空列表，这里按当下的登记回答补齐（#780）。
+      if (result && typeof result === "object" && !Array.isArray(result)) {
+        const status = (result as Record<string, unknown>).status;
+        if (status && typeof status === "object" && !Array.isArray(status)) {
+          const shape = status as { libraries?: unknown };
+          if (Array.isArray(shape.libraries) && shape.libraries.length === 0 && table.has("registered_libraries")) {
+            const registrationReply = table.get("registered_libraries");
+            const registrations = await (typeof registrationReply === "function"
+              ? registrationReply({})
+              : registrationReply);
+            if (Array.isArray(registrations))
+              return { ...(result as Record<string, unknown>), status: { ...shape, libraries: registrations } };
+          }
+        }
+      }
       return result;
     },
     { shouldMockEvents: true },

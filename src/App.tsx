@@ -12,8 +12,9 @@ import { DialogShell } from "./ui/DialogShell";
 import type { AppInfo } from "./bindings/AppInfo";
 import type { ShellSettingsView } from "./bindings/ShellSettingsView";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
-import type { WorkspaceStatus } from "./bindings/WorkspaceStatus";
-import { appInfo, openLastLibrary, workspaceStatus, onWorkspaceChanged, safeMode, changeSetting, uiScale } from "./ipc";
+import { appInfo, openLastLibrary, safeMode, changeSetting, uiScale } from "./ipc";
+import { useBackendMirror } from "./ipc/useBackendMirror";
+import { workspaceStatusKey, workspaceStatusMirror } from "./workspace/workspaceStatusMirror";
 import { useOpenInKinshoko } from "./desktop/openInKinshoko";
 import { useDeskGroupStarted } from "./desktop/useDeskGroupStarted";
 import { CreateLibraryDialog } from "./library/CreateLibrary";
@@ -236,21 +237,13 @@ function MainWindow() {
     return () => toast.close(id);
   }, [openError, toast]);
 
+  // 工作区状态镜像（#780）：读取、事件订阅、退订、防乱序与过期重试都在镜像里，这里只把镜像译成“有没有图库”。
+  const workspace = useBackendMirror(workspaceStatusMirror, workspaceStatusKey(lensSafe));
   useEffect(() => {
-    let alive = true;
-    const accept = (status: WorkspaceStatus) => {
-      if (alive) setHasProviders(status.libraries.length > 0);
-    };
+    if (workspace.value !== null) setHasProviders(workspace.value.libraries.length > 0);
     // 读不到时进工作区，由它显示读取错误。
-    workspaceStatus(lensSafe).then(accept, () => {
-      if (alive) setHasProviders((known) => known ?? true);
-    });
-    const stop = onWorkspaceChanged(accept);
-    return () => {
-      alive = false;
-      void stop.then((stop) => stop());
-    };
-  }, [lensSafe]);
+    else if (workspace.error !== null) setHasProviders((known) => known ?? true);
+  }, [workspace.value, workspace.error]);
 
   useMainPageKeymap({
     setSection,
@@ -258,25 +251,10 @@ function MainWindow() {
     subscriptionsOn: () => subscriptions.onRef.current,
   });
 
-  const appAlive = useRef(true);
-  useEffect(() => {
-    appAlive.current = true;
-    return () => {
-      appAlive.current = false;
-    };
-  }, []);
-  const changedSeq = useRef(0);
   const changed = (added: LibraryInfo | null) => {
     if (added) setHasProviders(true);
-    const request = ++changedSeq.current;
-    workspaceStatus(lensSafe).then(
-      (status) => {
-        if (appAlive.current && request === changedSeq.current) setHasProviders(status.libraries.length > 0);
-      },
-      () => {
-        // 忽略失败：工作区状态稍后由工作区自身重读。
-      },
-    );
+    // 登记变化后让镜像重读：有没有图库以读回的真相为准。
+    workspaceStatusMirror.invalidate(workspaceStatusKey(lensSafe));
     setOpenError(null);
     setShowCreate(false);
   };
