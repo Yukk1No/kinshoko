@@ -90,7 +90,10 @@
 .k-wizard .k-dialog-foot {
   margin-top: 4px;
 }
-.k-dialog-foot.is-tight {
+.k-preview-pagination {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-top: 0;
 }
 .k-steps-row {
