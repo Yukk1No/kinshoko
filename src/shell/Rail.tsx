@@ -8,7 +8,7 @@ import { RailImagesIcon, RailInboxIcon, RailViewfinderIcon, type RailIcon } from
 import { SealBook } from "./SealBookToggle";
 import { BrandMark } from "../ui/BrandMark";
 import { Tip } from "../ui/Tip";
-import { captureHistory, onCaptureHistory, onReferenceGroupsChanged, referenceGroups } from "../ipc";
+import { useCaptureHistory, useReferenceGroups } from "../desktop/desktopMirrors";
 
 export type Section = "browse" | "groups" | "captures" | "subscriptions";
 type Props = {
@@ -36,35 +36,15 @@ const count = (list: readonly unknown[]) => (list.length > 0 ? list.length : und
 
 /** 参考组与截图历史的数量（原型的深色数字角标）；图片与文件夹没有角标。 */
 function useBadges(): Partial<Record<Section, number>> {
-  const [groups, setGroups] = useState<number>();
-  const [captures, setCaptures] = useState<number>();
-  useEffect(() => {
-    let alive = true;
-    const reloadGroups = () =>
-      referenceGroups().then(
-        (list) => alive && setGroups(count(list)),
-        () => {},
-      );
-    reloadGroups();
-    captureHistory().then(
-      (list) => alive && setCaptures(count(list)),
-      () => {},
-    );
-    const stopGroups = onReferenceGroupsChanged(reloadGroups);
-    const stopCaptures = onCaptureHistory((list) => alive && setCaptures(count(list)));
-    return () => {
-      alive = false;
-      void stopGroups.then(
-        (stop) => stop(),
-        () => {},
-      );
-      void stopCaptures.then(
-        (stop) => stop(),
-        () => {},
-      );
-    };
-  }, []);
-  return { groups, captures };
+  // 角标是次要信息：首帧之后再订阅，避免镜像在根组件挂载期间同步发布加载态，迫使整个 App 先重渲染。
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const groups = useReferenceGroups(mounted).value;
+  const captures = useCaptureHistory(mounted).value;
+  return {
+    groups: groups ? count(groups) : undefined,
+    captures: captures ? count(captures) : undefined,
+  };
 }
 
 /** The icon rail the brief asked for: names on hover and focus, the selection always visible,

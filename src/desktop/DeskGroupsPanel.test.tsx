@@ -241,6 +241,23 @@ describe("参考组面板（参考组改成桌面）", () => {
     expect(ipc.repin).toHaveBeenCalledWith("g1", "m1");
   });
 
+  it("参考组变化时重读桌面上那组的成员，钉回后“已关闭”立即消失（#778）", async () => {
+    members = [member("m1"), member("m2", { pinned: false })];
+    await show(lists({ recent: [hair] }));
+    expect(
+      within(screen.getByRole("group", { name: "头发 的成员" })).getByRole("button", { name: "已关闭 1 张" }),
+    ).toBeTruthy();
+    const reads = ipc.group.mock.calls.length;
+
+    members = [member("m1"), member("m2")];
+    await changed(lists({ recent: [hair] }));
+
+    expect(ipc.group.mock.calls.length).toBe(reads + 1);
+    expect(
+      within(screen.getByRole("group", { name: "头发 的成员" })).queryByRole("button", { name: /已关闭/ }),
+    ).toBeNull();
+  });
+
   it("收藏的组：成员留在原位，已关闭的变淡", async () => {
     members = [member("m1", { pinned: false }), member("m2")];
     await show(lists({ favorites: [hair] }));

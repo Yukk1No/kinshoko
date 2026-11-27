@@ -8,28 +8,11 @@ import { Tooltip } from "@base-ui/react/tooltip";
 import { BookmarkCheck, BookmarkPlus, Copy, Pin, Trash2, X } from "lucide-react";
 import { MenuItem, MenuPopup, MenuSeparator } from "../ui/Menu";
 import type { CaptureEntry } from "../bindings/CaptureEntry";
-import {
-  captureHistory,
-  captureUrl,
-  collectCapture,
-  copyCapture,
-  deleteCapture,
-  onCaptureHistory,
-  pinCapture,
-} from "../ipc";
+import { captureUrl, collectCapture, copyCapture, deleteCapture, pinCapture } from "../ipc";
 import { ago } from "./relativeTime";
 import { formatMoment } from "../i18n/format";
 import { errorText } from "../ipc/commandError";
-import { createBackendMirror } from "../ipc/backendMirror";
-import { useBackendMirror } from "../ipc/useBackendMirror";
-
-const CAPTURE_HISTORY_KEY = "capture-history";
-
-/** 截图历史的后端镜像（#761）：事件携带完整历史，直接接受，先发出的旧读取不能盖掉它。 */
-const captureHistoryMirror = createBackendMirror<typeof CAPTURE_HISTORY_KEY, CaptureEntry[]>({
-  read: () => captureHistory(),
-  listen: (_invalidate, accept) => onCaptureHistory((entries) => accept(CAPTURE_HISTORY_KEY, entries)),
-});
+import { useCaptureHistory } from "./desktopMirrors";
 
 /** 当天只显示时间，其他天带日期，免得跨天的两条同是“09:05”分不清。 */
 const time = (ms: number) => formatMoment(ms, { todayAsTime: true });
@@ -72,7 +55,7 @@ export function CaptureHistoryPanel({
   request?: { id: string; stamp: number } | null;
   onRequestHandled?: () => void;
 }) {
-  const { value: entries, error } = useBackendMirror(captureHistoryMirror, CAPTURE_HISTORY_KEY);
+  const { value: entries, error } = useCaptureHistory();
   const [collecting, setCollecting] = useState<string | null>(null);
   useEffect(() => {
     if (request) {

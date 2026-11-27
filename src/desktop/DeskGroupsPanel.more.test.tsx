@@ -269,17 +269,17 @@ describe("参考组面板的“更多”", () => {
     expect(screen.getByRole("button", { name: "导入参考组包" })).toBeTruthy();
   });
 
-  it("ReferenceGroups 与 DeskNewGroupButton 同屏渲染时共享订阅，只发一次读取与监听（#716）", async () => {
+  it("ReferenceGroups 与 DeskNewGroupButton 同屏渲染时共享名单读取；名单与成员镜像各有一份监听（#716）", async () => {
     await show(lists({ recent: [hair] }));
     expect(screen.getByText("头发")).toBeTruthy();
     expect(ipc.lists).toHaveBeenCalledTimes(1);
-    expect(ipc.changed).toHaveLength(1);
+    expect(ipc.changed).toHaveLength(2);
   });
 
   it("全部卸载后重置快照并退订，再挂载时重新订阅（#716）", async () => {
     await show(lists({ recent: [hair] }));
     expect(screen.getByText("头发")).toBeTruthy();
-    expect(ipc.changed).toHaveLength(1);
+    expect(ipc.changed).toHaveLength(2);
     cleanup();
     expect(ipc.changed).toHaveLength(0);
 
@@ -300,6 +300,7 @@ describe("参考组面板的“更多”", () => {
     expect(document.querySelector(".reference-groups")?.getAttribute("aria-busy")).toBe("true");
     expect(screen.queryByText("头发")).toBeNull();
     expect(ipc.lists).toHaveBeenCalledTimes(2);
+    // 名单还没读回来时只有名单镜像在听；成员镜像等面板挂上再来。
     expect(ipc.changed).toHaveLength(1);
 
     await act(async () => {
@@ -307,5 +308,6 @@ describe("参考组面板的“更多”", () => {
     });
     await flush();
     expect(screen.getByText("头发")).toBeTruthy();
+    expect(ipc.changed).toHaveLength(2);
   });
 });

@@ -1,11 +1,12 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import { Rail } from "./Rail";
+import { CaptureHistoryPanel } from "../desktop/CaptureHistoryPanel";
 import { sealBookSVG } from "./sealbook";
 import { fakeBackend } from "../test/backend";
 
 function backend(groups: unknown[], captures: unknown[]) {
-  fakeBackend({ reference_groups: groups, capture_history: captures });
+  return fakeBackend({ reference_groups: groups, capture_history: captures });
 }
 
 afterEach(async () => {
@@ -50,6 +51,28 @@ describe("图标轨", () => {
     await waitFor(() => expect(within(screen.getByRole("button", { name: "参考组" })).getByText("2")).toBeTruthy());
     expect(within(screen.getByRole("button", { name: "截图" })).getByText("3").className).toContain("k-badge");
     expect(screen.getByRole("button", { name: "图片与文件夹" }).querySelector(".k-badge")).toBeNull();
+  });
+
+  it("图标轨与截图面板共用同一份截图历史镜像（#778）", async () => {
+    const fake = backend([], []);
+    render(
+      <>
+        <Rail
+          section="browse"
+          paneOpen
+          safeMode={false}
+          onSection={() => {}}
+          onSafeMode={() => {}}
+          onSettings={() => {}}
+        />
+        <CaptureHistoryPanel />
+      </>,
+    );
+
+    await screen.findByText("还没有截图。");
+
+    expect(fake.calls("capture_history")).toHaveLength(1);
+    expect(fake.calls("reference_groups")).toHaveLength(1);
   });
 
   it("选中项只用 aria-current 与 aria-expanded，不同时声明 aria-pressed", () => {
