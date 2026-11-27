@@ -21,16 +21,42 @@ const stopAll = (listeners: Promise<() => void>[]) =>
     for (const stop of stops) stop();
   });
 
+let catalogReads = 0;
+let catalogReread = false;
+
+function finishCatalogRead() {
+  catalogReads--;
+  if (catalogReads > 0 || !catalogReread) return;
+  catalogReread = false;
+  tagCatalogMirror.invalidate(TAG_CATALOG_KEY);
+}
+
+/** 目录检查很重：读取在途时事件与手动重读只记 dirty，结束后补读一次，不把请求堆进后端。 */
+function requestTagCatalogRead() {
+  if (catalogReads > 0) {
+    catalogReread = true;
+    return;
+  }
+  tagCatalogMirror.invalidate(TAG_CATALOG_KEY);
+}
+
 /** 统一标签目录的共享后端镜像（#793）：设置、重名提示与标签对应检查共用读取、事件订阅与防乱序。 */
-export const tagCatalogMirror = createBackendMirror<typeof TAG_CATALOG_KEY, TagCatalogWorkspace>({
-  read: () => inspectTagCatalog(),
+const tagCatalogMirror = createBackendMirror<typeof TAG_CATALOG_KEY, TagCatalogWorkspace>({
+  read: async () => {
+    catalogReads++;
+    try {
+      return await inspectTagCatalog();
+    } finally {
+      finishCatalogRead();
+    }
+  },
   stale: (error) => isErrorCode(error, "tagMappingSafeModeChanged"),
-  listen: (invalidate) =>
+  listen: () =>
     stopAll([
       onLibraryEvent((event) => {
-        if (event.kind === "vocabularyChanged") invalidate(TAG_CATALOG_KEY);
+        if (event.kind === "vocabularyChanged") requestTagCatalogRead();
       }),
-      onSafeModeSetting(() => invalidate(TAG_CATALOG_KEY)),
+      onSafeModeSetting(() => requestTagCatalogRead()),
     ]),
 });
 
@@ -43,7 +69,7 @@ export function acceptTagCatalog(next: TagCatalogWorkspace) {
 }
 
 export function invalidateTagCatalog() {
-  tagCatalogMirror.invalidate(TAG_CATALOG_KEY);
+  requestTagCatalogRead();
 }
 
 const LEGACY_NAMES_KEY = "legacy-names-plan";
@@ -63,7 +89,7 @@ function runLegacyReread(reread: LegacyReread) {
   if (currentLegacyReread !== reread) return;
   reread.timer = undefined;
   if (!reread.stale) return;
-  // 自动打标会连续写词表：在途读取结束后再等 200ms 补读一次，不把请求堆进后端（#142）。
+  // 自动打标会连续写词表：在途读取结束后再等 200ms 补读一次，不把请求堆进后端。
   if (legacyReads > 0) return;
   reread.stale = false;
   reread.invalidate();

@@ -66,6 +66,49 @@ describe("统一标签目录镜像", () => {
     second.unmount();
   });
 
+  it("在途读取期间的词表事件合流，单飞补读并拿到最终状态", async () => {
+    let state = catalog(1);
+    const reads: { answer: TagCatalogWorkspace; resolve: (value: TagCatalogWorkspace) => void }[] = [];
+    fakeBackend({
+      inspect_tag_catalog: () =>
+        new Promise<TagCatalogWorkspace>((resolve) => {
+          reads.push({ answer: structuredClone(state), resolve });
+        }),
+    });
+    const view = renderHook(() => useTagCatalog(true));
+    await vi.waitFor(() => expect(reads).toHaveLength(1));
+    await act(async () => {
+      reads[0].resolve(reads[0].answer);
+      await Promise.resolve();
+    });
+    await vi.waitFor(() => expect(view.result.current.value?.catalog.revision).toBe(1));
+
+    await act(async () => {
+      await emit("library-event", { kind: "vocabularyChanged", libraryId: "a", revision: 2 });
+    });
+    await vi.waitFor(() => expect(reads).toHaveLength(2));
+    state = catalog(2);
+    for (const revision of [3, 4, 5]) {
+      await act(async () => {
+        await emit("library-event", { kind: "vocabularyChanged", libraryId: "a", revision });
+      });
+    }
+    expect(reads).toHaveLength(2);
+
+    await act(async () => {
+      reads[1].resolve(reads[1].answer);
+      await Promise.resolve();
+    });
+    await vi.waitFor(() => expect(reads).toHaveLength(3));
+    await act(async () => {
+      reads[2].resolve(reads[2].answer);
+      await Promise.resolve();
+    });
+    await vi.waitFor(() => expect(view.result.current.value?.catalog.revision).toBe(2));
+    expect(reads).toHaveLength(3);
+    view.unmount();
+  });
+
   it("enabled 为 false 时不读；写入成功后 accept 直接交付，不再重读", async () => {
     const backend = fakeBackend({ inspect_tag_catalog: () => catalog(1) });
     const view = renderHook(({ enabled }) => useTagCatalog(enabled), { initialProps: { enabled: false } });

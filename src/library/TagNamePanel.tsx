@@ -86,8 +86,10 @@ export function TagNamePanel({ focus }: { focus?: string } = {}) {
   useEffect(() => {
     if (!reloading || catalog.refreshing) return;
     setReloading(false);
-    setWithheld(false);
-  }, [reloading, catalog.refreshing]);
+    // 只有这次当前视角读成功才解除隐藏；失败时旧快照仍不能露出来。
+    if (catalog.error === null) setWithheld(false);
+    else setActionError(errorText(catalog.error));
+  }, [reloading, catalog.refreshing, catalog.error]);
   const workspace = withheld || reloading ? null : catalog.value;
   const busy = writeBusy || reloading || (!withheld && catalog.refreshing);
   const mirrorError =

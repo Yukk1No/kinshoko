@@ -80,6 +80,29 @@ it("discards a late name edit result when safe mode changes", async () => {
   expect(screen.queryByRole("listitem", { name: /分缝发型/ })).toBeNull();
 });
 
+it("keeps the old safety lens hidden when reloading after a safe-mode switch fails", async () => {
+  const data = workspace();
+  let failing = false;
+  fakeBackend({
+    inspect_tag_catalog: () => {
+      if (failing) throw { code: "message", message: "目录暂时读不到" };
+      return data;
+    },
+  });
+  render(<TagNamePanel />);
+  expect(await screen.findByRole("listitem", { name: /分缝发型/ })).toBeTruthy();
+
+  failing = true;
+  await act(async () => {
+    await emit("safe-mode-setting", true);
+  });
+  expect(screen.queryByRole("listitem", { name: /分缝发型/ })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "读取标签" }));
+
+  await screen.findByText("目录暂时读不到");
+  expect(screen.queryByRole("listitem", { name: /分缝发型/ })).toBeNull();
+});
+
 it("edits one selected tag at a time and finds it by a separate alias in a large catalog", async () => {
   const data = workspace();
   data.catalog.tags = Array.from({ length: 150 }, (_, index) => ({
