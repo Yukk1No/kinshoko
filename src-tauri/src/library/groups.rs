@@ -62,12 +62,20 @@ pub(super) async fn edit_shared_tag_group<R: Runtime>(
     safe_mode: bool,
 ) -> Result<(), CommandError> {
     blocking(move || {
-        app.state::<LibraryState>().session.with_lens(
+        let mut committed = false;
+        let outcome = app.state::<LibraryState>().session.with_lens(
             safe_mode,
             Hold::Confirmed,
-            |workspace, device, catalog| workspace.edit_group(device, catalog, &edit, safe_mode),
-        )?;
-        publish(&app, AppNotice::TagGroupsChanged);
+            |workspace, device, catalog| {
+                workspace.edit_group(device, catalog, &edit, safe_mode)?;
+                committed = true;
+                Ok(())
+            },
+        );
+        if committed {
+            publish(&app, AppNotice::TagGroupsChanged);
+        }
+        outcome?;
         Ok(())
     })
     .await

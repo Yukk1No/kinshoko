@@ -48,7 +48,7 @@ pub(super) async fn confirm_legacy_names<R: Runtime>(
     blocking(move || {
         let state = app.state::<LibraryState>();
         let grant = state.session.grant();
-        let result = state.session.with_current_lens(
+        let result = match state.session.with_current_lens(
             |_| safe_mode_changed(),
             |workspace, libraries, catalog, safe| {
                 let current = view(workspace, catalog, libraries, safe)?;
@@ -58,11 +58,18 @@ pub(super) async fn confirm_legacy_names<R: Runtime>(
                 catalog.confirm_name_migration(&current.plan, &decisions)?;
                 view(workspace, catalog, libraries, safe)
             },
-        )?;
+        ) {
+            Ok(result) => Some(result),
+            Err(error) if error.kind == ErrorKind::NameMigrationSafeModeChanged => None,
+            Err(error) => return Err(error),
+        };
         names::refresh_labels(&app, &state)?;
         if !state.session.is_grant_current(&grant) {
             return Err(safe_mode_changed());
         }
+        let Some(result) = result else {
+            return Err(safe_mode_changed());
+        };
         Ok(result)
     })
     .await

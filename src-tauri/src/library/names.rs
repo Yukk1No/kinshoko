@@ -77,7 +77,7 @@ pub(super) async fn edit_tag_name<R: Runtime>(
         let state = app.state::<LibraryState>();
         let grant = state.session.grant();
         // 经共享的工作区读可见目录（#337）：复用它的快照。
-        let result = state.session.with_current_lens(
+        let result = match state.session.with_current_lens(
             |_| tag_names_safe_mode_changed(),
             |workspace, libraries, catalog, safe| {
                 let visible = workspace.inspect_catalog(libraries, catalog, safe)?;
@@ -100,11 +100,18 @@ pub(super) async fn edit_tag_name<R: Runtime>(
                 }
                 workspace.inspect_catalog(libraries, catalog, safe)
             },
-        )?;
+        ) {
+            Ok(result) => Some(result),
+            Err(error) if error.kind == ErrorKind::TagNamesSafeModeChanged => None,
+            Err(error) => return Err(error),
+        };
         refresh_labels(&app, &state)?;
         if !state.session.is_grant_current(&grant) {
             return Err(tag_names_safe_mode_changed());
         }
+        let Some(result) = result else {
+            return Err(tag_names_safe_mode_changed());
+        };
         Ok(result)
     })
     .await

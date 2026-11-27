@@ -21,12 +21,19 @@ pub(super) async fn edit_shared_approx<R: Runtime>(
     safe_mode: bool,
 ) -> Result<(), CommandError> {
     blocking(move || {
-        app.state::<LibraryState>()
-            .session
-            .with_lens(safe_mode, Hold::Confirmed, |w, d, c| {
-                w.edit_approx(d, c, &edit, safe_mode)
-            })?;
-        publish(&app, AppNotice::PersonalApproxChanged);
+        let mut committed = false;
+        let outcome =
+            app.state::<LibraryState>()
+                .session
+                .with_lens(safe_mode, Hold::Confirmed, |w, d, c| {
+                    w.edit_approx(d, c, &edit, safe_mode)?;
+                    committed = true;
+                    Ok(())
+                });
+        if committed {
+            publish(&app, AppNotice::PersonalApproxChanged);
+        }
+        outcome?;
         Ok(())
     })
     .await
