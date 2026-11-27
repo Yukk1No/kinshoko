@@ -10,7 +10,7 @@ pub fn content_definitions<R: Runtime>(
     app: &AppHandle<R>,
 ) -> Result<CatalogInspection, CommandError> {
     let state = app.state::<LibraryState>();
-    with_catalog(state.search(), |catalog| catalog.inspect())
+    state.session.with_catalog(|catalog| catalog.inspect())
 }
 
 /// Reuse T09's registered, identity-checked writable pool without activating the provider.
@@ -24,18 +24,17 @@ pub fn publish_definition_dependencies<R: Runtime>(
     let library = with_libraries(&state, |libraries| libraries.write(library_id))?;
     state.configure_library(&library);
     library.set_safe_mode(saved_safe_mode(app));
-    with_catalog(state.search(), |catalog| {
-        catalog.publish_library_definitions(&library)
-    })
+    state
+        .session
+        .with_catalog(|catalog| catalog.publish_library_definitions(&library))
 }
 
 #[tauri::command]
 pub(super) async fn publish_tag_definitions<R: Runtime>(
     app: AppHandle<R>,
-    state: State<'_, LibraryState>,
     library_id: String,
 ) -> Result<TagCatalogWorkspace, CommandError> {
-    let lens = state.safe_mode().lens();
+    let grant = app.state::<LibraryState>().session.grant();
     let worker = app.clone();
     let result = blocking(move || {
         publish_definition_dependencies(&worker, &library_id).map_err(|error| {
@@ -46,13 +45,17 @@ pub(super) async fn publish_tag_definitions<R: Runtime>(
             )
         })?;
         publish(&worker, AppNotice::LibraryWriteCommitted);
-        let state = worker.state::<LibraryState>();
-        workspace::with_resources(&state, |workspace, libraries, catalog| {
-            workspace.inspect_catalog(libraries, catalog, lens.on())
-        })
-    }).await?;
-    lens.confirm(state.safe_mode())
-        .map_err(|_| mapping_safe_mode_changed())?;
+        worker.state::<LibraryState>().session.with_current_lens(
+            |_| mapping_safe_mode_changed(),
+            |workspace, libraries, catalog, safe| {
+                workspace.inspect_catalog(libraries, catalog, safe)
+            },
+        )
+    })
+    .await?;
+    if !app.state::<LibraryState>().session.is_grant_current(&grant) {
+        return Err(mapping_safe_mode_changed());
+    }
     Ok(result)
 }
 
@@ -67,10 +70,12 @@ pub fn export_package<R: Runtime>(
     // Take the reference registry snapshot before the catalog lock. Workspace readers take
     // libraries then catalog; holding catalog while reading libraries would invert that order.
     with_references(app, |references| {
-        with_catalog(state.search(), |catalog| {
-            Ok(groups.export_package_with_catalog(group_id, references, path, catalog))
-        })?
-        .map_err(CommandError::from)
+        state
+            .session
+            .with_catalog(|catalog| {
+                Ok(groups.export_package_with_catalog(group_id, references, path, catalog))
+            })?
+            .map_err(CommandError::from)
     })?;
     Ok(())
 }
@@ -88,10 +93,10 @@ pub fn import_package<R: Runtime>(
         .map_err(CommandError::from)?;
     // Per-image rating publication already uses this gate. No package IO or decoding is
     // performed while holding either lock; always take the final gate before the catalog.
-    with_visibility_commit(app, |_| {
-        with_catalog(state.search(), |catalog| {
-            catalog.publish_library_definitions(library)
-        })
+    state.session.with_visibility(|_| {
+        state
+            .session
+            .with_catalog(|catalog| catalog.publish_library_definitions(library))
     })
     .map_err(|error| {
         CommandError::caused_by(

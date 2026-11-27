@@ -35,7 +35,7 @@ pub(super) async fn export_application_settings<R: Runtime>(
     blocking(move || {
         let state = app.state::<LibraryState>();
         let _transition = state.session.transition();
-        with_catalog(state.search(), |catalog| {
+        state.session.with_catalog(|catalog| {
             let shell_state = app.state::<ShellState>();
             let shell = lock(&shell_state.0);
             Ok(ApplicationSettingsBackup::export(
@@ -62,11 +62,11 @@ pub(super) async fn restore_application_settings<R: Runtime>(
     blocking(move || {
         let state = app.state::<LibraryState>();
         let _transition = state.session.transition();
-        with_visibility_commit(&app, |permit| {
+        state.session.with_visibility(|permit| {
             // Invalidate before waiting for catalog readers; keep final sends/copies excluded
             // through the replacement and desktop reset, even when the mode stays the same.
             permit.revoke();
-            let (view, safe, device, mut problems) = with_catalog(state.search(), |catalog| {
+            let (view, safe, device, mut problems) = state.session.with_catalog(|catalog| {
                 let shell_state = app.state::<ShellState>();
                 let mut shell = lock(&shell_state.0);
                 let previous = shell.settings.clone();
@@ -138,7 +138,10 @@ pub(super) async fn restore_application_settings<R: Runtime>(
                 ));
             }
             // Keep the restore receipt's diagnostic. Only the monitor publishes revisions.
-            if let Err(error) = with_lens(&app, safe, Hold::Read, |w, d, c| w.status(d, c, safe)) {
+            if let Err(error) = state
+                .session
+                .with_lens(safe, Hold::Read, |w, d, c| w.status(d, c, safe))
+            {
                 problems.push(CommandError::caused_by(
                     error,
                     |cause| ErrorKind::LibraryListNotRefreshed { cause },
